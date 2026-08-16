@@ -1,0 +1,30 @@
+# ============================================================
+#  توجيه كل الطلبات إلى index.php  (روابط نظيفة)
+#  لو استضافتك لا تدعم mod_rewrite استخدم الشكل:
+#     /api/index.php?r=services
+# ============================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /api/
+
+    # لا توجّه الملفات أو المجلدات الموجودة فعلاً
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
+
+# حماية الملفات الحساسة من الوصول المباشر
+<FilesMatch "^(config\.php|db\.php|install\.sql|seed\.json|README\.md)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# ترميز عربي سليم
+AddDefaultCharset UTF-8
