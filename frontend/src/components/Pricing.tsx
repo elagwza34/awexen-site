@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Check, Crown, ShieldCheck, Sparkles } from "lucide-react";
+import { Check, Crown, MessageCircle, ShieldCheck } from "lucide-react";
 import { useContent } from "../context/ContentContext";
 import { Reveal, SectionHeading, Spotlight } from "./ui";
 import { cn } from "../utils/cn";
 
 type Mode = "once" | "split";
+
+const WHATSAPP_NUMBER = "201092400443";
 
 export default function Pricing() {
   const { plans } = useContent();
@@ -72,8 +73,27 @@ export default function Pricing() {
         </Reveal>
 
         <div className="mt-12 grid items-stretch gap-6 lg:grid-cols-3">
-          {plans.map((p, i) => (
-            <Reveal key={p.name} delay={i * 110}>
+          {plans.map((p, i) => {
+            const paymentDetails =
+              mode === "once"
+                ? `دفعة واحدة: ${priceOf(p.price)} ${p.currency}`
+                : `3 دفعات: ${priceOf(p.price)} ${p.currency} لكل دفعة\nالإجمالي: ${p.price} ${p.currency}`;
+            const whatsappMessage = [
+              "مرحباً، أرغب في الاستفسار عن إحدى خطط Awexen:",
+              "",
+              `الخطة: ${p.name}`,
+              `الوصف: ${p.desc}`,
+              `طريقة الدفع: ${paymentDetails}`,
+              "",
+              "مميزات الخطة:",
+              ...p.features.map((feature) => `• ${feature}`),
+              "",
+              "أرغب في معرفة خطوات البدء والتفاصيل المتاحة.",
+            ].join("\n");
+            const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappMessage)}`;
+
+            return (
+              <Reveal key={p.name} delay={i * 110}>
               <Spotlight
                 className={cn(
                   "group relative flex h-full flex-col rounded-3xl border p-7 transition-all duration-400 hover:-translate-y-2 sm:p-8",
@@ -177,8 +197,11 @@ export default function Pricing() {
                   ))}
                 </ul>
 
-                <Link
-                  to="/contact"
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`اطلب خطة ${p.name} عبر واتساب`}
                   className={cn(
                     "relative mt-8 inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[15px] font-bold transition-all duration-300",
                     p.featured
@@ -186,12 +209,13 @@ export default function Pricing() {
                       : "border-2 border-ink-900 text-ink-900 hover:border-brand-500 hover:bg-brand-500 hover:text-white",
                   )}
                 >
-                  <Sparkles className="h-4 w-4" />
-                  {p.cta}
-                </Link>
+                  <MessageCircle className="h-4 w-4" />
+                  اطلب عبر واتساب
+                </a>
               </Spotlight>
-            </Reveal>
-          ))}
+              </Reveal>
+            );
+          })}
         </div>
 
         <Reveal delay={140}>

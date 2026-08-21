@@ -306,44 +306,20 @@ export function Logo({ dark = false }: { dark?: boolean }) {
   return (
     <Link
       to="/"
-      className="group flex items-center gap-2.5"
+      className="group inline-flex shrink-0 items-center"
       aria-label="awexen — الصفحة الرئيسية"
     >
-      <span className="relative grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 shadow-lg shadow-brand-500/30 transition-transform duration-300 group-hover:scale-105">
-        <span className="absolute inset-0 opacity-30 [background:radial-gradient(circle_at_30%_20%,#fff,transparent_60%)]" />
-        <svg
-          viewBox="0 0 24 24"
-          className="relative h-5 w-5 text-white"
-          fill="none"
-          aria-hidden="true"
-        >
-          <path
-            d="M4 19 L9.5 5 L14 15 L17 9 L20 19"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
-      <span className="flex flex-col leading-none">
-        <span
-          className={cn(
-            "text-[19px] font-extrabold tracking-tight",
-            dark ? "text-white" : "text-ink-900",
-          )}
-        >
-          awexen<span className="text-brand-500">.</span>
-        </span>
-        <span
-          className={cn(
-            "mt-0.5 text-[10px] font-medium tracking-[0.22em]",
-            dark ? "text-white/45" : "text-ink-400",
-          )}
-        >
-          DIGITAL AGENCY
-        </span>
-      </span>
+      <img
+        src={
+          dark
+            ? "/images/awexen%20(1).png"
+            : "/images/awexen%20(2).png"
+        }
+        alt="Awexen — Build, Innovate, Grow"
+        width="1240"
+        height="322"
+        className="h-10 w-auto max-w-[165px] object-contain transition-transform duration-300 group-hover:scale-[1.03] sm:h-11 sm:max-w-[185px]"
+      />
     </Link>
   );
 }
