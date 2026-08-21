@@ -1,0 +1,20 @@
+# Frontend dependencies and builds
+node_modules/
+dist/
+
+# Local environment files (may contain server-side secrets later)
+.env
+.env.*
+!.env.example
+
+# Python / Django
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+db.sqlite3
+
+# Editors and local tooling
+.vscode/
+.idea/
+*.local

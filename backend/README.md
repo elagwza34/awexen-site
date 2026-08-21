@@ -1,189 +1,68 @@
-# 🗄️ ربط الموقع بقاعدة بيانات على استضافتك
+# Django + Supabase backend
 
-هذا المجلد يحوّل الموقع من **محتوى ثابت داخل الكود** إلى **محتوى مُدار من قاعدة بيانات MySQL على استضافتك أنت** — بدون أي خدمة خارجية.
+هذا المسار مخصص لخادم Python/Django فقط. الواجهة الأمامية لا تستخدم أي خادم آخر.
 
----
+مخطط Supabase الحالي موجود في `sql/contact_messages_table.sql`.
 
-## ❓ الوضع الحالي
+## المعمارية المعتمدة
 
-المشروع **لا يحتوي على قاعدة بيانات**. كل المحتوى مكتوب في:
+- React/Vite يعرض الموقع ويستخدم مفتاح Supabase العام للعمليات المسموح بها عبر RLS.
+- Supabase يوفر PostgreSQL وAuth وStorage.
+- لوحة الإدارة الحالية تسجل الدخول عبر Supabase Auth وتقرأ الرسائل بسياسة RLS مخصصة لدور `admin`.
+- Django ينفذ العمليات الموثوقة، والصلاحيات المتقدمة، وأي تكاملات تحتاج أسرارًا.
+- مفتاح `service_role` واتصال قاعدة البيانات يظلان داخل خادم Django، ولا يوضعان في أي متغير يبدأ بـ `VITE_`.
 
-```
-src/data/site.ts        ← الإحصائيات، المشاريع، الباقات، الآراء، بيانات التواصل
-src/data/services.ts    ← الخدمات الـ 10 بكل تفاصيلها
-```
-
-بعد تنفيذ الخطوات التالية سيقرأ الموقع المحتوى من **قاعدة بياناتك**.
-
----
-
-## 🔁 كيف يبدّل الموقع بين المصدرين؟
-
-الملف `src/lib/api.ts` يقرأ متغيراً واحداً فقط:
-
-| قيمة `VITE_API_BASE_URL` في `.env` | النتيجة |
-| --- | --- |
-| فارغ / غير موجود | 📁 البيانات المحلية (الوضع الحالي) |
-| `https://موقعك/api` | 🗄️ قاعدة البيانات على استضافتك |
-
-> **مهم:** لو فشل الاتصال بالسيرفر، أو رجع جدول فارغ، يعود الموقع تلقائياً للبيانات المحلية. لن يظهر الموقع فارغاً أبداً.
-
-### الدمج التدريجي
-عند جلب خدمة من قاعدة البيانات، أي حقل تتركه فارغاً (مثلاً `faqs`) يُقرأ من الملف المحلي لنفس الـ `slug`. أي يمكنك نقل البيانات على مراحل.
-
----
-
-## 📦 محتويات المجلد
-
-```
-backend/
-├── config.php     ← ⚙️ الملف الوحيد الذي تعدّله (بيانات الاتصال)
-├── db.php         ← دوال الاتصال و CORS (لا يُعدّل)
-├── index.php      ← نقطة دخول الـ API (لا يُعدّل)
-├── seed.php       ← استيراد المحتوى دفعة واحدة (احذفه بعد الاستخدام)
-├── install.sql    ← إنشاء الجداول
-└── .htaccess      ← روابط نظيفة + حماية الملفات
-```
-
----
-
-## 🚀 خطوات التركيب
-
-### 1) أنشئ قاعدة البيانات
-من **cPanel › MySQL Databases**:
-- أنشئ قاعدة بيانات، مثال: `awexen_main`
-- أنشئ مستخدماً، مثال: `awexen_user`
-- اربط المستخدم بالقاعدة واعطه **ALL PRIVILEGES**
-
-### 2) أنشئ الجداول
-**phpMyAdmin › اختر القاعدة › Import** → ارفع `install.sql` → Go
-
-الجداول التي ستُنشأ:
-
-| الجدول | المحتوى |
-| --- | --- |
-| `settings` | بيانات الموقع والتواصل (صف واحد) |
-| `services` | الخدمات بكل تفاصيلها |
-| `projects` | معرض الأعمال |
-| `plans` | باقات الأسعار |
-| `testimonials` | آراء العملاء |
-| `stats` | الإحصائيات |
-| `brands` | العلامات التجارية |
-| `leads` | 📥 طلبات نموذج التواصل |
-
-### 3) عدّل `config.php`
-
-```php
-'db' => [
-    'host' => 'localhost',
-    'name' => 'awexen_main',     // اسم قاعدتك
-    'user' => 'awexen_user',     // المستخدم
-    'pass' => 'كلمة_المرور',
-],
-'admin_token' => 'توكن_سري_طويل_عشوائي',
-```
-
-### 4) ارفع المجلد
-ارفع محتويات `backend/` إلى:
-
-```
-public_html/api/
-```
-
-اختبر الاتصال بفتح:
-```
-https://موقعك/api/health
-```
-يجب أن ترى: `"الاتصال بقاعدة البيانات ناجح ✅"`
-
-> لو ظهر خطأ 404، استضافتك لا تدعم `mod_rewrite` — استخدم الشكل:
-> `https://موقعك/api/index.php?r=health`
-> وضع في `.env`: `VITE_API_BASE_URL=https://موقعك/api/index.php?r=`
-
-### 5) انقل المحتوى الحالي
-1. افتح الموقع على: **`https://موقعك/#/export`**
-2. اضغط **تحميل ملف seed.json**
-3. ارفع الملف داخل `public_html/api/`
-4. افتح: `https://موقعك/api/seed.php?token=التوكن_السري`
-5. **احذف `seed.php` و `seed.json` من السيرفر**
-
-### 6) فعّل الوضع في المشروع
-أنشئ ملف `.env` في جذر المشروع:
+## متغيرات الواجهة
 
 ```env
-VITE_API_BASE_URL=https://موقعك/api
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+VITE_DJANGO_API_URL=https://api.awexen.com/api
 ```
 
-ثم:
-```bash
-npm run build
-```
-وارفع محتويات مجلد `dist` إلى `public_html`.
+عند عدم ضبط `VITE_DJANGO_API_URL` يستخدم الموقع المحتوى المحلي من `src/data`، بينما يظل نموذج التواصل قادرًا على استخدام Supabase.
 
----
+## إعداد حساب لوحة الإدارة
 
-## 🔀 تغيير قاعدة البيانات لاحقاً
+1. شغّل `sql/contact_messages_table.sql` من Supabase SQL Editor.
+2. أنشئ مستخدمًا من `Authentication > Users` باستخدام بريد الإدارة وكلمة مرور قوية.
+3. عيّن له دور الإدارة من SQL Editor بعد استبدال البريد:
 
-للانتقال لقاعدة بيانات أخرى (نفس الاستضافة أو استضافة جديدة):
-
-1. صدّر القاعدة القديمة: **phpMyAdmin › Export › SQL**
-2. استوردها في القاعدة الجديدة
-3. غيّر **3 أسطر فقط** في `config.php`:
-   ```php
-   'name' => 'اسم_القاعدة_الجديدة',
-   'user' => 'المستخدم_الجديد',
-   'pass' => 'كلمة_المرور_الجديدة',
-   ```
-
-✅ **لا تحتاج تعديل أي كود React ولا إعادة بناء المشروع** — لأن الواجهة تتعامل مع رابط الـ API فقط، لا مع قاعدة البيانات مباشرة.
-
-لو تغيّر **رابط الـ API نفسه** (نطاق جديد)، عدّل `.env` وأعد `npm run build`.
-
----
-
-## 🔌 مسارات الـ API
-
-| الطريقة | المسار | الوصف |
-| --- | --- | --- |
-| GET | `/api/health` | فحص الاتصال |
-| GET | `/api/settings` | إعدادات الموقع |
-| GET | `/api/services` | كل الخدمات |
-| GET | `/api/services/{slug}` | خدمة واحدة |
-| GET | `/api/projects` | معرض الأعمال |
-| GET | `/api/plans` | الباقات |
-| GET | `/api/testimonials` | آراء العملاء |
-| GET | `/api/stats` | الإحصائيات |
-| GET | `/api/brands` | العلامات |
-| POST | `/api/leads` | إرسال طلب تواصل |
-| GET | `/api/leads?token=...` | عرض الطلبات (محمي) |
-
----
-
-## ✍️ تعديل المحتوى بعد التركيب
-
-من **phpMyAdmin** مباشرة. الأعمدة المكتوبة `LONGTEXT` تحتوي **JSON**، مثال عمود `features` في جدول `services`:
-
-```json
-[
-  { "icon": "zap", "title": "سرعة فائقة", "desc": "وصف الميزة" },
-  { "icon": "shield", "title": "حماية متقدمة", "desc": "وصف الميزة" }
-]
+```sql
+update auth.users
+set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb)
+  || '{"role":"admin"}'::jsonb
+where email = 'admin@example.com';
 ```
 
-**أيقونات متاحة:** `wordpress` `code` `mobile` `server` `design` `marketing` `search` `target` `pen` `rocket` `growth` `pin` `award` `handshake` `chart` `zap` `support` `shield` `cart` `layers` `whatsapp`
+بعد ذلك سجّل الدخول من `/awexen`. إذا كان المستخدم مسجلاً بالفعل وقت تعيين الدور، سجّل الخروج ثم ادخل مرة أخرى لتجديد الجلسة.
 
----
+## عقد Django API الحالي
 
-## 🔒 قبل الإطلاق
+طبقة البيانات في `../frontend/src/lib/api.ts` تتوقع المسارات التالية:
 
-- [ ] احذف `seed.php` و `seed.json`
-- [ ] غيّر `admin_token` لقيمة عشوائية طويلة
-- [ ] اجعل `'debug' => false`
-- [ ] استبدل `'*'` في `allowed_origins` بنطاقك فقط
-- [ ] فعّل شهادة SSL (https)
+- `GET /api/health`
+- `GET /api/settings`
+- `GET /api/services`
+- `GET /api/projects`
+- `GET /api/plans`
+- `GET /api/testimonials`
+- `GET /api/stats`
+- `GET /api/brands`
+- `POST /api/leads`
 
----
+يمكن أن تكون استجابة القوائم مصفوفة مباشرة أو داخل الخاصية `data`. إذا تعذر الاتصال، تعود الواجهة تلقائيًا إلى المحتوى المحلي.
 
-## 🧩 هل تريد لوحة تحكم؟
+## إعدادات خادم Django المقترحة
 
-لو احتجت لوحة إدارة (تسجيل دخول + إضافة/تعديل/حذف الخدمات والمشاريع والباقات + عرض الطلبات) بدل التعديل من phpMyAdmin — أخبرني وسأبنيها لك.
+احتفظ بهذه القيم في بيئة الخادم فقط:
+
+```env
+DJANGO_SECRET_KEY=CHANGE_ME
+DJANGO_DEBUG=false
+DATABASE_URL=postgresql://USER:PASSWORD@SUPABASE_POOLER_HOST:6543/postgres
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=SERVER_ONLY_SECRET
+ALLOWED_HOSTS=api.awexen.com
+CORS_ALLOWED_ORIGINS=https://awexen.com,https://www.awexen.com
+```
