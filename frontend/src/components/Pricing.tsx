@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Crown, MessageCircle, ShieldCheck } from "lucide-react";
 import { useContent } from "../context/ContentContext";
 import { Reveal, SectionHeading, Spotlight } from "./ui";
 import { cn } from "../utils/cn";
+import { loadPricingSettings, type PricingSettings } from "../lib/cms";
 
 type Mode = "once" | "split";
 
@@ -11,16 +12,22 @@ const WHATSAPP_NUMBER = "201092400443";
 export default function Pricing() {
   const { plans } = useContent();
   const [mode, setMode] = useState<Mode>("once");
+  const [pricing, setPricing] = useState<PricingSettings>({
+    installments_enabled: true,
+    installment_markup_percent: 30,
+    installment_count: 3,
+  });
 
-  /** يحسب سعر القسط الشهري (3 أقساط) من النص */
-  const priceOf = (raw: string) => {
+  useEffect(() => {
+    void loadPricingSettings().then(setPricing);
+  }, []);
+
+  const numericPrice = (raw: string) => {
     const n = parseFloat(raw.replace(/[^\d.]/g, ""));
-    if (Number.isNaN(n)) return raw;
-    if (mode === "once") return n.toLocaleString("en-US");
-    return Math.ceil(n / 3 / 50) * 50 === 0
-      ? raw
-      : (Math.ceil(n / 3 / 50) * 50).toLocaleString("en-US");
+    return Number.isNaN(n) ? null : n;
   };
+
+  const formatPrice = (value: number) => Math.ceil(value).toLocaleString("en-US");
 
   return (
     <section id="pricing" className="relative overflow-hidden bg-white section-y">
@@ -45,7 +52,9 @@ export default function Pricing() {
               {(
                 [
                   { k: "once", label: "دفعة واحدة" },
-                  { k: "split", label: "على 3 دفعات" },
+                  ...(pricing.installments_enabled
+                    ? [{ k: "split", label: `على ${pricing.installment_count} دفعات` } as const]
+                    : []),
                 ] as const
               ).map((o) => (
                 <button
@@ -66,18 +75,28 @@ export default function Pricing() {
             </div>
             <p className="text-[12.5px] text-ink-400">
               {mode === "once"
-                ? "خصم 5% عند السداد الكامل مقدماً"
-                : "قسّط قيمة المشروع على 3 دفعات بدون فوائد"}
+                ? "السعر الأساسي عند السداد الكامل"
+                : `إجمالي التقسيط يشمل زيادة ${pricing.installment_markup_percent}% على السعر الأساسي`}
             </p>
           </div>
         </Reveal>
 
         <div className="mt-12 grid items-stretch gap-6 lg:grid-cols-3">
           {plans.map((p, i) => {
+            const basePrice = numericPrice(p.price);
+            const installmentTotal = basePrice === null
+              ? null
+              : basePrice * (1 + pricing.installment_markup_percent / 100);
+            const installmentValue = installmentTotal === null
+              ? null
+              : installmentTotal / pricing.installment_count;
+            const displayedPrice = mode === "once"
+              ? basePrice === null ? p.price : formatPrice(basePrice)
+              : installmentValue === null ? p.price : formatPrice(installmentValue);
             const paymentDetails =
               mode === "once"
-                ? `دفعة واحدة: ${priceOf(p.price)} ${p.currency}`
-                : `3 دفعات: ${priceOf(p.price)} ${p.currency} لكل دفعة\nالإجمالي: ${p.price} ${p.currency}`;
+                ? `دفعة واحدة: ${displayedPrice} ${p.currency}`
+                : `${pricing.installment_count} دفعات: ${displayedPrice} ${p.currency} لكل دفعة\nالإجمالي بعد زيادة ${pricing.installment_markup_percent}%: ${installmentTotal === null ? p.price : formatPrice(installmentTotal)} ${p.currency}`;
             const whatsappMessage = [
               "مرحباً، أرغب في الاستفسار عن إحدى خطط Awexen:",
               "",
@@ -140,7 +159,7 @@ export default function Pricing() {
                         p.featured ? "text-white" : "text-ink-900",
                       )}
                     >
-                      {priceOf(p.price)}
+                      {displayedPrice}
                     </span>
                     <span
                       className={cn(
@@ -160,7 +179,7 @@ export default function Pricing() {
                         p.featured ? "text-ink-400" : "text-ink-400",
                       )}
                     >
-                      الإجمالي {p.price} {p.currency}
+                      الإجمالي بعد زيادة {pricing.installment_markup_percent}%: {installmentTotal === null ? p.price : formatPrice(installmentTotal)} {p.currency}
                     </p>
                   )}
 
@@ -221,9 +240,9 @@ export default function Pricing() {
         <Reveal delay={140}>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[13px] text-ink-400">
             {[
-              "جميع الأسعار شاملة الضريبة",
-              "ضمان استرداد خلال 14 يوم",
-              "بدون رسوم مخفية",
+              "السعر النهائي يعتمد على نطاق المشروع المعتمد",
+              `التقسيط يضيف ${pricing.installment_markup_percent}% بوضوح قبل الاتفاق`,
+              "لا يبدأ التنفيذ قبل اعتماد العرض ومراحل الدفع",
             ].map((t) => (
               <span key={t} className="inline-flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-brand-500" />

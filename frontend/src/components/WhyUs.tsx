@@ -16,22 +16,22 @@ export default function WhyUs() {
           </Reveal>
           <Reveal delay={80}>
             <h2 className="mt-5 text-balance text-[clamp(1.65rem,3.8vw,2.6rem)] font-extrabold leading-[1.3]">
-              الشريك الذي <span className="text-gradient-brand">يستحقه</span> عملك
+              تنفيذ واضح <span className="text-gradient-brand">من أول اتفاق</span>
             </h2>
           </Reveal>
           <Reveal delay={150}>
             <p className="mt-5 text-[15px] leading-8 text-ink-500">
-              نجمع الخبرة الإقليمية العميقة مع تنفيذ عالمي المستوى لنقدم تجارب
-              رقمية تبرز علامتك التجارية عن المنافسة.
+              لا نبدأ من قالب أو تقنية. نبدأ من المطلوب إنجازه، ثم نحدد النطاق
+              وطريقة القياس وخطوات التسليم بلغة يفهمها فريقك.
             </p>
           </Reveal>
 
           <Reveal delay={210}>
             <ul className="mt-7 space-y-3">
               {[
-                "فريق متكامل من المصممين والمطورين",
-                "تسليم في الموعد المحدد دائماً",
-                "ضمان الجودة والدعم بعد الإطلاق",
+                "نطاق عمل ومخرجات مكتوبة قبل التنفيذ",
+                "نسخة للمراجعة قبل الإطلاق النهائي",
+                "مدة دعم واضحة لكل باقة",
               ].map((t) => (
                 <li
                   key={t}

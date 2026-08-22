@@ -41,7 +41,7 @@ with check (
 drop policy if exists "Allow public read of contact_messages"
   on public.contact_messages;
 
--- القراءة متاحة فقط للمستخدم المسجل في Supabase Auth والموسوم بدور admin.
+-- القراءة متاحة لأدوار الإدارة والمالك والدعم.
 drop policy if exists "Allow admins to read contact_messages"
   on public.contact_messages;
 
@@ -50,7 +50,7 @@ on public.contact_messages
 for select
 to authenticated
 using (
-  ((select auth.jwt()) -> 'app_metadata' ->> 'role') = 'admin'
+  ((select auth.jwt()) -> 'app_metadata' ->> 'role') in ('owner', 'admin', 'support')
 );
 
 revoke all on table public.contact_messages from anon, authenticated;

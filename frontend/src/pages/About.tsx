@@ -30,17 +30,17 @@ const values = [
 ];
 
 const timeline = [
-  { year: "2019", title: "البداية", desc: "انطلقنا بفريق من ثلاثة أشخاص وأول عميل." },
-  { year: "2021", title: "التوسع", desc: "وصلنا 100 مشروع وافتتحنا قسم التسويق الرقمي." },
-  { year: "2023", title: "الخليج", desc: "بدأنا خدمة عملاء في السعودية والإمارات." },
-  { year: "2026", title: "اليوم", desc: "48 عضو فريق و 250+ مشروع في 6 قطاعات." },
+  { year: "01", title: "مكالمة فهم", desc: "نحدد المشكلة والمستخدم والهدف والموعد المتوقع." },
+  { year: "02", title: "نطاق وعرض", desc: "نكتب ما سيتم تنفيذه والمخرجات والتكلفة ومراحل الدفع." },
+  { year: "03", title: "مراجعات مرحلية", desc: "تراجع المحتوى والتصميم والنسخة التجريبية قبل الإطلاق." },
+  { year: "04", title: "إطلاق ودعم", desc: "نسلّم الوصول والشرح ونبدأ مدة الدعم المتفق عليها." },
 ];
 
 const team = [
-  { name: "م. محمود عبدالعال", role: "المدير التنفيذي", initial: "م" },
-  { name: "أحمد سامي", role: "مدير التطوير", initial: "أ" },
-  { name: "سارة خالد", role: "مديرة التصميم", initial: "س" },
-  { name: "نور الدين", role: "مدير التسويق", initial: "ن" },
+  { name: "إدارة المشروع", role: "النطاق والمتابعة والمراجعات", initial: "إ" },
+  { name: "تجربة المستخدم", role: "المحتوى والمسارات والواجهة", initial: "ت" },
+  { name: "التطوير", role: "البرمجة والتكاملات والأداء", initial: "ب" },
+  { name: "الجودة والتشغيل", role: "الاختبار والإطلاق والدعم", initial: "ج" },
 ];
 
 export default function About() {
@@ -50,9 +50,9 @@ export default function About() {
     <>
       <PageHero
         badge="من نحن"
-        title="نصنع الفارق"
-        highlight="الرقمي"
-        desc="أوكسين وكالة رقمية متكاملة تجمع بين التصميم والتطوير والتسويق تحت سقف واحد، لنمنح علامتك حضوراً يستحق الثقة."
+        title="نفهم المطلوب"
+        highlight="قبل كتابة الكود"
+        desc="نحوّل احتياج العمل إلى نطاق واضح، ثم نصمم ونبرمج ونختبر على مراحل تستطيع مراجعتها."
         crumbs={[{ label: "الرئيسية", to: "/" }, { label: "من نحن" }]}
       />
 
@@ -67,14 +67,14 @@ export default function About() {
             </Reveal>
             <Reveal delay={70}>
               <h2 className="mt-5 text-[clamp(1.6rem,3.6vw,2.3rem)] font-extrabold leading-[1.35]">
-                بدأنا بسؤال واحد: لماذا معظم المواقع العربية
-                <span className="text-gradient-brand"> أقل من المستوى؟</span>
+                المشكلة ليست في نقص الأدوات؛ بل في مواقع تبدأ بالشكل
+                <span className="text-gradient-brand"> قبل أن تحدد الهدف.</span>
               </h2>
             </Reveal>
             {[
-              "في 2019 لاحظنا فجوة واضحة: شركات طموحة تملك منتجات ممتازة، لكن حضورها الرقمي لا يعكس جودتها. مواقع بطيئة، تصاميم مكررة، وتجربة استخدام مربكة.",
-              "قررنا أن نبني وكالة تعامل كل مشروع كمنتج حقيقي — نبحث، نصمم، نبرمج، ونقيس النتيجة. لا نسلّم موقعاً ونختفي، بل نبقى شركاء في النمو.",
-              "اليوم يضم فريقنا 48 متخصصاً بين مصممين ومطورين ومسوّقين، ونخدم عملاء في مصر والسعودية والإمارات عبر ستة قطاعات مختلفة.",
+              "كثير من المشروعات تصل إلى التطوير قبل تجهيز المحتوى أو تحديد رحلة العميل، فيصبح التعديل مكلفًا ويطول موعد الإطلاق.",
+              "لذلك نبدأ بأسئلة العمل: من المستخدم؟ ماذا يريد أن ينجز؟ وما المعلومة أو الإجراء الذي يجب أن يجده بلا بحث طويل؟ بعدها يأتي التصميم والتقنية.",
+              "نعمل معك بمراجعات قصيرة ومخرجات واضحة. لا تحتاج إلى معرفة المصطلحات التقنية؛ تحتاج فقط إلى شخص مسؤول من فريقك يراجع القرارات والمحتوى في موعده.",
             ].map((p, i) => (
               <Reveal key={i} delay={130 + i * 60}>
                 <p className="mt-5 text-[15.5px] leading-9 text-ink-500">{p}</p>
@@ -84,10 +84,10 @@ export default function About() {
             <Reveal delay={330}>
               <ul className="mt-8 grid gap-3 sm:grid-cols-2">
                 {[
-                  "فريق داخلي بالكامل — بلا تعهيد",
-                  "عقود واضحة ومواعيد ملتزمة",
-                  "تقارير أداء دورية شفافة",
-                  "دعم مستمر بعد الإطلاق",
+                  "مسؤول واضح للتواصل والمتابعة",
+                  "نطاق ومواعيد مكتوبة قبل التنفيذ",
+                  "مراجعات مرحلية بدل انتظار النسخة النهائية",
+                  "مدة دعم محددة بعد الإطلاق",
                 ].map((t) => (
                   <li
                     key={t}
@@ -110,7 +110,7 @@ export default function About() {
               <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-brand-500/25 blur-[70px]" />
 
               <h3 className="relative text-[19px] font-extrabold text-white">
-                أوكسين بالأرقام
+                ما يمكنك توقعه
               </h3>
               <div className="relative mt-7 grid grid-cols-2 gap-6">
                 {stats.map((s) => (
@@ -171,7 +171,7 @@ export default function About() {
         <div className="pointer-events-none absolute left-1/2 top-0 h-80 w-[680px] -translate-x-1/2 rounded-full bg-brand-500/12 blur-[130px]" />
 
         <div className="container-x relative">
-          <SectionHeading badge="مسيرتنا" title="رحلة" highlight="النمو" dark />
+          <SectionHeading badge="طريقة التعاون" title="من أول مكالمة" highlight="حتى الإطلاق" dark />
 
           <div className="relative mt-14">
             <div className="absolute inset-x-0 top-6 hidden h-px bg-gradient-to-l from-transparent via-brand-500/40 to-transparent lg:block" />
@@ -201,9 +201,9 @@ export default function About() {
         <div className="container-x">
           <SectionHeading
             badge="الفريق"
-            title="العقول خلف"
-            highlight="المشاريع"
-            desc="فريق متعدد التخصصات يعمل معاً في نفس المكتب، لا فرق موزعة ولا تعهيد خارجي."
+            title="التخصصات خلف"
+            highlight="كل مشروع"
+            desc="كل مرحلة لها مسؤول واضح، حتى لا تضيع الملاحظات بين التصميم والبرمجة والتسليم."
           />
 
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">

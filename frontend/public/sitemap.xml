@@ -6,6 +6,16 @@
   <url>
     <loc>https://awexen.com/services</loc>
   </url>
+  <url><loc>https://awexen.com/services/wordpress</loc></url>
+  <url><loc>https://awexen.com/services/vibe-code</loc></url>
+  <url><loc>https://awexen.com/services/mobile-app</loc></url>
+  <url><loc>https://awexen.com/services/shopify</loc></url>
+  <url><loc>https://awexen.com/services/easy-order</loc></url>
+  <url><loc>https://awexen.com/services/automation</loc></url>
+  <url><loc>https://awexen.com/services/hosting</loc></url>
+  <url><loc>https://awexen.com/services/ui-ux</loc></url>
+  <url><loc>https://awexen.com/services/graphic-design</loc></url>
+  <url><loc>https://awexen.com/services/digital-marketing</loc></url>
   <url>
     <loc>https://awexen.com/portfolio</loc>
   </url>
@@ -14,6 +24,15 @@
   </url>
   <url>
     <loc>https://awexen.com/contact</loc>
+  </url>
+  <url>
+    <loc>https://awexen.com/blog</loc>
+  </url>
+  <url>
+    <loc>https://awexen.com/jobs</loc>
+  </url>
+  <url>
+    <loc>https://awexen.com/courses</loc>
   </url>
   <url>
     <loc>https://awexen.com/privacy</loc>

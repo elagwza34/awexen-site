@@ -22,6 +22,12 @@ import TermsPage from "./pages/TermsPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
+import SeoManager from "./components/SeoManager";
+import Blog, { BlogArticle } from "./pages/Blog";
+import Jobs, { JobDetail } from "./pages/Jobs";
+import Courses, { CourseDetail } from "./pages/Courses";
+import DynamicPage from "./pages/DynamicPage";
+import KnowledgeChat from "./components/KnowledgeChat";
 import { ContentProvider } from "./context/ContentContext";
 import { supabase } from "./lib/supabase";
 
@@ -38,7 +44,11 @@ function AwexenAdminRoute() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthenticated(session?.user.app_metadata.role === "admin");
+      setAuthenticated(
+        ["owner", "admin", "editor", "hr", "support"].includes(
+          String(session?.user.app_metadata.role ?? ""),
+        ),
+      );
       setCheckingSession(false);
     });
 
@@ -76,25 +86,6 @@ function RouteEffects() {
     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
   }, [pathname, hash]);
 
-  useEffect(() => {
-    const titles: Record<string, string> = {
-      "/": "awexen.com | وكالة رقمية — نبني تجارب رقمية متميزة",
-      "/services": "خدماتنا | awexen.com",
-      "/portfolio": "معرض الأعمال | awexen.com",
-      "/about": "من نحن | awexen.com",
-      "/contact": "تواصل معنا | awexen.com",
-      "/export": "نقل البيانات | awexen.com",
-      "/privacy": "سياسة الخصوصية | awexen.com",
-      "/terms": "الشروط والأحكام | awexen.com",
-      "/awexen": "لوحة التحكم | awexen.com",
-    };
-    document.title =
-      titles[pathname] ??
-      (pathname.startsWith("/services/")
-        ? "تفاصيل الخدمة | awexen.com"
-        : "awexen.com");
-  }, [pathname]);
-
   return null;
 }
 
@@ -115,6 +106,7 @@ function AppShell() {
   return (
     <>
       <RouteEffects />
+      <SeoManager />
       {!isAdminRoute && <ScrollProgress />}
 
       <a href="#main" className="skip-link">
@@ -136,6 +128,13 @@ function AppShell() {
             <Route path="/portfolio" element={<PortfolioPage />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogArticle />} />
+            <Route path="/jobs" element={<Jobs />} />
+            <Route path="/jobs/:slug" element={<JobDetail />} />
+            <Route path="/courses" element={<Courses />} />
+            <Route path="/courses/:slug" element={<CourseDetail />} />
+            <Route path="/pages/:slug" element={<DynamicPage />} />
             <Route path="/export" element={<ExportData />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsPage />} />
@@ -149,6 +148,7 @@ function AppShell() {
             <Footer />
             <FloatingActions />
             <MobileBar />
+            <KnowledgeChat />
           </>
         )}
       </div>

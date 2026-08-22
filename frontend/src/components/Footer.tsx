@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Clock, Mail, MapPin, Phone, Send } from "lucide-react";
+import { Check, Clock, Loader2, Mail, MapPin, Phone, Send } from "lucide-react";
 import { useContent } from "../context/ContentContext";
+import { supabase } from "../lib/supabase";
 import { Logo } from "./ui";
 
 /* ------------------------------ Social icons ---------------------------- */
@@ -66,10 +67,11 @@ const columns = [
     ],
   },
   {
-    title: "قانوني",
+    title: "المعرفة والفرص",
     links: [
-      { label: "سياسة الخصوصية", to: "/privacy" },
-      { label: "الشروط والأحكام", to: "/terms" },
+      { label: "المدونة", to: "/blog" },
+      { label: "الكورسات", to: "/courses" },
+      { label: "الوظائف", to: "/jobs" },
     ],
   },
 ];
@@ -78,6 +80,39 @@ export default function Footer() {
   const { settings } = useContent();
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [subscriptionMessage, setSubscriptionMessage] = useState("تم تسجيل بريدك بنجاح — أهلاً بك!");
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
+
+  const subscribe = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || submitting) return;
+
+    if (!supabase) {
+      setSubscriptionError("تعذر الاتصال بقاعدة البيانات حاليًا. حاول مرة أخرى لاحقًا.");
+      return;
+    }
+
+    setSubmitting(true);
+    setSubscriptionError(null);
+
+    const { error } = await supabase.from("newsletter_subscribers").insert({
+      email: normalizedEmail,
+      source: "website_footer",
+    });
+
+    if (error && error.code !== "23505") {
+      setSubscriptionError("لم نتمكن من تسجيل البريد. حاول مرة أخرى بعد قليل.");
+      setSubmitting(false);
+      return;
+    }
+
+    setSubscriptionMessage(error?.code === "23505" ? "هذا البريد مشترك بالفعل — أهلاً بعودتك!" : "تم تسجيل بريدك بنجاح — أهلاً بك!");
+    setEmail("");
+    setDone(true);
+    setSubmitting(false);
+  };
 
   const contact = [
     { Icon: MapPin, title: "الموقع", value: settings.address },
@@ -107,36 +142,37 @@ export default function Footer() {
             {done ? (
               <div className="flex items-center gap-3 rounded-xl bg-emerald-500/12 px-5 py-4 text-[14px] font-semibold text-emerald-400">
                 <Check className="h-5 w-5" />
-                تم تسجيل بريدك بنجاح — أهلاً بك!
+                {subscriptionMessage}
               </div>
             ) : (
               <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (email.trim()) setDone(true);
-                }}
-                className="flex flex-col gap-2.5 sm:flex-row"
+                onSubmit={(event) => void subscribe(event)}
+                className="space-y-2.5"
               >
-                <label htmlFor="nl-email" className="sr-only">
-                  البريد الإلكتروني
-                </label>
-                <input
-                  id="nl-email"
-                  type="email"
-                  required
-                  dir="ltr"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
-                  className="w-full rounded-xl border border-white/12 bg-white/5 px-4 py-3.5 text-right text-[14.5px] text-white outline-none transition-all placeholder:text-ink-500 focus:border-brand-500 focus:bg-white/8"
-                />
-                <button
-                  type="submit"
-                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3.5 text-[14.5px] font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-brand-400"
-                >
-                  <Send className="h-4 w-4" />
-                  اشترك
-                </button>
+                <div className="flex flex-col gap-2.5 sm:flex-row">
+                  <label htmlFor="nl-email" className="sr-only">
+                    البريد الإلكتروني
+                  </label>
+                  <input
+                    id="nl-email"
+                    type="email"
+                    required
+                    dir="ltr"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@company.com"
+                    className="w-full rounded-xl border border-white/12 bg-white/5 px-4 py-3.5 text-right text-[14.5px] text-white outline-none transition-all placeholder:text-ink-500 focus:border-brand-500 focus:bg-white/8"
+                  />
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3.5 text-[14.5px] font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    {submitting ? "جارٍ التسجيل..." : "اشترك"}
+                  </button>
+                </div>
+                {subscriptionError && <p role="alert" className="text-[11px] text-red-300">{subscriptionError}</p>}
               </form>
             )}
           </div>

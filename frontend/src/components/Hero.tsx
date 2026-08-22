@@ -19,8 +19,8 @@ function ProductMockup() {
             <TrendingUp className="h-4 w-4" />
           </span>
           <div className="text-right">
-            <p className="text-[15px] font-black leading-none text-white">+340%</p>
-            <p className="mt-1 text-[10.5px] text-ink-400">نمو الحجوزات</p>
+            <p className="text-[13px] font-black leading-none text-white">نطاق واضح</p>
+            <p className="mt-1 text-[10.5px] text-ink-400">قبل بداية التنفيذ</p>
           </div>
         </div>
       </div>
@@ -35,8 +35,8 @@ function ProductMockup() {
             <Zap className="h-4 w-4" />
           </span>
           <div className="text-right">
-            <p className="text-[15px] font-black leading-none text-white">98/100</p>
-            <p className="mt-1 text-[10.5px] text-ink-400">سرعة الموقع</p>
+            <p className="text-[13px] font-black leading-none text-white">اختبار فعلي</p>
+            <p className="mt-1 text-[10.5px] text-ink-400">على الهاتف والكمبيوتر</p>
           </div>
         </div>
       </div>
@@ -92,9 +92,9 @@ function ProductMockup() {
             {/* بطاقات KPI */}
             <div className="grid grid-cols-3 gap-2.5">
               {[
-                { v: "1,284", l: "زائر اليوم" },
-                { v: "٤٫٦x", l: "عائد الإعلان" },
-                { v: "62", l: "طلب جديد" },
+                { v: "معتمد", l: "نطاق المشروع" },
+                { v: "واضحة", l: "مراحل الدفع" },
+                { v: "أسبوعية", l: "متابعة التنفيذ" },
               ].map((k) => (
                 <div
                   key={k.l}
@@ -161,23 +161,22 @@ export default function Hero() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-400" />
               </span>
-              منصة تصميم مواقع ووردبريس
+              تصميم وبرمجة مواقع للشركات
             </span>
           </Reveal>
 
           <Reveal delay={90}>
             <h1 className="mt-7 text-balance text-[clamp(2.5rem,7vw,5.25rem)] font-black leading-[1.16] tracking-tight text-white">
-              نبني تجارب
+              موقع يشرح شغلك
               <br />
-              <span className="text-gradient-brand">رقمية</span> متميزة
+              ويحوّل الزيارة إلى <span className="text-gradient-brand">طلب واضح</span>
             </h1>
           </Reveal>
 
           <Reveal delay={170}>
             <p className="mt-6 max-w-[620px] text-pretty text-[15px] leading-8 text-ink-300 sm:text-[17px]">
-              أوكسين هي وكالة رقمية عالمية المستوى تساعد العلامات التجارية
-              الطموحة في السعودية ومنطقة الخليج على النمو من خلال تصميم وتطوير
-              وتسويق استثنائي.
+              نخطط المحتوى، نصمم الواجهة، ونبرمج الموقع أو المتجر مع ربط النماذج
+              والقياس. تعرف ما الذي سيُنفذ، ومتى تراجعه، وما الذي تدفع مقابله.
             </p>
           </Reveal>
 
@@ -188,13 +187,13 @@ export default function Hero() {
                 className="group inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/[0.04] px-7 py-3.5 text-[15px] font-semibold text-white backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500 sm:w-auto"
               >
                 <PlayCircle className="h-[18px] w-[18px]" />
-                شاهد أعمالنا
+                شاهد مشاريع نفذناها
               </AnchorLink>
               <Link
                 to="/services"
                 className="group inline-flex w-full items-center justify-center gap-3 rounded-xl bg-brand-500 px-7 py-3.5 text-[15px] font-bold text-white shadow-[var(--shadow-brand)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 sm:w-auto"
               >
-                استكشف المزيد
+                اختر الخدمة المناسبة
                 <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-x-1" />
               </Link>
             </div>
@@ -203,30 +202,14 @@ export default function Hero() {
           {/* إشارة ثقة */}
           <Reveal delay={320}>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-3">
-              <div className="flex -space-x-2.5 space-x-reverse">
-                {["م", "أ", "س", "ن", "ي"].map((c, i) => (
-                  <span
-                    key={i}
-                    className="grid h-9 w-9 place-items-center rounded-full border-2 border-ink-950 bg-gradient-to-br from-brand-400 to-brand-600 text-[12px] font-black text-white"
-                  >
-                    {c}
-                  </span>
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="flex" aria-label="تقييم 5 من 5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className="h-4 w-4 fill-brand-400 text-brand-400"
-                    />
-                  ))}
-                </span>
-                <span className="text-[13px] text-ink-400">
-                  <strong className="font-bold text-white">62+</strong> عميل
-                  يثقون بنا
-                </span>
-              </div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-[12px] text-ink-300">
+                <Star className="h-3.5 w-3.5 text-brand-400" />
+                رد أولي خلال يوم عمل
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-[12px] text-ink-300">
+                <Zap className="h-3.5 w-3.5 text-brand-400" />
+                عرض سعر بنطاق ومراحل واضحة
+              </span>
             </div>
           </Reveal>
         </div>

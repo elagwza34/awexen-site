@@ -15,6 +15,7 @@ import {
 } from "../lib/api";
 import { readStoredSettings, writeStoredSettings } from "../lib/admin";
 import type { Service } from "../data/services";
+import { supabase } from "../lib/supabase";
 
 type ContentState = Content & {
   /** مصدر البيانات الحالي */
@@ -51,6 +52,31 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     const syncSettings = () => {
       const nextSettings = { ...localContent.settings, ...readStoredSettings() };
       setData((prev) => ({ ...prev, settings: nextSettings }));
+
+      if (supabase) {
+        void supabase
+          .from("site_settings")
+          .select("name,brand_ar,tagline,description,address,email,phones,hours")
+          .eq("id", 1)
+          .maybeSingle()
+          .then(({ data: remote }) => {
+            if (!remote) return;
+            setData((prev) => ({
+              ...prev,
+              settings: {
+                ...prev.settings,
+                name: remote.name,
+                brandAr: remote.brand_ar,
+                tagline: remote.tagline,
+                description: remote.description,
+                address: remote.address,
+                email: remote.email,
+                phones: remote.phones,
+                hours: remote.hours,
+              },
+            }));
+          });
+      }
     };
 
     syncSettings();

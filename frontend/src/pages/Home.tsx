@@ -4,9 +4,9 @@ import Services from "../components/Services";
 import Portfolio from "../components/Portfolio";
 import Process from "../components/Process";
 import WhyUs from "../components/WhyUs";
-import Testimonials from "../components/Testimonials";
 import Pricing from "../components/Pricing";
 import CTA from "../components/CTA";
+import LatestInsights from "../components/LatestInsights";
 
 export default function Home() {
   return (
@@ -17,7 +17,7 @@ export default function Home() {
       <Portfolio />
       <Process />
       <WhyUs />
-      <Testimonials />
+      <LatestInsights />
       <Pricing />
       <CTA />
     </>

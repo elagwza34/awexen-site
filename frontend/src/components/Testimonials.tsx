@@ -96,7 +96,11 @@ export default function Testimonials() {
                       aria-hidden="true"
                     />
 
-                    <div className="relative flex items-center gap-1" aria-label="تقييم 5 من 5">
+                    <div
+                      className="relative flex items-center gap-1"
+                      role="img"
+                      aria-label="تقييم 5 من 5"
+                    >
                       {Array.from({ length: 5 }).map((_, s) => (
                         <Star
                           key={s}

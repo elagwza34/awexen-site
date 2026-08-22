@@ -1,6 +1,8 @@
 # Frontend dependencies and builds
 node_modules/
 dist/
+.vite/
+.kilo/
 
 # Local environment files (may contain server-side secrets later)
 .env

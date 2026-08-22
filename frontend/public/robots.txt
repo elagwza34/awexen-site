@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /awexen
+Disallow: /export
 
 Sitemap: https://awexen.com/sitemap.xml

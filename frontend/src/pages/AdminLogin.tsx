@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Loader2, Lock, LogIn, ShieldAlert } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
+const dashboardRoles = ["owner", "admin", "editor", "hr", "support"];
+
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,7 +28,7 @@ export default function AdminLogin() {
 
       if (signInError) {
         setError("البريد الإلكتروني أو كلمة المرور غير صحيحة.");
-      } else if (data.user.app_metadata.role !== "admin") {
+      } else if (!dashboardRoles.includes(String(data.user.app_metadata.role ?? ""))) {
         await supabase.auth.signOut();
         setError("هذا الحساب لا يملك صلاحية الدخول إلى لوحة الإدارة.");
       }
@@ -39,7 +41,7 @@ export default function AdminLogin() {
 
   return (
     <section className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
-      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-7 shadow-2xl shadow-black/30 backdrop-blur-xl">
+      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.035] p-6 shadow-2xl shadow-black/30 backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-500/15 text-brand-400">
             <Lock className="h-5 w-5" />
@@ -48,7 +50,7 @@ export default function AdminLogin() {
             <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-brand-300">
               Admin Panel
             </p>
-            <h1 className="text-[28px] font-extrabold text-white">تسجيل الدخول</h1>
+            <h1 className="text-[22px] font-extrabold text-white">تسجيل الدخول</h1>
           </div>
         </div>
 
@@ -101,7 +103,7 @@ export default function AdminLogin() {
         </form>
 
         <div className="mt-6 rounded-2xl border border-brand-500/25 bg-brand-500/10 p-4 text-[13px] leading-7 text-brand-100">
-          استخدم حساب الإدارة الذي أنشأته في Supabase Auth.
+          استخدم حسابًا نشطًا بدور Owner أو Admin أو Editor أو HR أو Support.
         </div>
       </div>
     </section>

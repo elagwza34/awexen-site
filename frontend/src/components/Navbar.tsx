@@ -9,6 +9,9 @@ const links = [
   { label: "الرئيسية", to: "/" },
   { label: "معرض الأعمال", to: "/portfolio" },
   { label: "الخطط والاسعار", to: "/#pricing" },
+  { label: "المدونة", to: "/blog" },
+  { label: "الكورسات", to: "/courses" },
+  { label: "الوظائف", to: "/jobs" },
   { label: "من نحن", to: "/about" },
   { label: "تواصل معنا", to: "/contact" },
 ];
@@ -65,10 +68,9 @@ export default function Navbar() {
     <>
       {/* شريط إعلاني */}
       <div className="hidden bg-ink-950 py-2 text-center text-[12.5px] text-white/60 lg:block">
-        <span className="text-brand-400">🚀</span> خصم 20% على باقات تصميم
-        المواقع لفترة محدودة —{" "}
+        <span className="text-brand-400">●</span> عندك مشروع جديد؟ أرسل المطلوب وسنرتب معك النطاق والخطوات —{" "}
         <Link to="/services" className="link-underline font-semibold text-white">
-          اعرف التفاصيل
+          ابدأ من هنا
         </Link>
       </div>
 
@@ -222,7 +224,7 @@ export default function Navbar() {
             drawer ? "opacity-100" : "opacity-0",
           )}
         />
-        <aside
+        <div
           role="dialog"
           aria-modal="true"
           aria-label="قائمة التنقل"
@@ -325,7 +327,7 @@ export default function Navbar() {
               احجز استشارة
             </Link>
           </div>
-        </aside>
+        </div>
       </div>
     </>
   );

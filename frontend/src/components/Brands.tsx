@@ -45,12 +45,12 @@ export default function Brands() {
         <div className="flex flex-col items-center gap-3 text-center">
           <Reveal>
             <h2 className="text-[clamp(1.4rem,3vw,2rem)] font-extrabold">
-              ثقة علامات تجارية رائدة
+              التقنية تتبع احتياج المشروع
             </h2>
           </Reveal>
           <Reveal delay={90}>
             <p className="text-[15px] text-ink-400">
-              أكثر من 62 علامة تجارية اختارت أوكسين شريكاً رقمياً
+              نختار الأدوات التي تناسب التشغيل والميزانية، ولا نفرض Stack واحدًا على كل عميل
             </p>
           </Reveal>
         </div>
