@@ -146,7 +146,11 @@ export default function Hero() {
       {/* الخلفية */}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <div className="absolute inset-0 grid-lines opacity-70" />
-        <div className="absolute -top-40 right-1/2 h-[520px] w-[520px] translate-x-1/2 rounded-full bg-brand-500/22 blur-[130px] animate-float-slow" />
+        <div className="hero-grid-pulse hero-grid-pulse-x hero-grid-pulse-x-forward" />
+        <div className="hero-grid-pulse hero-grid-pulse-x hero-grid-pulse-x-reverse" />
+        <div className="hero-grid-pulse hero-grid-pulse-y hero-grid-pulse-y-forward" />
+        <div className="hero-grid-pulse hero-grid-pulse-y hero-grid-pulse-y-reverse" />
+        <div className="hero-ambient-glow" />
         <div className="absolute -bottom-24 right-[6%] h-[380px] w-[380px] rounded-full bg-orange-600/14 blur-[120px]" />
         <div className="absolute -bottom-32 left-[4%] h-[420px] w-[420px] rounded-full bg-amber-500/10 blur-[130px]" />
         <div className="noise-layer absolute inset-0 opacity-[0.05]" />

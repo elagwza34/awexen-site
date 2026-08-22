@@ -167,6 +167,165 @@
   background-size: 62px 62px;
 }
 
+/* Short energy pulses travel on individual hero grid lines. */
+.hero-grid-pulse {
+  position: absolute;
+  z-index: 1;
+  border-radius: 999px;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  will-change: top, left, opacity;
+}
+
+.hero-grid-pulse::after {
+  content: "";
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff6eb;
+  box-shadow: 0 0 5px 1px rgb(255 173 92 / 0.85), 0 0 12px 3px rgb(255 98 0 / 0.3);
+}
+
+.hero-grid-pulse-x {
+  left: -130px;
+  width: clamp(66px, 6vw, 96px);
+  height: 1px;
+}
+
+.hero-grid-pulse-y {
+  top: -130px;
+  width: 1px;
+  height: clamp(66px, 8vh, 96px);
+}
+
+.hero-grid-pulse-x-forward {
+  top: 248px;
+  background: linear-gradient(to right, transparent 0%, rgb(255 98 0 / 0.08) 28%, rgb(255 112 24 / 0.34) 74%, #ffb067 100%);
+  box-shadow: 2px 0 8px rgb(255 98 0 / 0.28);
+  animation: hero-grid-pulse-x-forward 10s linear -1.5s infinite;
+}
+
+.hero-grid-pulse-x-forward::after {
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.hero-grid-pulse-x-reverse {
+  top: 620px;
+  background: linear-gradient(to left, transparent 0%, rgb(255 98 0 / 0.08) 28%, rgb(255 112 24 / 0.3) 74%, #ffb067 100%);
+  box-shadow: -2px 0 8px rgb(255 98 0 / 0.24);
+  animation: hero-grid-pulse-x-reverse 13s linear -6s infinite;
+}
+
+.hero-grid-pulse-x-reverse::after {
+  left: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.hero-grid-pulse-y-forward {
+  left: 124px;
+  background: linear-gradient(to bottom, transparent 0%, rgb(255 98 0 / 0.08) 28%, rgb(255 112 24 / 0.32) 74%, #ffb067 100%);
+  box-shadow: 0 2px 8px rgb(255 98 0 / 0.26);
+  animation: hero-grid-pulse-y-forward 11s linear -3s infinite;
+}
+
+.hero-grid-pulse-y-forward::after {
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.hero-grid-pulse-y-reverse {
+  left: 248px;
+  background: linear-gradient(to top, transparent 0%, rgb(255 98 0 / 0.07) 28%, rgb(255 112 24 / 0.27) 74%, #ffb067 100%);
+  box-shadow: 0 -2px 8px rgb(255 98 0 / 0.22);
+  animation: hero-grid-pulse-y-reverse 15s linear -8s infinite;
+}
+
+.hero-grid-pulse-y-reverse::after {
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+@keyframes hero-grid-pulse-x-forward {
+  0% { left: -130px; opacity: 0; }
+  7%, 92% { opacity: 0.64; }
+  100% { left: calc(100% + 20px); opacity: 0; }
+}
+
+@keyframes hero-grid-pulse-x-reverse {
+  0% { left: calc(100% + 20px); opacity: 0; }
+  7%, 92% { opacity: 0.52; }
+  100% { left: -130px; opacity: 0; }
+}
+
+@keyframes hero-grid-pulse-y-forward {
+  0% { top: -130px; opacity: 0; }
+  7%, 92% { opacity: 0.58; }
+  100% { top: calc(100% + 20px); opacity: 0; }
+}
+
+@keyframes hero-grid-pulse-y-reverse {
+  0% { top: calc(100% + 20px); opacity: 0; }
+  7%, 92% { opacity: 0.46; }
+  100% { top: -130px; opacity: 0; }
+}
+
+.hero-ambient-glow {
+  position: absolute;
+  top: -12%;
+  left: 6%;
+  width: clamp(320px, 42vw, 650px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 126 48 / 0.24) 0%, rgb(255 98 0 / 0.15) 30%, rgb(255 61 0 / 0.06) 52%, transparent 72%);
+  filter: blur(38px);
+  mix-blend-mode: screen;
+  opacity: 0.7;
+  will-change: transform, opacity;
+  animation: hero-ambient-glow-drift 32s ease-in-out infinite;
+}
+
+@keyframes hero-ambient-glow-drift {
+  0%, 100% { transform: translate3d(-8vw, -5vh, 0) scale(0.88); opacity: 0.48; }
+  24% { transform: translate3d(43vw, 12vh, 0) scale(1.06); opacity: 0.7; }
+  52% { transform: translate3d(29vw, 52vh, 0) scale(0.94); opacity: 0.58; }
+  76% { transform: translate3d(-3vw, 31vh, 0) scale(1.02); opacity: 0.65; }
+}
+
+@media (min-width: 768px) {
+  .hero-grid-pulse-y-forward { left: 372px; }
+  .hero-grid-pulse-y-reverse { left: 744px; }
+}
+
+@media (min-width: 1280px) {
+  .hero-grid-pulse-y-forward { left: 558px; }
+  .hero-grid-pulse-y-reverse { left: 1116px; }
+}
+
+@media (max-width: 640px) {
+  .hero-grid-pulse { filter: brightness(0.88); }
+  .hero-grid-pulse-x-reverse,
+  .hero-grid-pulse-y-reverse { animation-duration: 14s; }
+  .hero-ambient-glow {
+    width: 360px;
+    opacity: 0.5;
+    animation-duration: 38s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-grid-pulse { display: none; }
+  .hero-ambient-glow {
+    animation: none;
+    transform: translate3d(18vw, 18vh, 0) scale(0.95);
+  }
+}
+
 @utility dotted-grid {
   background-image: radial-gradient(rgb(255 98 0 / 0.16) 1px, transparent 1px);
   background-size: 22px 22px;
