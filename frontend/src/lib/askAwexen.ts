@@ -1,4 +1,5 @@
 import type { KnowledgeEntry } from "./cms";
+import { supabase } from "./supabase";
 
 const configuredApiUrl = (import.meta.env.VITE_DJANGO_API_URL ?? "").trim().replace(/\/+$/, "");
 const API_BASE_URL = configuredApiUrl || (import.meta.env.DEV ? "http://127.0.0.1:8000/api" : "");
@@ -43,7 +44,32 @@ export async function extractKnowledgePdf(file: File): Promise<ExtractedPdf> {
 }
 
 export async function askAwexen(question: string, knowledge: KnowledgeEntry[]): Promise<AskAwexenResult | null> {
-  if (!API_BASE_URL) return null;
+  let djangoError: unknown = null;
+
+  if (API_BASE_URL) {
+    try {
+      return await askThroughDjango(question, knowledge);
+    } catch (error) {
+      djangoError = error;
+      console.warn("[ask-awexen] Django unavailable, trying Supabase Edge Function:", error);
+    }
+  }
+
+  if (supabase) {
+    const { data, error } = await supabase.functions.invoke("ask-awexen", {
+      body: { question, knowledge },
+    });
+    if (error) throw error;
+    const payload = data as Partial<AskAwexenResult> & { error?: string };
+    if (!payload.answer?.trim()) throw new Error(payload.error || "Empty Ask Awexen response");
+    return { answer: payload.answer.trim(), grounded: Boolean(payload.grounded) };
+  }
+
+  if (djangoError) throw djangoError;
+  return null;
+}
+
+async function askThroughDjango(question: string, knowledge: KnowledgeEntry[]): Promise<AskAwexenResult> {
 
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 40_000);
