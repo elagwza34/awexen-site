@@ -21,3 +21,4 @@ test.sqlite3
 .vscode/
 .idea/
 *.local
+supabase/.temp/
