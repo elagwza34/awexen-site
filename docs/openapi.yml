@@ -1,0 +1,2342 @@
+openapi: 3.0.3
+info:
+  title: Awexen LMS API
+  version: 1.0.0
+  description: Authoritative API for the Awexen learning platform.
+paths:
+  /api/v1/admin/cohorts/:
+    get:
+      operationId: api_v1_admin_cohorts_list
+      parameters:
+      - in: query
+        name: course_version
+        schema:
+          type: string
+          format: uuid
+      - name: ordering
+        required: false
+        in: query
+        description: أي حقل يجب استخدامه عند ترتيب النتائج.
+        schema:
+          type: string
+      - in: query
+        name: organization
+        schema:
+          type: string
+          format: uuid
+      - name: page
+        required: false
+        in: query
+        description: رقم الصفحة ضمن النتائج المقسمة.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: عدد النتائج التي يجب إرجاعها في كل صفحة.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: مصطلح البحث.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - active
+          - cancelled
+          - completed
+          - draft
+          - open
+        description: |-
+          * `draft` - Draft
+          * `open` - Open
+          * `active` - Active
+          * `completed` - Completed
+          * `cancelled` - Cancelled
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCohortList'
+          description: ''
+    post:
+      operationId: api_v1_admin_cohorts_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Cohort'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Cohort'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Cohort'
+        required: true
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cohort'
+          description: ''
+  /api/v1/admin/cohorts/{id}/:
+    get:
+      operationId: api_v1_admin_cohorts_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا cohort.
+        required: true
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cohort'
+          description: ''
+    put:
+      operationId: api_v1_admin_cohorts_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا cohort.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Cohort'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Cohort'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Cohort'
+        required: true
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cohort'
+          description: ''
+    patch:
+      operationId: api_v1_admin_cohorts_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا cohort.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCohort'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCohort'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCohort'
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cohort'
+          description: ''
+    delete:
+      operationId: api_v1_admin_cohorts_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا cohort.
+        required: true
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/admin/course-versions/:
+    get:
+      operationId: api_v1_admin_course_versions_list
+      parameters:
+      - in: query
+        name: course
+        schema:
+          type: string
+          format: uuid
+      - name: ordering
+        required: false
+        in: query
+        description: أي حقل يجب استخدامه عند ترتيب النتائج.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: رقم الصفحة ضمن النتائج المقسمة.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: عدد النتائج التي يجب إرجاعها في كل صفحة.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: مصطلح البحث.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - archived
+          - draft
+          - in_review
+          - published
+        description: |-
+          * `draft` - Draft
+          * `in_review` - In review
+          * `published` - Published
+          * `archived` - Archived
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCourseVersionList'
+          description: ''
+    post:
+      operationId: api_v1_admin_course_versions_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseVersion'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CourseVersion'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CourseVersion'
+        required: true
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseVersion'
+          description: ''
+  /api/v1/admin/course-versions/{id}/:
+    get:
+      operationId: api_v1_admin_course_versions_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا course version.
+        required: true
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseVersion'
+          description: ''
+    put:
+      operationId: api_v1_admin_course_versions_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا course version.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseVersion'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CourseVersion'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CourseVersion'
+        required: true
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseVersion'
+          description: ''
+    patch:
+      operationId: api_v1_admin_course_versions_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا course version.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCourseVersion'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCourseVersion'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCourseVersion'
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseVersion'
+          description: ''
+    delete:
+      operationId: api_v1_admin_course_versions_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا course version.
+        required: true
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/admin/course-versions/{id}/publish/:
+    post:
+      operationId: api_v1_admin_course_versions_publish_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا course version.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseVersion'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CourseVersion'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CourseVersion'
+        required: true
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseVersion'
+          description: ''
+  /api/v1/admin/courses/:
+    get:
+      operationId: api_v1_admin_courses_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: أي حقل يجب استخدامه عند ترتيب النتائج.
+        schema:
+          type: string
+      - in: query
+        name: organization
+        schema:
+          type: string
+          format: uuid
+      - name: page
+        required: false
+        in: query
+        description: رقم الصفحة ضمن النتائج المقسمة.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: عدد النتائج التي يجب إرجاعها في كل صفحة.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: مصطلح البحث.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - archived
+          - draft
+          - published
+        description: |-
+          * `draft` - Draft
+          * `published` - Published
+          * `archived` - Archived
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCourseList'
+          description: ''
+    post:
+      operationId: api_v1_admin_courses_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Course'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Course'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Course'
+        required: true
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+          description: ''
+  /api/v1/admin/courses/{id}/:
+    get:
+      operationId: api_v1_admin_courses_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا course.
+        required: true
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+          description: ''
+    put:
+      operationId: api_v1_admin_courses_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا course.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Course'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Course'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Course'
+        required: true
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+          description: ''
+    patch:
+      operationId: api_v1_admin_courses_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا course.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCourse'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCourse'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCourse'
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+          description: ''
+    delete:
+      operationId: api_v1_admin_courses_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا course.
+        required: true
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/admin/enrollments/:
+    get:
+      operationId: api_v1_admin_enrollments_list
+      parameters:
+      - in: query
+        name: cohort
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: course_version
+        schema:
+          type: string
+          format: uuid
+      - name: ordering
+        required: false
+        in: query
+        description: أي حقل يجب استخدامه عند ترتيب النتائج.
+        schema:
+          type: string
+      - in: query
+        name: organization
+        schema:
+          type: string
+          format: uuid
+      - name: page
+        required: false
+        in: query
+        description: رقم الصفحة ضمن النتائج المقسمة.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: عدد النتائج التي يجب إرجاعها في كل صفحة.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: مصطلح البحث.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - active
+          - cancelled
+          - completed
+          - expired
+          - paused
+          - pending
+          - rejected
+          - withdrawn
+        description: |-
+          * `pending` - Pending
+          * `active` - Active
+          * `paused` - Paused
+          * `completed` - Completed
+          * `withdrawn` - Withdrawn
+          * `rejected` - Rejected
+          * `cancelled` - Cancelled
+          * `expired` - Expired
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdminEnrollmentList'
+          description: ''
+    post:
+      operationId: api_v1_admin_enrollments_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnrollmentCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EnrollmentCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EnrollmentCreate'
+        required: true
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentCreate'
+          description: ''
+  /api/v1/admin/enrollments/{id}/:
+    get:
+      operationId: api_v1_admin_enrollments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا enrollment.
+        required: true
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminEnrollment'
+          description: ''
+    patch:
+      operationId: api_v1_admin_enrollments_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا enrollment.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminEnrollment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminEnrollment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminEnrollment'
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminEnrollment'
+          description: ''
+  /api/v1/admin/lessons/:
+    get:
+      operationId: api_v1_admin_lessons_list
+      parameters:
+      - in: query
+        name: content_type
+        schema:
+          type: string
+          enum:
+          - audio
+          - document
+          - external_url
+          - live
+          - presentation
+          - text
+          - video
+        description: |-
+          * `text` - Text
+          * `video` - Video
+          * `audio` - Audio
+          * `document` - Document
+          * `presentation` - Presentation
+          * `external_url` - External URL
+          * `live` - Live session
+      - in: query
+        name: module
+        schema:
+          type: string
+          format: uuid
+      - name: ordering
+        required: false
+        in: query
+        description: أي حقل يجب استخدامه عند ترتيب النتائج.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: رقم الصفحة ضمن النتائج المقسمة.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: عدد النتائج التي يجب إرجاعها في كل صفحة.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: مصطلح البحث.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - draft
+          - published
+        description: |-
+          * `draft` - Draft
+          * `published` - Published
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLessonList'
+          description: ''
+    post:
+      operationId: api_v1_admin_lessons_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Lesson'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Lesson'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Lesson'
+        required: true
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+          description: ''
+  /api/v1/admin/lessons/{id}/:
+    get:
+      operationId: api_v1_admin_lessons_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا lesson.
+        required: true
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+          description: ''
+    put:
+      operationId: api_v1_admin_lessons_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا lesson.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Lesson'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Lesson'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Lesson'
+        required: true
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+          description: ''
+    patch:
+      operationId: api_v1_admin_lessons_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا lesson.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLesson'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLesson'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLesson'
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+          description: ''
+    delete:
+      operationId: api_v1_admin_lessons_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا lesson.
+        required: true
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/admin/modules/:
+    get:
+      operationId: api_v1_admin_modules_list
+      parameters:
+      - in: query
+        name: course_version
+        schema:
+          type: string
+          format: uuid
+      - name: ordering
+        required: false
+        in: query
+        description: أي حقل يجب استخدامه عند ترتيب النتائج.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: رقم الصفحة ضمن النتائج المقسمة.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: عدد النتائج التي يجب إرجاعها في كل صفحة.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: مصطلح البحث.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - draft
+          - published
+        description: |-
+          * `draft` - Draft
+          * `published` - Published
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedModuleList'
+          description: ''
+    post:
+      operationId: api_v1_admin_modules_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Module'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Module'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Module'
+        required: true
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Module'
+          description: ''
+  /api/v1/admin/modules/{id}/:
+    get:
+      operationId: api_v1_admin_modules_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا module.
+        required: true
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Module'
+          description: ''
+    put:
+      operationId: api_v1_admin_modules_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا module.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Module'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Module'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Module'
+        required: true
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Module'
+          description: ''
+    patch:
+      operationId: api_v1_admin_modules_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا module.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedModule'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedModule'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedModule'
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Module'
+          description: ''
+    delete:
+      operationId: api_v1_admin_modules_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: نوع نص UUID يحدد هذا module.
+        required: true
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/health/:
+    get:
+      operationId: api_v1_health_retrieve
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/health/ready/:
+    get:
+      operationId: api_v1_health_ready_retrieve
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '503':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/learning/enrollments/:
+    get:
+      operationId: api_v1_learning_enrollments_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: أي حقل يجب استخدامه عند ترتيب النتائج.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: مصطلح البحث.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StudentEnrollment'
+          description: ''
+  /api/v1/learning/enrollments/{enrollment_id}/:
+    get:
+      operationId: learning_enrollment_detail
+      parameters:
+      - in: path
+        name: enrollment_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/me/:
+    get:
+      operationId: api_v1_me_retrieve
+      tags:
+      - api
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+          description: ''
+  /api/v1/progress/events/:
+    post:
+      operationId: api_v1_progress_events_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgressEvent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProgressEvent'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProgressEvent'
+        required: true
+      security:
+      - bearerAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+components:
+  schemas:
+    AdminEnrollment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        organization_id:
+          type: string
+          format: uuid
+          readOnly: true
+        user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        student_email:
+          type: string
+          format: email
+          readOnly: true
+        student_name:
+          type: string
+          readOnly: true
+        course_version_id:
+          type: string
+          format: uuid
+          readOnly: true
+        course_title:
+          type: string
+          readOnly: true
+        version_number:
+          type: integer
+          readOnly: true
+        cohort_id:
+          type: string
+          format: uuid
+          nullable: true
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/EnrollmentStatusEnum'
+          readOnly: true
+        status_reason:
+          type: string
+          readOnly: true
+        progress_percent:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          readOnly: true
+          default: '0.00'
+        enrolled_at:
+          type: string
+          format: date-time
+          readOnly: true
+        activated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - activated_at
+      - cohort_id
+      - completed_at
+      - course_title
+      - course_version_id
+      - enrolled_at
+      - id
+      - organization_id
+      - progress_percent
+      - status
+      - status_reason
+      - student_email
+      - student_name
+      - user_id
+      - version_number
+    Cohort:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        name:
+          type: string
+          maxLength: 180
+        status:
+          $ref: '#/components/schemas/CohortStatusEnum'
+        starts_at:
+          type: string
+          format: date-time
+          nullable: true
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+        capacity:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        timezone:
+          type: string
+          maxLength: 64
+        organization:
+          type: string
+          format: uuid
+        course_version:
+          type: string
+          format: uuid
+      required:
+      - course_version
+      - created_at
+      - id
+      - name
+      - organization
+      - updated_at
+    CohortStatusEnum:
+      enum:
+      - draft
+      - open
+      - active
+      - completed
+      - cancelled
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `open` - Open
+        * `active` - Active
+        * `completed` - Completed
+        * `cancelled` - Cancelled
+    CompletionRuleEnum:
+      enum:
+      - manual
+      - view
+      - video_threshold
+      type: string
+      description: |-
+        * `manual` - Manual completion
+        * `view` - Complete on view
+        * `video_threshold` - Video threshold
+    ContentStatusEnum:
+      enum:
+      - draft
+      - published
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `published` - Published
+    ContentTypeEnum:
+      enum:
+      - text
+      - video
+      - audio
+      - document
+      - presentation
+      - external_url
+      - live
+      type: string
+      description: |-
+        * `text` - Text
+        * `video` - Video
+        * `audio` - Audio
+        * `document` - Document
+        * `presentation` - Presentation
+        * `external_url` - External URL
+        * `live` - Live session
+    Course:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        organization_id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+          maxLength: 160
+          pattern: ^[-a-zA-Z0-9_]+$
+        title:
+          type: string
+          maxLength: 240
+        short_description:
+          type: string
+        status:
+          allOf:
+          - $ref: '#/components/schemas/CourseStatusEnum'
+          readOnly: true
+        owner_id:
+          type: string
+          format: uuid
+          readOnly: true
+        current_version_id:
+          type: string
+          format: uuid
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - current_version_id
+      - id
+      - organization_id
+      - owner_id
+      - slug
+      - status
+      - title
+      - updated_at
+    CourseStatusEnum:
+      enum:
+      - draft
+      - published
+      - archived
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `published` - Published
+        * `archived` - Archived
+    CourseVersion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        course:
+          type: string
+          format: uuid
+        version_number:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/CourseVersionStatusEnum'
+          readOnly: true
+        title:
+          type: string
+          maxLength: 240
+        short_description:
+          type: string
+        description:
+          type: string
+        language:
+          type: string
+          maxLength: 12
+        difficulty:
+          type: string
+          maxLength: 32
+        estimated_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        thumbnail_url:
+          type: string
+          format: uri
+          maxLength: 200
+        learning_outcomes:
+          type: string
+        requirements:
+          type: string
+        target_audience:
+          type: string
+        change_notes:
+          type: string
+        published_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - course
+      - created_at
+      - id
+      - published_at
+      - status
+      - title
+      - updated_at
+      - version_number
+    CourseVersionStatusEnum:
+      enum:
+      - draft
+      - in_review
+      - published
+      - archived
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `in_review` - In review
+        * `published` - Published
+        * `archived` - Archived
+    CurrentUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        full_name:
+          type: string
+          maxLength: 180
+        platform_role:
+          $ref: '#/components/schemas/PlatformRoleEnum'
+        email_verified:
+          type: boolean
+        memberships:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+      required:
+      - email
+      - id
+      - memberships
+    EnrollmentCreate:
+      type: object
+      properties:
+        organization_id:
+          type: string
+          format: uuid
+        student_email:
+          type: string
+          format: email
+        course_version_id:
+          type: string
+          format: uuid
+        cohort_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - course_version_id
+      - organization_id
+      - student_email
+    EnrollmentStatusEnum:
+      enum:
+      - pending
+      - active
+      - paused
+      - completed
+      - withdrawn
+      - rejected
+      - cancelled
+      - expired
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `active` - Active
+        * `paused` - Paused
+        * `completed` - Completed
+        * `withdrawn` - Withdrawn
+        * `rejected` - Rejected
+        * `cancelled` - Cancelled
+        * `expired` - Expired
+    EventTypeEnum:
+      enum:
+      - lesson_started
+      - lesson_viewed
+      - lesson_completed
+      - video_progress
+      type: string
+      description: |-
+        * `lesson_started` - Lesson started
+        * `lesson_viewed` - Lesson viewed
+        * `lesson_completed` - Lesson completed
+        * `video_progress` - Video progress
+    Lesson:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        module:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 240
+        summary:
+          type: string
+        content:
+          type: string
+        content_type:
+          $ref: '#/components/schemas/ContentTypeEnum'
+        video_url:
+          type: string
+          format: uri
+          maxLength: 200
+        resource_url:
+          type: string
+          format: uri
+          maxLength: 200
+        duration_seconds:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        sort_order:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          default: 0
+        status:
+          $ref: '#/components/schemas/ContentStatusEnum'
+        is_required:
+          type: boolean
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,5}(?:\.\d{0,2})?$
+        completion_rule:
+          $ref: '#/components/schemas/CompletionRuleEnum'
+        completion_threshold:
+          type: integer
+          maximum: 100
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - module
+      - title
+      - updated_at
+    Module:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        course_version:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 240
+        description:
+          type: string
+        sort_order:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          default: 0
+        status:
+          $ref: '#/components/schemas/ContentStatusEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - course_version
+      - created_at
+      - id
+      - title
+      - updated_at
+    PaginatedAdminEnrollmentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminEnrollment'
+    PaginatedCohortList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Cohort'
+    PaginatedCourseList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Course'
+    PaginatedCourseVersionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseVersion'
+    PaginatedLessonList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lesson'
+    PaginatedModuleList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Module'
+    PatchedAdminEnrollment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        organization_id:
+          type: string
+          format: uuid
+          readOnly: true
+        user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        student_email:
+          type: string
+          format: email
+          readOnly: true
+        student_name:
+          type: string
+          readOnly: true
+        course_version_id:
+          type: string
+          format: uuid
+          readOnly: true
+        course_title:
+          type: string
+          readOnly: true
+        version_number:
+          type: integer
+          readOnly: true
+        cohort_id:
+          type: string
+          format: uuid
+          nullable: true
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/EnrollmentStatusEnum'
+          readOnly: true
+        status_reason:
+          type: string
+          readOnly: true
+        progress_percent:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          readOnly: true
+          default: '0.00'
+        enrolled_at:
+          type: string
+          format: date-time
+          readOnly: true
+        activated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+    PatchedCohort:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        name:
+          type: string
+          maxLength: 180
+        status:
+          $ref: '#/components/schemas/CohortStatusEnum'
+        starts_at:
+          type: string
+          format: date-time
+          nullable: true
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+        capacity:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        timezone:
+          type: string
+          maxLength: 64
+        organization:
+          type: string
+          format: uuid
+        course_version:
+          type: string
+          format: uuid
+    PatchedCourse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        organization_id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+          maxLength: 160
+          pattern: ^[-a-zA-Z0-9_]+$
+        title:
+          type: string
+          maxLength: 240
+        short_description:
+          type: string
+        status:
+          allOf:
+          - $ref: '#/components/schemas/CourseStatusEnum'
+          readOnly: true
+        owner_id:
+          type: string
+          format: uuid
+          readOnly: true
+        current_version_id:
+          type: string
+          format: uuid
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedCourseVersion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        course:
+          type: string
+          format: uuid
+        version_number:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/CourseVersionStatusEnum'
+          readOnly: true
+        title:
+          type: string
+          maxLength: 240
+        short_description:
+          type: string
+        description:
+          type: string
+        language:
+          type: string
+          maxLength: 12
+        difficulty:
+          type: string
+          maxLength: 32
+        estimated_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        thumbnail_url:
+          type: string
+          format: uri
+          maxLength: 200
+        learning_outcomes:
+          type: string
+        requirements:
+          type: string
+        target_audience:
+          type: string
+        change_notes:
+          type: string
+        published_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedLesson:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        module:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 240
+        summary:
+          type: string
+        content:
+          type: string
+        content_type:
+          $ref: '#/components/schemas/ContentTypeEnum'
+        video_url:
+          type: string
+          format: uri
+          maxLength: 200
+        resource_url:
+          type: string
+          format: uri
+          maxLength: 200
+        duration_seconds:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        sort_order:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          default: 0
+        status:
+          $ref: '#/components/schemas/ContentStatusEnum'
+        is_required:
+          type: boolean
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,5}(?:\.\d{0,2})?$
+        completion_rule:
+          $ref: '#/components/schemas/CompletionRuleEnum'
+        completion_threshold:
+          type: integer
+          maximum: 100
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedModule:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        course_version:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 240
+        description:
+          type: string
+        sort_order:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          default: 0
+        status:
+          $ref: '#/components/schemas/ContentStatusEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PlatformRoleEnum:
+      enum:
+      - student
+      - support
+      - super_admin
+      type: string
+      description: |-
+        * `student` - Student
+        * `support` - Support
+        * `super_admin` - Super Admin
+    ProgressEvent:
+      type: object
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        enrollment_id:
+          type: string
+          format: uuid
+        lesson_id:
+          type: string
+          format: uuid
+        event_type:
+          $ref: '#/components/schemas/EventTypeEnum'
+        occurred_at:
+          type: string
+          format: date-time
+        position_seconds:
+          type: integer
+          minimum: 0
+          default: 0
+      required:
+      - enrollment_id
+      - event_id
+      - event_type
+      - lesson_id
+    StudentEnrollment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/EnrollmentStatusEnum'
+        enrolled_at:
+          type: string
+          format: date-time
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        course:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        progress_percent:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          readOnly: true
+          default: '0.00'
+        completed_lessons:
+          type: integer
+          readOnly: true
+        total_lessons:
+          type: integer
+          readOnly: true
+        access_valid:
+          type: boolean
+          readOnly: true
+      required:
+      - access_valid
+      - completed_lessons
+      - course
+      - enrolled_at
+      - id
+      - progress_percent
+      - total_lessons
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

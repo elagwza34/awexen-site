@@ -150,7 +150,9 @@ export default function Hero() {
         <div className="hero-grid-pulse hero-grid-pulse-x hero-grid-pulse-x-reverse" />
         <div className="hero-grid-pulse hero-grid-pulse-y hero-grid-pulse-y-forward" />
         <div className="hero-grid-pulse hero-grid-pulse-y hero-grid-pulse-y-reverse" />
-        <div className="hero-ambient-glow" />
+        <div className="hero-ambient-glow hero-ambient-glow-primary" />
+        <div className="hero-ambient-glow hero-ambient-glow-secondary" />
+        <div className="hero-ambient-glow hero-ambient-glow-tertiary" />
         <div className="absolute -bottom-24 right-[6%] h-[380px] w-[380px] rounded-full bg-orange-600/14 blur-[120px]" />
         <div className="absolute -bottom-32 left-[4%] h-[420px] w-[420px] rounded-full bg-amber-500/10 blur-[130px]" />
         <div className="noise-layer absolute inset-0 opacity-[0.05]" />

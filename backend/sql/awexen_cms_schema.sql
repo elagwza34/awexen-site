@@ -137,7 +137,7 @@ create table if not exists public.courses (
   level text not null default 'beginner'
     check (level in ('beginner', 'intermediate', 'advanced', 'all-levels')),
   duration text not null default '',
-  price numeric(12,2) not null default 0 check (price >= 0),
+  price numeric(12,2) not null check (price > 0),
   currency text not null default 'جنيه',
   capacity integer check (capacity is null or capacity > 0),
   starts_at timestamptz,

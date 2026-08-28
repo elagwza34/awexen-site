@@ -7,7 +7,9 @@ import {
   GraduationCap,
   House,
   Inbox,
+  FileCheck2,
   LayoutDashboard,
+  LibraryBig,
   LogOut,
   Mail,
   MessageCircleQuestion,
@@ -22,6 +24,8 @@ import ResourceManager from "../admin/ResourceManager";
 import KnowledgeManager from "../admin/KnowledgeManager";
 import InboxManager from "../admin/InboxManager";
 import OverviewPanel from "../admin/OverviewPanel";
+import LmsManager from "../admin/LmsManager";
+import LmsApprovals from "../admin/LmsApprovals";
 import { PricingSettingsPanel, SiteSettingsPanel, UsersPanel } from "../admin/SettingsPanels";
 import { resources } from "../admin/resourceDefinitions";
 import type { AdminRole, SectionKey } from "../admin/types";
@@ -45,6 +49,8 @@ const navItems: Array<{
   { key: "jobs", label: "الوظائف", icon: BriefcaseBusiness, roles: ["owner", "admin", "hr"], group: "التوظيف والتدريب" },
   { key: "applications", label: "طلبات التوظيف", icon: UserRoundCheck, roles: ["owner", "admin", "hr"], group: "التوظيف والتدريب" },
   { key: "courses", label: "الكورسات", icon: GraduationCap, roles: ["owner", "admin", "editor"], group: "التوظيف والتدريب" },
+  { key: "lms", label: "محتوى منصة التعلّم", icon: LibraryBig, roles: ["owner", "admin", "editor"], group: "التوظيف والتدريب" },
+  { key: "approvals", label: "موافقات LMS", icon: FileCheck2, roles: ["owner", "admin", "editor", "support"], group: "التوظيف والتدريب" },
   { key: "enrollments", label: "طلبات الكورسات", icon: Inbox, roles: ["owner", "admin", "editor", "support"], group: "التوظيف والتدريب" },
   { key: "knowledge", label: "معرفة AI", icon: Sparkles, roles: ["owner", "admin", "editor"], group: "المعرفة" },
   { key: "inquiries", label: "أسئلة الزوار", icon: MessageCircleQuestion, roles: ["owner", "admin", "editor", "support"], group: "المعرفة" },
@@ -145,6 +151,8 @@ export default function AdminDashboard() {
           {active === "blog" && <ResourceManager definition={resources.blog} />}
           {active === "jobs" && <ResourceManager definition={resources.jobs} />}
           {active === "courses" && <ResourceManager definition={resources.courses} />}
+          {active === "lms" && <LmsManager role={role} />}
+          {active === "approvals" && <LmsApprovals role={role} />}
           {active === "clients" && <ResourceManager definition={resources.clients} />}
           {active === "knowledge" && <KnowledgeManager />}
 

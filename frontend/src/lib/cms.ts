@@ -161,7 +161,7 @@ export const fallbackCourses: Course[] = [
     delivery_mode: "online",
     level: "beginner",
     duration: "8 أسابيع",
-    price: 0,
+    price: 1500,
     currency: "جنيه",
     capacity: 20,
     starts_at: null,
@@ -181,7 +181,7 @@ export const fallbackCourses: Course[] = [
     delivery_mode: "hybrid",
     level: "beginner",
     duration: "6 أسابيع",
-    price: 0,
+    price: 1500,
     currency: "جنيه",
     capacity: 15,
     starts_at: null,
@@ -208,7 +208,10 @@ async function listPublished<T>(table: string, orderColumn: string, fallback: T[
 
 export const loadBlogPosts = () => listPublished<BlogPost>("blog_posts", "published_at", fallbackPosts);
 export const loadJobs = () => listPublished<Job>("jobs", "created_at", []);
-export const loadCourses = () => listPublished<Course>("courses", "starts_at", fallbackCourses);
+export async function loadCourses(): Promise<Course[]> {
+  const courses = await listPublished<Course>("courses", "starts_at", fallbackCourses);
+  return courses.filter((course) => course.price > 0);
+}
 
 export async function loadKnowledge(): Promise<KnowledgeEntry[]> {
   if (!supabase) return [];

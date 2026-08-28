@@ -52,6 +52,7 @@ function Field({ field, value, onChange }: {
     <input
       required={field.required}
       type={field.type ?? "text"}
+      min={field.min}
       value={String(value ?? "")}
       onChange={(event) => onChange(event.target.value)}
       placeholder={field.placeholder}

@@ -10,7 +10,9 @@ export type SectionKey =
   | "jobs"
   | "applications"
   | "courses"
+  | "lms"
   | "enrollments"
+  | "approvals"
   | "knowledge"
   | "inquiries"
   | "pricing"
@@ -28,6 +30,7 @@ export type FieldDefinition = {
   placeholder?: string;
   required?: boolean;
   nullable?: boolean;
+  min?: number;
   options?: FieldOption[];
   wide?: boolean;
 };

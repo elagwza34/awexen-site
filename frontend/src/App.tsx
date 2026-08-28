@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   BrowserRouter,
+  Navigate,
   Route,
   Routes,
   useLocation,
@@ -26,7 +27,15 @@ import SeoManager from "./components/SeoManager";
 import Blog, { BlogArticle } from "./pages/Blog";
 import Jobs, { JobDetail } from "./pages/Jobs";
 import Courses, { CourseDetail } from "./pages/Courses";
+import CourseCheckout from "./pages/CourseCheckout";
+import InstructorDashboard from "./pages/InstructorDashboard";
+import StudentDashboard from "./pages/StudentDashboard";
 import DynamicPage from "./pages/DynamicPage";
+import {
+  LearningAuth,
+  LearningGuard,
+  LessonPlayer,
+} from "./pages/Learning";
 import KnowledgeChat from "./components/KnowledgeChat";
 import { ContentProvider } from "./context/ContentContext";
 import { supabase } from "./lib/supabase";
@@ -99,15 +108,25 @@ export default function App() {
   );
 }
 
+function LegacyLoginRedirect() {
+  const location = useLocation();
+  return <Navigate to={{ pathname: "/login", search: location.search, hash: location.hash }} replace />;
+}
+
 function AppShell() {
   const { pathname } = useLocation();
   const isAdminRoute = pathname === "/awexen" || pathname.startsWith("/awexen/");
+  const isLearningRoute = pathname === "/learn" || pathname.startsWith("/learn/");
+  const isInstructorRoute = pathname === "/instructor" || pathname.startsWith("/instructor/");
+  const isLoginRoute = pathname === "/login";
+  const isStandaloneRoute = isAdminRoute || isLearningRoute || isInstructorRoute || isLoginRoute;
+  const isLightPortal = isLearningRoute || isInstructorRoute;
 
   return (
     <>
       <RouteEffects />
       <SeoManager />
-      {!isAdminRoute && <ScrollProgress />}
+      {!isStandaloneRoute && <ScrollProgress />}
 
       <a href="#main" className="skip-link">
         تخطَّ إلى المحتوى الرئيسي
@@ -115,10 +134,10 @@ function AppShell() {
 
       <div
         className={`flex min-h-screen w-full min-w-0 flex-col overflow-x-clip font-sans ${
-          isAdminRoute ? "bg-ink-950" : "bg-white"
+          isLightPortal ? "bg-white" : isStandaloneRoute ? "bg-ink-950" : "bg-white"
         }`}
       >
-        {!isAdminRoute && <Navbar />}
+        {!isStandaloneRoute && <Navbar />}
 
         <main id="main" className="min-w-0 flex-1">
           <Routes>
@@ -134,6 +153,15 @@ function AppShell() {
             <Route path="/jobs/:slug" element={<JobDetail />} />
             <Route path="/courses" element={<Courses />} />
             <Route path="/courses/:slug" element={<CourseDetail />} />
+            <Route path="/login" element={<LearningAuth />} />
+            <Route path="/learn/login" element={<LegacyLoginRedirect />} />
+            <Route element={<LearningGuard />}>
+              <Route path="/checkout/:slug" element={<CourseCheckout />} />
+              <Route path="/learn" element={<StudentDashboard />} />
+              <Route path="/learn/enrollments/:enrollmentId" element={<LessonPlayer />} />
+              <Route path="/learn/enrollments/:enrollmentId/lessons/:lessonId" element={<LessonPlayer />} />
+              <Route path="/instructor" element={<InstructorDashboard />} />
+            </Route>
             <Route path="/pages/:slug" element={<DynamicPage />} />
             <Route path="/export" element={<ExportData />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -143,7 +171,7 @@ function AppShell() {
           </Routes>
         </main>
 
-        {!isAdminRoute && (
+        {!isStandaloneRoute && (
           <>
             <Footer />
             <FloatingActions />

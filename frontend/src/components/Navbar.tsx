@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowLeft, ChevronDown, Menu, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, LogIn, Menu, Sparkles, X } from "lucide-react";
 import { useContent } from "../context/ContentContext";
 import { Icon, Logo } from "./ui";
 import { cn } from "../utils/cn";
@@ -190,6 +190,13 @@ export default function Navbar() {
 
             <div className="flex items-center gap-2">
               <Link
+                to="/login"
+                className="hidden items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-[13px] font-bold text-white/75 transition hover:border-brand-400/40 hover:bg-white/5 hover:text-white lg:inline-flex"
+              >
+                <LogIn className="h-4 w-4 text-brand-400" />
+                تسجيل جديد / دخول
+              </Link>
+              <Link
                 to="/contact"
                 className="hidden items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-[14px] font-bold text-white shadow-lg shadow-brand-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 hover:shadow-[var(--shadow-brand)] sm:inline-flex"
               >
@@ -318,6 +325,14 @@ export default function Navbar() {
           </div>
 
           <div className="border-t border-white/10 p-5">
+            <Link
+              to="/login"
+              onClick={() => setDrawer(false)}
+              className="mb-2 flex items-center justify-center gap-2 rounded-xl border border-white/15 px-5 py-3 text-[14px] font-bold text-white/80"
+            >
+              <LogIn className="h-4 w-4 text-brand-400" />
+              تسجيل جديد / دخول
+            </Link>
             <Link
               to="/contact"
               onClick={() => setDrawer(false)}

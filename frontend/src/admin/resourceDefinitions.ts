@@ -93,7 +93,7 @@ export const resources = {
     subtitleKey: "instructor",
     statusKey: "status",
     orderBy: "starts_at",
-    defaults: { slug: "", title: "", short_description: "", description: "", instructor: "فريق Awexen", delivery_mode: "online", level: "beginner", duration: "", price: 0, currency: "جنيه", capacity: "", starts_at: "", featured_image: "", status: "draft" },
+    defaults: { slug: "", title: "", short_description: "", description: "", instructor: "فريق Awexen", delivery_mode: "online", level: "beginner", duration: "", price: 1500, currency: "جنيه", capacity: "", starts_at: "", featured_image: "", status: "draft" },
     fields: [
       { key: "title", label: "اسم الكورس", required: true },
       { key: "slug", label: "الرابط المختصر", required: true, placeholder: "frontend-foundations" },
@@ -105,7 +105,7 @@ export const resources = {
       { key: "level", label: "المستوى", type: "select", options: [
         { label: "مبتدئ", value: "beginner" }, { label: "متوسط", value: "intermediate" }, { label: "متقدم", value: "advanced" }, { label: "كل المستويات", value: "all-levels" },
       ] },
-      { key: "price", label: "السعر", type: "number" },
+      { key: "price", label: "السعر", type: "number", required: true, min: 1 },
       { key: "currency", label: "العملة" },
       { key: "capacity", label: "عدد المقاعد", type: "number", nullable: true },
       { key: "starts_at", label: "موعد البداية", type: "datetime-local", nullable: true },
