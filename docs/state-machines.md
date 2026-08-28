@@ -1,12 +1,15 @@
 # Core LMS State Machines
 
+الحالات التالية تُطبق داخل PostgreSQL RPCs التي تستدعيها Edge Functions.
+
 ## Course Version
 
 ```text
 draft → in_review → published → archived
+          └──────→ draft (rejected)
 ```
 
-الإصدار المنشور غير قابل لتعديل الوحدات أو الدروس. التغييرات الجوهرية تبدأ إصدارًا جديدًا.
+الإصدار المنشور غير قابل لتعديل الوحدات أو الدروس.
 
 ## Enrollment
 
@@ -17,29 +20,19 @@ paused  → active | withdrawn | cancelled | expired
 expired → active
 ```
 
-الإيقاف والسحب والإلغاء والانتهاء تتطلب سببًا. الانتقال يُنفذ داخل transaction ويُسجل في Audit Event.
+الإيقاف والسحب والرفض والإلغاء والانتهاء تتطلب سببًا، وتُحدّث Entitlement ويُسجل Audit Event في المعاملة نفسها.
 
 ## Entitlement
 
 ```text
 valid → revoked | expired
-revoked → valid  (إعادة تفعيل إدارية موثقة)
+revoked → valid (reactivation)
 ```
-
-لا يكفي أن تكون حالة Enrollment نشطة؛ يجب أن يكون الاستحقاق صالحًا وداخل نافذة الوصول.
 
 ## Lesson Progress
 
 ```text
 not_started → in_progress → completed
-                         └→ failed
-not_started/in_progress → exempt | expired
 ```
 
-مصدر الإكمال الحالي أحد الآتي:
-
-- `learner_manual`
-- `view_rule`
-- `video_threshold`
-
-في فيديوهات MP4/WebM المباشرة ترسل الواجهة milestones دورية، ويحسب Django نسبة المشاهدة من `position_seconds` ومدة الدرس ويمنح الإكمال عند بلوغ الحد. منع القفز والتلاعب بالكامل يحتاج signed heartbeat/session وسيضاف في مرحلة hardening الفيديو.
+مصدر الإكمال: `learner_manual` أو `view_rule` أو `video_threshold`. ترسل الواجهة موضع الفيديو، وتحسب قاعدة البيانات النسبة وتعيد بناء تقدم الكورس.

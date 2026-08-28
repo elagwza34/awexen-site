@@ -111,7 +111,7 @@ Deno.serve(async (request) => {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        "HTTP-Referer": Deno.env.get("OPENROUTER_SITE_URL") ?? "https://awexen.awexen.com",
+        "HTTP-Referer": Deno.env.get("OPENROUTER_SITE_URL") ?? "https://awexen.com",
         "X-Title": Deno.env.get("OPENROUTER_SITE_NAME") ?? "Ask Awexen",
         "Content-Type": "application/json",
       },

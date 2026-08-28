@@ -61,7 +61,7 @@ function friendlyError(error: unknown) {
   if (code === "otp_expired" || normalizedMessage.includes("token has expired") || normalizedMessage.includes("invalid token")) return "كود التأكيد غير صحيح أو انتهت صلاحيته. اطلب كودًا جديدًا.";
   if (["over_email_send_rate_limit", "over_request_rate_limit"].includes(code) || normalizedMessage.includes("rate limit")) return "تم طلب أكواد كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.";
   if (normalizedMessage.includes("failed to fetch")) {
-    return "تعذّر الاتصال بخادم منصة التعلّم. تأكد أن Django API يعمل وأن رابط VITE_LMS_API_URL صحيح.";
+    return "تعذّر الاتصال بمنصة التعلّم. تأكد من نشر Supabase Edge Function باسم lms-api ومن إعدادات Supabase.";
   }
   return message;
 }

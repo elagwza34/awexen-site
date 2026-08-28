@@ -6,20 +6,14 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import {
-  DJANGO_API_ENABLED,
-  loadContent,
-  localContent,
-  type Content,
-  type LoadResult,
-} from "../lib/api";
+import { localContent, type Content } from "../lib/api";
 import { readStoredSettings, writeStoredSettings } from "../lib/admin";
 import type { Service } from "../data/services";
 import { supabase } from "../lib/supabase";
 
 type ContentState = Content & {
   /** مصدر البيانات الحالي */
-  source: "django" | "local";
+  source: "supabase" | "local";
   loading: boolean;
   error: string | null;
   refresh: () => void;
@@ -29,7 +23,7 @@ const initialState: ContentState = {
   ...localContent,
   settings: { ...localContent.settings, ...readStoredSettings() },
   source: "local",
-  loading: DJANGO_API_ENABLED,
+  loading: false,
   error: null,
   refresh: () => {},
 };
@@ -43,9 +37,9 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     ...localContent,
     settings: { ...localContent.settings, ...readStoredSettings() },
   });
-  const [source, setSource] = useState<"django" | "local">("local");
-  const [loading, setLoading] = useState(DJANGO_API_ENABLED);
-  const [error, setError] = useState<string | null>(null);
+  const [source, setSource] = useState<"supabase" | "local">("local");
+  const [loading] = useState(false);
+  const [error] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -61,6 +55,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
           .maybeSingle()
           .then(({ data: remote }) => {
             if (!remote) return;
+            setSource("supabase");
             setData((prev) => ({
               ...prev,
               settings: {
@@ -82,31 +77,6 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     syncSettings();
     window.addEventListener("awexen-settings-updated", syncSettings);
     return () => window.removeEventListener("awexen-settings-updated", syncSettings);
-  }, []);
-
-  useEffect(() => {
-    if (!DJANGO_API_ENABLED) return;
-
-    let alive = true;
-    setLoading(true);
-
-    loadContent()
-      .then((res: LoadResult) => {
-        if (!alive) return;
-        const { source: src, error: err, ...content } = res;
-        const mergedSettings = {
-          ...content.settings,
-          ...readStoredSettings(),
-        };
-        setData({ ...content, settings: mergedSettings });
-        setSource(src);
-        setError(err);
-      })
-      .finally(() => alive && setLoading(false));
-
-    return () => {
-      alive = false;
-    };
   }, [tick]);
 
   const value = useMemo<ContentState>(

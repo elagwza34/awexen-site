@@ -395,9 +395,9 @@ export default function LmsManager({ role }: { role: AdminRole }) {
     <div>
       <div className="flex flex-col justify-between gap-4 border-b border-white/[0.07] pb-5 xl:flex-row xl:items-end">
         <div>
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-brand-300">Django LMS · authoritative</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-brand-300">Supabase LMS · authoritative</p>
           <h1 className="mt-1 text-[20px] font-black text-white">إدارة منصة التعلّم</h1>
-          <p className="mt-2 max-w-2xl text-[10.5px] leading-6 text-white/40">الكورسات والإصدارات والصلاحيات والتقدم تُدار الآن من Django API.</p>
+          <p className="mt-2 max-w-2xl text-[10.5px] leading-6 text-white/40">الكورسات والإصدارات والصلاحيات والتقدم تُدار عبر Supabase Edge Functions.</p>
         </div>
         <div className="flex flex-wrap items-end gap-2">
           <label className="text-[9px] font-bold text-white/40">الكورس
@@ -416,7 +416,7 @@ export default function LmsManager({ role }: { role: AdminRole }) {
 
       {(error || queryError) && <div className="mt-4 flex items-start justify-between gap-3 rounded-lg border border-red-400/20 bg-red-500/10 p-3 text-[10.5px] leading-5 text-red-200"><span>{error ?? message(queryError)}</span><button type="button" onClick={() => setError(null)}><X className="h-3.5 w-3.5" /></button></div>}
       {loading && <div className="grid min-h-40 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-brand-300" /></div>}
-      {!loading && !queryError && !organization && <div className="mt-5 rounded-xl border border-amber-400/20 bg-amber-500/10 p-4 text-[10.5px] leading-6 text-amber-100">حسابك لا يملك دور مدير مؤسسة أو مدير منصة تعلم داخل Django. راجع عضوية المؤسسة قبل إدارة المحتوى.</div>}
+      {!loading && !queryError && !organization && <div className="mt-5 rounded-xl border border-amber-400/20 bg-amber-500/10 p-4 text-[10.5px] leading-6 text-amber-100">حسابك لا يملك دور مدير مؤسسة أو مدير منصة تعلم. راجع عضوية المؤسسة في Supabase.</div>}
 
       {showCourseForm && organization && (
         <form onSubmit={createCourse} className="mt-5 grid gap-3 rounded-xl border border-brand-500/20 bg-brand-500/[0.04] p-4 sm:grid-cols-2">

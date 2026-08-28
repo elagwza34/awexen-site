@@ -2,3 +2,12 @@ project_id = "awexen"
 
 [functions.ask-awexen]
 verify_jwt = false
+
+[functions.lms-public]
+verify_jwt = false
+
+[functions.lms-api]
+verify_jwt = true
+
+[functions.extract-knowledge-pdf]
+verify_jwt = true

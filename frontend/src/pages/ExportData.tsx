@@ -13,11 +13,8 @@ import {
 import PageHero from "../components/PageHero";
 import { Reveal } from "../components/ui";
 import { useContent } from "../context/ContentContext";
-import {
-  DJANGO_API_BASE_URL,
-  DJANGO_API_ENABLED,
-  localContent,
-} from "../lib/api";
+import { localContent } from "../lib/api";
+import { hasValidSupabaseConfig, supabasePublishableKey, supabaseUrl } from "../lib/supabase";
 import { cn } from "../utils/cn";
 
 const steps = [
@@ -33,23 +30,23 @@ const steps = [
   },
   {
     n: "3",
-    title: "اربط Django بقاعدة البيانات",
-    desc: "استخدم DATABASE_URL داخل خادم Django فقط للاتصال بقاعدة PostgreSQL.",
+    title: "طبّق LMS migrations",
+    desc: "نفّذ ملفات supabase/migrations بالترتيب من SQL Editor أو Supabase CLI.",
   },
   {
     n: "4",
-    title: "أنشئ Django API",
-    desc: "وفّر مسارات المحتوى المطلوبة تحت /api مع التحقق والصلاحيات المناسبة.",
+    title: "انشر Edge Functions",
+    desc: "انشر lms-api وlms-public وask-awexen وextract-knowledge-pdf.",
   },
   {
     n: "5",
     title: "اضبط CORS والأسرار",
-    desc: "اسمح لنطاق الواجهة فقط، واحتفظ بمفتاح service_role داخل Django حصراً.",
+    desc: "اسمح لـ awexen.com فقط، واحتفظ بمفتاح service_role داخل أسرار Supabase حصراً.",
   },
   {
     n: "6",
-    title: "فعّل Django في الواجهة",
-    desc: "أضف VITE_DJANGO_API_URL ثم نفّذ npm run build وارفع نسخة الإنتاج.",
+    title: "ابنِ واجهة Hostinger",
+    desc: "أضف بيانات Supabase العامة فقط، ثم نفّذ npm run build وارفع dist إلى awexen.com.",
   },
 ];
 
@@ -91,21 +88,23 @@ export default function ExportData() {
   };
 
   const testConnection = async () => {
-    if (!DJANGO_API_ENABLED) {
+    if (!hasValidSupabaseConfig || !supabaseUrl || !supabasePublishableKey) {
       setCheck({
         state: "fail",
-        msg: "لم يتم ضبط VITE_DJANGO_API_URL في ملف .env",
+        msg: "بيانات Supabase العامة غير مضبوطة في ملف البيئة.",
       });
       return;
     }
     setCheck({ state: "loading", msg: "" });
     try {
-      const res = await fetch(`${DJANGO_API_BASE_URL}/health`);
+      const res = await fetch(`${supabaseUrl.replace(/\/+$/, "")}/functions/v1/lms-public/health/ready`, {
+        headers: { apikey: supabasePublishableKey, Authorization: `Bearer ${supabasePublishableKey}` },
+      });
       const json = await res.json();
-      if (res.ok && (json?.success || json?.status === "ok")) {
+      if (res.ok && json?.ok) {
         setCheck({
           state: "ok",
-          msg: json?.message ?? "Django API متصل ويعمل بصورة صحيحة.",
+          msg: "Supabase Edge Functions وقاعدة بيانات LMS تعملان بصورة صحيحة.",
         });
       } else {
         setCheck({ state: "fail", msg: json?.message ?? "استجابة غير متوقعة" });
@@ -118,7 +117,7 @@ export default function ExportData() {
     }
   };
 
-  const isDjango = content.source === "django";
+  const isSupabase = content.source === "supabase";
 
   const counts = [
     { label: "خدمة", value: payload.services.length },
@@ -134,8 +133,8 @@ export default function ExportData() {
       <PageHero
         badge="أدوات المطور"
         title="ربط المحتوى مع"
-        highlight="Supabase وDjango"
-        desc="صدّر محتوى الموقع كملف JSON، وراجع حالة الاتصال بين الواجهة وSupabase وDjango API."
+        highlight="Supabase"
+        desc="صدّر محتوى الموقع كملف JSON، وراجع حالة الاتصال بين الواجهة وSupabase Edge Functions."
         crumbs={[{ label: "الرئيسية", to: "/" }, { label: "نقل البيانات" }]}
       />
 
@@ -147,7 +146,7 @@ export default function ExportData() {
               <div
                 className={cn(
                   "flex items-center gap-4 rounded-2xl border p-6",
-                  isDjango
+                  isSupabase
                     ? "border-emerald-200 bg-emerald-50"
                     : "border-ink-100 bg-ink-50",
                 )}
@@ -155,10 +154,10 @@ export default function ExportData() {
                 <span
                   className={cn(
                     "grid h-12 w-12 shrink-0 place-items-center rounded-xl text-white",
-                    isDjango ? "bg-emerald-500" : "bg-ink-400",
+                    isSupabase ? "bg-emerald-500" : "bg-ink-400",
                   )}
                 >
-                  {isDjango ? (
+                  {isSupabase ? (
                     <Database className="h-5 w-5" />
                   ) : (
                     <HardDrive className="h-5 w-5" />
@@ -169,8 +168,8 @@ export default function ExportData() {
                     مصدر البيانات الحالي
                   </h3>
                   <p className="mt-1 text-[13.5px] text-ink-500">
-                    {isDjango
-                      ? "Django API متصل بقاعدة Supabase PostgreSQL"
+                    {isSupabase
+                      ? "Supabase متصل ويحمّل إعدادات الموقع"
                       : "ملفات محلية داخل المشروع (src/data)"}
                   </p>
                 </div>
@@ -182,14 +181,14 @@ export default function ExportData() {
                 </span>
                 <div className="min-w-0">
                   <h3 className="text-[16px] font-extrabold text-ink-900">
-                    رابط Django API
+                    رابط Supabase Functions
                   </h3>
                   <p
                     dir="ltr"
                     className="mt-1 truncate text-right text-[13px] text-ink-500"
                   >
-                    {DJANGO_API_ENABLED
-                      ? DJANGO_API_BASE_URL
+                    {hasValidSupabaseConfig && supabaseUrl
+                      ? `${supabaseUrl}/functions/v1`
                       : "غير مضبوط (.env)"}
                   </p>
                 </div>
@@ -204,8 +203,8 @@ export default function ExportData() {
                 <div>
                   <h3 className="text-[18px] font-extrabold">فحص الاتصال</h3>
                   <p className="mt-1 text-[13.5px] text-ink-500">
-                    يستدعي <code className="text-brand-600">/api/health</code>{" "}
-                    للتأكد من تشغيل Django واتصاله بالخدمات المطلوبة.
+                    يستدعي <code className="text-brand-600">lms-public/health/ready</code>{" "}
+                    للتأكد من تشغيل Edge Functions واتصالها بقاعدة البيانات.
                   </p>
                 </div>
                 <button

@@ -2,65 +2,48 @@
 
 ## القرار
 
-منصة التعلّم Modular Monolith داخل Django. لا توجد microservices في المرحلة الحالية.
+Supabase هو الباك إند التشغيلي بالكامل، بينما Hostinger يستضيف ملفات React الثابتة فقط.
 
 ```text
-React/Vite
-   │ Supabase access token
+React/Vite on awexen.com
+   │ Authorization: Bearer <Supabase JWT>
    ▼
-Django REST API
-   ├── accounts
-   ├── organizations
-   ├── courses
-   ├── learning
-   └── audit
-   │
-   ├── PostgreSQL (Supabase)
-   └── Redis/Celery
+lms-api Edge Function
+   ├── verifies the Auth user
+   ├── loads LMS identity + memberships
+   ├── shapes the existing API responses
+   └── invokes service-role-only transactional RPCs
+          │
+          ▼
+Supabase PostgreSQL
+   ├── existing LMS tables and data
+   ├── private Auth → LMS identity bridge
+   ├── RLS and least-privilege grants
+   ├── atomic booking/progress/publishing operations
+   └── append-only learning and audit events
 ```
 
-Supabase Auth هو Identity Provider، لكن JWT لا يمنح صلاحية LMS مباشرة. Django يزامن هوية المستخدم ثم يقرأ Membership وEnrollment وEntitlement من قاعدة البيانات قبل إتاحة المحتوى.
+## الهوية والصلاحيات
 
-## الحدود المنطقية
+Supabase Auth هو Identity Provider. جدول `private.lms_auth_identity` يربط `auth.users.id` بحساب `accounts_user.id`. الربط يستخدم الـID أولًا ثم البريد الموثق، ويحافظ على تقدم المستخدم لو حُذفت هوية Auth وأُنشئت مرة أخرى.
 
-- `accounts`: المستخدم وحالة تفعيله والتحقق من JWT.
-- `organizations`: عزل المستأجرين والعضويات والأدوار.
-- `courses`: المحتوى القابل للنشر وإصداراته غير القابلة للتغيير بعد النشر.
-- `learning`: الوصول، أحداث التعلم، والتقدم المحسوب.
-- `audit`: سجل الإجراءات الحساسة غير القابل للتعديل من التطبيق.
+`user_metadata.account_type` يحدد العضوية الافتراضية فقط عند أول تسجيل. كل قرار وصول بعد ذلك يقرأ `organizations_membership` و`learning_enrollment` و`learning_entitlement` من قاعدة البيانات.
 
-## قواعد أساسية
+## حدود المنطق
 
-1. كل سجل تعليمي مرتبط بمؤسسة مباشرة أو عبر Course Version.
-2. كل queryset إداري يُقيد بالمؤسسات التي يديرها المستخدم.
-3. Enrollment لا يساوي Access؛ الوصول يمر عبر Entitlement صالح.
-4. Enrollment يشير إلى Course Version ثابت، وليس إلى أحدث محتوى متغير.
-5. React يرسل أحداثًا ولا يرسل نسبة تقدم موثوقة.
-6. `client_event_id` يجعل إعادة إرسال الحدث idempotent.
-7. النسبة المخبأة قابلة لإعادة البناء من Lesson Progress والأحداث.
+- `lms-api`: طبقة HTTP المحمية وتوافق استجابات الواجهة الحالية.
+- `lms-public`: فحوص health وreadiness فقط.
+- PostgreSQL RPCs: المعاملات الحساسة والحالات المتزامنة.
+- RLS: دفاع إضافي للقراءات المباشرة المسموحة.
+- Storage: ملفات إثبات الدفع الخاصة.
 
-## كتالوج Supabase العام
+## قواعد ثابتة
 
-`courses_course` وجداول الإصدارات والوحدات والدروس هي المصدر الرسمي للـLMS. جدول Supabase السابق `public.courses` هو read projection لصفحات الموقع العامة؛ عند نشر إصدار يعمل Django upsert للحقول المشتركة إليه، مع الحفاظ على السعر والسعة وموعد البداية. بهذه الطريقة لا تعتمد React على بيانات LMS hardcoded ولا يصبح جدول الكتالوج مصدرًا موازيًا لمنطق التعلم.
+1. Enrollment لا يساوي Access؛ يلزم Entitlement صالح وعضوية فعالة وإصدار منشور.
+2. التسجيل يشير إلى Course Version ثابت.
+3. React يرسل حدث تعلم ولا يرسل نسبة تقدم موثوقة.
+4. النسبة تُعاد بناؤها من Lesson Progress وأوزان الدروس المطلوبة.
+5. نشر إصدار يحدث الإصدار والكورس وكتالوج `public.courses` في نفس المعاملة.
+6. لا يحصل المتصفح أبدًا على `service_role`.
 
-## أول Vertical Slice
-
-```text
-Create Course → Build Draft Version → Publish
-       → Activate Enrollment + Entitlement
-       → Student opens lesson
-       → Learning Event
-       → Django evaluates Lesson Progress
-       → Django rebuilds Course Progress
-```
-
-## قرارات مؤجلة
-
-- Video watch intervals والـsigned heartbeats.
-- Question banks والاختبارات.
-- Assignments والـgradebook.
-- الشهادات.
-- الدفع والاشتراكات.
-- Storage adapters وSCORM وSSO.
-
-هذه الامتدادات تُضاف داخل نفس الحدود دون نقل منطق الأعمال إلى React.
+تنفيذ Django السابق موجود مؤقتًا كمرجع مقارنة فقط ولا يدخل في مسار الإنتاج.

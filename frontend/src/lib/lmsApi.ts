@@ -1,20 +1,10 @@
-import { supabase } from "./supabase";
+import { supabase, supabasePublishableKey, supabaseUrl } from "./supabase";
 
-const PRODUCTION_LMS_API_URL = "https://api.awexen.com/api/v1";
+const configuredBase = String(import.meta.env.VITE_LMS_EDGE_URL ?? "").trim().replace(/\/+$/, "");
 
-const configuredBase = String(
-  import.meta.env.VITE_LMS_API_URL ?? import.meta.env.VITE_DJANGO_API_URL ?? "",
-).trim().replace(/\/+$/, "");
-
-export const LMS_API_BASE_URL = configuredBase
-  ? configuredBase.endsWith("/api/v1")
-    ? configuredBase
-    : configuredBase.endsWith("/api")
-      ? `${configuredBase}/v1`
-      : `${configuredBase}/api/v1`
-  : import.meta.env.DEV
-    ? "http://127.0.0.1:8000/api/v1"
-    : PRODUCTION_LMS_API_URL;
+export const LMS_API_BASE_URL = configuredBase || (
+  supabaseUrl ? `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/lms-api` : ""
+);
 
 type ApiErrorEnvelope = {
   error?: {
@@ -37,7 +27,7 @@ function firstDetail(value: unknown): string | null {
 }
 
 export async function lmsApi<T>(path: string, init: RequestInit = {}): Promise<T> {
-  if (!LMS_API_BASE_URL) throw new Error("رابط Django LMS API غير موجود في إعدادات البيئة.");
+  if (!LMS_API_BASE_URL) throw new Error("رابط Supabase غير موجود في إعدادات الموقع.");
   if (!supabase) throw new Error("خدمة تسجيل الدخول غير متصلة.");
 
   const { data, error: sessionError } = await supabase.auth.getSession();
@@ -48,6 +38,7 @@ export async function lmsApi<T>(path: string, init: RequestInit = {}): Promise<T
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${data.session.access_token}`,
+      ...(supabasePublishableKey ? { apikey: supabasePublishableKey } : {}),
       ...(init.body ? { "Content-Type": "application/json" } : {}),
       ...init.headers,
     },

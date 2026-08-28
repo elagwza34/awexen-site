@@ -1,26 +1,16 @@
-# Ask Awexen Edge Function
+# Awexen Supabase backend
 
-هذه الدالة تجعل شات Ask Awexen يعمل على الموقع المنشور حتى لو كان Django يعمل محليًا فقط.
+## Functions
 
-## النشر من Supabase Dashboard
+- `lms-public`: public health/readiness.
+- `lms-api`: authenticated student, instructor and administration API.
+- `ask-awexen`: public knowledge-grounded chat.
+- `extract-knowledge-pdf`: authenticated CMS editor PDF extraction.
 
-1. افتح مشروع Supabase ثم اختر **Edge Functions**.
-2. اختر **Deploy a new function** ثم **Via Editor**.
-3. سمِّ الدالة بالضبط: `ask-awexen`.
-4. انسخ محتوى `functions/ask-awexen/index.ts` بالكامل إلى المحرر، ثم اضغط **Deploy**.
-5. اجعل الدالة عامة عبر إيقاف **Verify JWT** إن ظهر هذا الخيار.
+## Database
 
-## إضافة الأسرار
+Run `migrations/202608280001_lms_identity_security.sql` then `migrations/202608280002_lms_transactions.sql`. They preserve the existing LMS data and add the Auth identity bridge, RLS, Storage policies and transactional RPCs.
 
-من **Edge Functions > Secrets** أضف القيم التالية:
+## Deploy
 
-- `OPENROUTER_API_KEY`: مفتاح OpenRouter الجديد الموجود لديك.
-- `OPENROUTER_MODEL`: `openai/gpt-4o`
-- `OPENROUTER_SITE_URL`: `https://awexen.awexen.com`
-- `OPENROUTER_SITE_NAME`: `Ask Awexen`
-
-لا تضع مفتاح OpenRouter في ملفات `frontend` أو في متغيرات Vite لأن أي قيمة تبدأ بـ `VITE_` يمكن أن تظهر داخل المتصفح.
-
-بعد نشر الدالة، ارفع تعديلات الواجهة إلى GitHub ثم نفّذ Redeploy في Hostinger. لا يحتاج Hostinger إلى مفتاح OpenRouter؛ الواجهة تستخدم بيانات Supabase العامة الموجودة بالفعل.
-
-يفضل أيضًا تعيين حد شهري للإنفاق من إعدادات OpenRouter لأن الدالة متاحة لزوار الموقع.
+See `docs/deployment-supabase-hostinger.md` from the repository root.

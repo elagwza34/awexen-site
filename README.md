@@ -1,115 +1,77 @@
 # Awexen
 
-المشروع Monorepo يحتوي على موقع Awexen ومنصة التعلّم:
+موقع Awexen ومنصة التعلّم يعملان من غير VPS أو Render:
 
 ```text
-.
-├── frontend/       # React + TypeScript + Vite
-├── backend/        # Django + DRF + Celery
-├── docs/           # توثيق المعمارية والأمان والصلاحيات
-├── supabase/       # Edge Functions الحالية
-└── docker-compose.yml
+awexen.com (Hostinger Business: React static build)
+        │ Supabase access token
+        ▼
+Supabase Edge Functions
+        │
+        ├── Auth
+        ├── PostgreSQL + RLS
+        └── Storage
 ```
 
-## المعمارية
+## المكونات الفعّالة
 
-- Supabase Auth يصدر هوية المستخدم الحالية.
-- React يرسل Access Token إلى Django ولا يقرر الصلاحيات أو التقدم.
-- Django يتحقق من الهوية ويطبق أدوار المؤسسة والاستحقاقات وقواعد الإكمال.
-- PostgreSQL المستضاف على Supabase هو قاعدة بيانات الإنتاج.
-- Django Models وMigrations هي المصدر الرسمي لجداول الـLMS.
-- ملفات SQL داخل `backend/sql` تخص الـCMS القديم والتكاملات غير التابعة للـLMS.
+- `frontend/`: React + TypeScript + Vite، ويُنشر كملفات ثابتة على Hostinger.
+- `supabase/migrations/`: ربط الهوية، RLS، المعاملات الذرية، وStorage.
+- `supabase/functions/lms-api/`: API الطالب والمدرب والإدارة.
+- `supabase/functions/lms-public/`: health/readiness من دون تسجيل دخول.
+- `supabase/functions/ask-awexen/`: شات Ask Awexen.
+- `supabase/functions/extract-knowledge-pdf/`: استخراج ملفات PDF للإدارة.
+- `backend/`: تنفيذ Django السابق محفوظ مؤقتًا كمرجع أثناء التحقق من الانتقال، لكنه غير مطلوب للتشغيل أو النشر.
 
-## تشغيل بيئة التطوير باستخدام Docker
+## تشغيل الواجهة
 
-1. انسخ `backend/.env.example` إلى `backend/.env` وأضف بيانات Supabase العامة المطلوبة للخادم.
-2. انسخ `frontend/.env.example` إلى `frontend/.env` وأضف بيانات Supabase العامة للواجهة.
-3. شغّل:
-
-```bash
-docker compose up --build
-```
-
-Django يعمل على `http://127.0.0.1:8000`، وPostgreSQL وRedis يعملان داخل Docker.
-
-## التشغيل اليدوي
-
-```powershell
-cd backend
-.venv\Scripts\python.exe -m pip install -r requirements.txt
-.venv\Scripts\python.exe manage.py migrate
-.venv\Scripts\python.exe manage.py runserver 8000
-```
-
-وفي نافذة أخرى:
+انسخ `frontend/.env.example` إلى `frontend/.env` وضع رابط Supabase والمفتاح العام فقط، ثم:
 
 ```powershell
 cd frontend
-npm install
-npm run dev
+npm.cmd install
+npm.cmd run dev
 ```
 
-أثناء التطوير استخدم:
+لا تضع `service_role` أو كلمة مرور قاعدة البيانات في أي متغير يبدأ بـ`VITE_`.
 
-```env
-VITE_LMS_API_URL=http://127.0.0.1:8000/api/v1
+## النشر على awexen.com
+
+اتبع [دليل Supabase وHostinger](docs/deployment-supabase-hostinger.md). لا تحتاج إلى `api.awexen.com`، ولا إلى Render أو VPS؛ الواجهة تستدعي تلقائيًا:
+
+```text
+https://<project-ref>.supabase.co/functions/v1/lms-api
 ```
 
-## نشر الإنتاج على awexen.com
+## منطق LMS المحفوظ
 
-- الواجهة تُنشر على Hostinger: `https://awexen.com`.
-- Django يُنشر على Render: `https://api.awexen.com/api/v1`.
-- Supabase يظل مسؤولًا عن PostgreSQL وAuth.
+- حسابات Supabase Auth تُربط بحسابات LMS القديمة بالـID أو البريد، فلا تضيع التسجيلات عند إعادة إنشاء هوية Auth.
+- Membership وEnrollment وEntitlement هي مصدر الصلاحية، وليس metadata القادم من المتصفح.
+- الحجز والموافقة والتسجيل والنشر والتقدم تعمل داخل معاملات PostgreSQL.
+- `client_event_id` يجعل أحداث التقدم idempotent.
+- Learning Events وAudit Events غير قابلة للتعديل أو الحذف.
+- إثباتات الدفع خاصة، وحجمها الأقصى 5MB، والطالب يرفع داخل مجلده فقط.
 
-اتبع دليل [نشر Hostinger وRender](docs/deployment-hostinger-render.md) لإنشاء خدمة الـAPI، إضافة متغيرات الإنتاج، ربط DNS، وإعادة بناء الواجهة.
+## البريد وكود التفعيل
 
-## بدء استخدام الـLMS
-
-1. شغّل Django migrations؛ لا تنفذ SQL يدويًا لإنشاء جداول الـLMS.
-2. سجّل دخول حساب الإدارة من `/awexen` ليتزامن مع Django.
-3. المتدرب يفتح تفاصيل الكورس ثم `/checkout/{slug}`، ويسجل من `/learn/login`.
-4. بعد التحويل عبر InstaPay أو Vodafone Cash يرفع الإثبات؛ الإدارة تراجعه من «موافقات LMS».
-5. موافقة الإدارة تفعّل الكورس تلقائيًا داخل `/learn`، ويُحسب التقدم من Learning Events.
-6. المدرب يختار «مدرب» عند إنشاء الحساب، ثم يبني الكورس من `/instructor` ويرسله للمراجعة.
-7. كورس المدرب لا يظهر في الكتالوج إلا بعد موافقة الإدارة ونشر الإصدار.
-
-لإنشاء كورس WordPress التجريبي في قاعدة البيانات:
-
-```powershell
-cd backend
-.venv\Scripts\python.exe manage.py seed_wordpress_course
-```
-
-الأمر idempotent: يمكن تشغيله أكثر من مرة من غير إنشاء نسخة مكررة. ينشئ كورسًا منشورًا بإصدار واحد و4 وحدات و12 درسًا.
-
-عند استخدام Supabase PostgreSQL، نشر الكورس يعمل upsert تلقائيًا في جدول الكتالوج الحالي `public.courses`. ولمزامنة كل الكورسات المنشورة يدويًا:
-
-```powershell
-cd backend
-.venv\Scripts\python.exe manage.py sync_course_catalog
-```
-
-السعر والسعة ونوع التقديم وموعد البداية حقول رسمية في Django وتُزامن إلى الكتالوج العام عند النشر.
-
-لتسجيل Google، فعّل Google Provider داخل Supabase Auth وأضف روابط `/learn/login` المحلية والإنتاجية إلى Redirect URLs. اختيار «متدرب/مدرب» يُحفظ في metadata، بينما تظل صلاحية النشر والموافقة حصرًا على الإدارة.
-
-لتأكيد التسجيل بكود OTP بدل رابط: افتح Supabase → Authentication → Email Templates → Confirm signup، واجعل العنوان `كود تأكيد حسابك في Awexen` والصق محتوى `docs/supabase-confirm-signup-otp-template.html`. يجب ألا يحتوي القالب على `{{ .ConfirmationURL }}`؛ الواجهة تتحقق من `{{ .Token }}` عبر `verifyOtp`.
-
-ضع بريد المالك في `LMS_BOOTSTRAP_ADMIN_EMAILS` على الخادم. لا تضع `SUPABASE_JWT_SECRET` أو مفاتيح الخدمة في أي متغير يبدأ بـ`VITE_`.
+Supabase الافتراضي مخصص للتجربة ولا يرسل إلى كل العملاء. يجب تفعيل Custom SMTP في **Authentication → Emails → SMTP Settings**، ثم استخدام قالب `docs/supabase-confirm-signup-otp-template.html` في **Confirm signup**. القالب يستخدم `{{ .Token }}` والواجهة تتحقق منه عبر `verifyOtp`.
 
 ## الفحوص
 
 ```powershell
-cd backend
-$env:AWEXEN_ENV='test'
-.venv\Scripts\python.exe manage.py check
-.venv\Scripts\python.exe -m pytest
-.venv\Scripts\python.exe manage.py makemigrations --check --dry-run
+npx.cmd --yes deno check supabase/functions/ask-awexen/index.ts supabase/functions/extract-knowledge-pdf/index.ts supabase/functions/lms-public/index.ts supabase/functions/lms-api/index.ts
 
-cd ..\frontend
+cd frontend
 npm.cmd exec tsc -- --noEmit
 npm.cmd run build
 npm.cmd audit --audit-level=high
 ```
 
-توثيق OpenAPI متاح أثناء تشغيل Django على `/api/v1/docs/`.
+عند وجود اتصال آمن بقاعدة المشروع، يمكن فحص ملفات SQL كاملة من غير حفظ أي تغيير:
+
+```powershell
+cd backend
+.venv\Scripts\python.exe tools\validate_supabase_migrations.py
+```
+
+الأداة تنفذ المهاجرات وSmoke tests داخل Transaction ثم تعمل Rollback إجباريًا.
