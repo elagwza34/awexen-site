@@ -38,7 +38,7 @@ npx.cmd supabase functions deploy extract-knowledge-pdf
 npx.cmd supabase secrets set OPENROUTER_API_KEY=YOUR_NEW_KEY OPENROUTER_MODEL=openai/gpt-4o OPENROUTER_SITE_URL=https://awexen.com OPENROUTER_SITE_NAME="Ask Awexen"
 ```
 
-`SUPABASE_URL` و`SUPABASE_ANON_KEY` و`SUPABASE_SERVICE_ROLE_KEY` متاحة تلقائيًا داخل Edge Functions؛ لا تنقلها إلى Hostinger.
+`SUPABASE_URL` و`SUPABASE_PUBLISHABLE_KEYS` و`SUPABASE_SECRET_KEYS` متاحة تلقائيًا داخل Edge Functions؛ لا تنقل أي مفتاح سري إلى Hostinger. يدعم الكود مفاتيح `anon` و`service_role` القديمة مؤقتًا لتسهيل الانتقال فقط.
 
 ## 4. إصلاح وصول كود التفعيل
 
@@ -62,6 +62,8 @@ npx.cmd supabase secrets set OPENROUTER_API_KEY=YOUR_NEW_KEY OPENROUTER_MODEL=op
 VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR_KEY
 ```
+
+مفتاح `publishable` عام ومخصص للمتصفح. لا تستخدم مفتاح `service_role` أو `sb_secret_...` في React مطلقًا.
 
 اترك `VITE_LMS_EDGE_URL` فارغًا. نفّذ:
 

@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.112.4";
 import { extractText, getDocumentProxy } from "npm:unpdf@1.8.1";
 
 import { corsHeaders, errorResponse, HttpError, jsonResponse, requestId } from "../_shared/http.ts";
+import { supabasePublishableKey, supabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 function chunkText(source: string, targetSize = 3500, overlap = 250): string[] {
   const normalized = source.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).join("\n");
@@ -30,8 +31,8 @@ async function requireKnowledgeEditor(request: Request): Promise<void> {
   const token = (request.headers.get("authorization") ?? "").match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) throw new HttpError(401, "سجّل الدخول إلى لوحة الإدارة أولًا.");
   const url = Deno.env.get("SUPABASE_URL")?.trim();
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")?.trim();
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim();
+  const anonKey = supabasePublishableKey();
+  const serviceKey = supabaseSecretKey();
   if (!url || !anonKey || !serviceKey) throw new HttpError(500, "إعدادات Supabase غير مكتملة.");
   const auth = createClient(url, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false },

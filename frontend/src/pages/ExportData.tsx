@@ -26,7 +26,7 @@ const steps = [
   {
     n: "2",
     title: "اضبط متغيرات Supabase",
-    desc: "أضف VITE_SUPABASE_URL وVITE_SUPABASE_ANON_KEY إلى ملف .env.",
+    desc: "أضف VITE_SUPABASE_URL وVITE_SUPABASE_PUBLISHABLE_KEY إلى ملف .env.",
   },
   {
     n: "3",

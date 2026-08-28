@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.112.4";
 
 import { corsHeaders, errorResponse, HttpError, jsonResponse, requestId } from "../_shared/http.ts";
+import { supabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 Deno.serve(async (request) => {
   const currentRequestId = requestId(request);
@@ -14,7 +15,7 @@ Deno.serve(async (request) => {
     }
     if (path === "health/ready") {
       const url = Deno.env.get("SUPABASE_URL")?.trim();
-      const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim();
+      const key = supabaseSecretKey();
       if (!url || !key) throw new HttpError(503, "إعدادات اتصال Supabase غير مكتملة.");
       const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
       const { error } = await db.from("organizations_organization").select("id", { head: true, count: "exact" });

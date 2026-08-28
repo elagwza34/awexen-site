@@ -8,6 +8,7 @@ dist/
 .env
 .env.*
 !.env.example
+!frontend/.env.production
 
 # Python / Django
 __pycache__/

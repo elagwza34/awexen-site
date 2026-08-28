@@ -9,6 +9,7 @@ import {
   readJson,
   requestId,
 } from "../_shared/http.ts";
+import { supabasePublishableKey, supabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 type Row = Record<string, unknown>;
 type Membership = {
@@ -40,7 +41,9 @@ function environment(name: string): string {
 }
 
 function databaseClient(): DatabaseClient {
-  return createClient(environment("SUPABASE_URL"), environment("SUPABASE_SERVICE_ROLE_KEY"), {
+  const key = supabaseSecretKey();
+  if (!key) throw new HttpError(500, "Supabase server API key is not configured.");
+  return createClient(environment("SUPABASE_URL"), key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
@@ -54,7 +57,9 @@ function bearerToken(request: Request): string {
 
 async function authenticate(request: Request, db: DatabaseClient): Promise<LmsContext> {
   const token = bearerToken(request);
-  const auth = createClient(environment("SUPABASE_URL"), environment("SUPABASE_ANON_KEY"), {
+  const key = supabasePublishableKey();
+  if (!key) throw new HttpError(500, "Supabase public API key is not configured.");
+  const auth = createClient(environment("SUPABASE_URL"), key, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
