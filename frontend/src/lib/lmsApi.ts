@@ -1,5 +1,7 @@
 import { supabase } from "./supabase";
 
+const PRODUCTION_LMS_API_URL = "https://api.awexen.com/api/v1";
+
 const configuredBase = String(
   import.meta.env.VITE_LMS_API_URL ?? import.meta.env.VITE_DJANGO_API_URL ?? "",
 ).trim().replace(/\/+$/, "");
@@ -12,7 +14,7 @@ export const LMS_API_BASE_URL = configuredBase
       : `${configuredBase}/api/v1`
   : import.meta.env.DEV
     ? "http://127.0.0.1:8000/api/v1"
-    : "";
+    : PRODUCTION_LMS_API_URL;
 
 type ApiErrorEnvelope = {
   error?: {

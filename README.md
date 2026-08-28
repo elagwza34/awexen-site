@@ -55,6 +55,14 @@ npm run dev
 VITE_LMS_API_URL=http://127.0.0.1:8000/api/v1
 ```
 
+## نشر الإنتاج على awexen.com
+
+- الواجهة تُنشر على Hostinger: `https://awexen.com`.
+- Django يُنشر على Render: `https://api.awexen.com/api/v1`.
+- Supabase يظل مسؤولًا عن PostgreSQL وAuth.
+
+اتبع دليل [نشر Hostinger وRender](docs/deployment-hostinger-render.md) لإنشاء خدمة الـAPI، إضافة متغيرات الإنتاج، ربط DNS، وإعادة بناء الواجهة.
+
 ## بدء استخدام الـLMS
 
 1. شغّل Django migrations؛ لا تنفذ SQL يدويًا لإنشاء جداول الـLMS.
