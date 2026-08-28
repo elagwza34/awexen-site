@@ -61,7 +61,7 @@ function friendlyError(error: unknown) {
   if (code === "otp_expired" || normalizedMessage.includes("token has expired") || normalizedMessage.includes("invalid token")) return "كود التأكيد غير صحيح أو انتهت صلاحيته. اطلب كودًا جديدًا.";
   if (["over_email_send_rate_limit", "over_request_rate_limit"].includes(code) || normalizedMessage.includes("rate limit")) return "تم طلب أكواد كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.";
   if (normalizedMessage.includes("failed to fetch")) {
-    return "تعذّر الاتصال بمنصة التعلّم. تأكد من نشر Supabase Edge Function باسم lms-api ومن إعدادات Supabase.";
+    return "تعذّر التحقق من صلاحية الحساب مؤقتًا. حدّث الصفحة أو سجّل الخروج ثم حاول تسجيل الدخول مرة أخرى.";
   }
   return message;
 }
@@ -355,7 +355,7 @@ export function LearningAuth() {
             <h2 className="mt-5 text-[27px] font-black text-white">{mode === "login" ? "أهلًا برجوعك" : mode === "signup" ? "أنشئ حسابك" : mode === "otp" ? "أدخل كود التأكيد" : "كلمة مرور جديدة"}</h2>
             <p className="mt-2 text-[13px] leading-6 text-white/45">{mode === "login" ? "سجّل الدخول وسيتم توجيهك للوحة المناسبة لحسابك." : mode === "signup" ? "اختر نوع الحساب ثم سجّل بجوجل أو البريد." : mode === "otp" ? `راجع ${email} ومجلد Spam بحثًا عن كود التأكيد.` : "اكتب كلمة مرور قوية لحسابك."}</p>
 
-            {(mode === "login" || mode === "signup") && (
+            {mode === "signup" && (
               <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-white/[0.035] p-1.5" role="group" aria-label="نوع الحساب">
                 {(["student", "instructor"] as const).map((type) => (
                   <button
@@ -408,7 +408,7 @@ export function LearningAuth() {
 
               <button disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3.5 text-[14px] font-black text-white shadow-lg shadow-brand-500/20 transition hover:bg-brand-400 disabled:opacity-60">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : mode === "login" ? <LogIn className="h-4 w-4" /> : mode === "otp" ? <Check className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                {busy ? "لحظة..." : mode === "login" ? `دخول كـ${accountType === "instructor" ? "مدرب" : "متدرب"}` : mode === "signup" ? "إرسال كود التأكيد" : mode === "otp" ? "تأكيد الكود والدخول" : "حفظ كلمة المرور"}
+                {busy ? "لحظة..." : mode === "login" ? "تسجيل الدخول" : mode === "signup" ? "إرسال كود التأكيد" : mode === "otp" ? "تأكيد الكود والدخول" : "حفظ كلمة المرور"}
               </button>
             </form>
 
