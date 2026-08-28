@@ -56,7 +56,7 @@ function friendlyError(error: unknown) {
     || normalizedMessage.includes("email address not authorized")
     || normalizedMessage.includes("email_address_not_authorized")
   ) {
-    return "تعذّر إرسال كود التأكيد لأن خدمة البريد الافتراضية في Supabase لا ترسل للمتدربين. فعّل Custom SMTP من إعدادات Authentication ثم أعد المحاولة.";
+    return "تعذّر إرسال كود التأكيد عبر خدمة البريد. تأكد من إعدادات SMTP ثم أعد المحاولة بعد دقيقة.";
   }
   if (code === "otp_expired" || normalizedMessage.includes("token has expired") || normalizedMessage.includes("invalid token")) return "كود التأكيد غير صحيح أو انتهت صلاحيته. اطلب كودًا جديدًا.";
   if (["over_email_send_rate_limit", "over_request_rate_limit"].includes(code) || normalizedMessage.includes("rate limit")) return "تم طلب أكواد كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.";
@@ -298,6 +298,12 @@ export function LearningAuth() {
           },
         });
         if (signUpError) throw signUpError;
+        if (data.user?.identities?.length === 0) {
+          setMode("login");
+          setPassword("");
+          setError("يوجد حساب مسجل بهذا البريد بالفعل. سجّل الدخول أو استخدم «نسيت كلمة المرور» بدل طلب كود تسجيل جديد.");
+          return;
+        }
         window.localStorage.setItem("awexen.auth.account_type", accountType);
         const next = requestedDestination();
         if (next) window.localStorage.setItem("awexen.auth.next", next);
