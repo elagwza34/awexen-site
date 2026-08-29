@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   BookOpenText,
   BriefcaseBusiness,
@@ -29,9 +30,11 @@ import LmsApprovals from "../admin/LmsApprovals";
 import { PricingSettingsPanel, SiteSettingsPanel, UsersPanel } from "../admin/SettingsPanels";
 import { resources } from "../admin/resourceDefinitions";
 import type { AdminRole, SectionKey } from "../admin/types";
+import { lmsApi } from "../lib/lmsApi";
 import { supabase } from "../lib/supabase";
 
 const allRoles: AdminRole[] = ["owner", "admin", "editor", "hr", "support"];
+type AdminNotificationSummary = { course_reviews: number; course_requests: number };
 
 const navItems: Array<{
   key: SectionKey;
@@ -50,7 +53,7 @@ const navItems: Array<{
   { key: "applications", label: "طلبات التوظيف", icon: UserRoundCheck, roles: ["owner", "admin", "hr"], group: "التوظيف والتدريب" },
   { key: "courses", label: "الكورسات", icon: GraduationCap, roles: ["owner", "admin", "editor"], group: "التوظيف والتدريب" },
   { key: "lms", label: "محتوى منصة التعلّم", icon: LibraryBig, roles: ["owner", "admin", "editor"], group: "التوظيف والتدريب" },
-  { key: "approvals", label: "موافقات LMS", icon: FileCheck2, roles: ["owner", "admin", "editor", "support"], group: "التوظيف والتدريب" },
+  { key: "approvals", label: "موافقات LMS", icon: FileCheck2, roles: ["owner", "admin", "editor"], group: "التوظيف والتدريب" },
   { key: "enrollments", label: "طلبات الكورسات", icon: Inbox, roles: ["owner", "admin", "editor", "support"], group: "التوظيف والتدريب" },
   { key: "knowledge", label: "معرفة AI", icon: Sparkles, roles: ["owner", "admin", "editor"], group: "المعرفة" },
   { key: "inquiries", label: "أسئلة الزوار", icon: MessageCircleQuestion, roles: ["owner", "admin", "editor", "support"], group: "المعرفة" },
@@ -67,11 +70,6 @@ const applicationStatuses = [
   { label: "مقبول", value: "accepted" }, { label: "مرفوض", value: "rejected" },
 ];
 
-const enrollmentStatuses = [
-  { label: "جديد", value: "new" }, { label: "تم التواصل", value: "contacted" },
-  { label: "مؤكد", value: "confirmed" }, { label: "مدفوع", value: "paid" }, { label: "ملغي", value: "cancelled" },
-];
-
 const inquiryStatuses = [
   { label: "جديد", value: "new" }, { label: "تمت الإجابة", value: "answered" },
   { label: "يحتاج مراجعة", value: "needs_review" }, { label: "مغلق", value: "closed" },
@@ -81,15 +79,32 @@ export default function AdminDashboard() {
   const [active, setActive] = useState<SectionKey>("overview");
   const [role, setRole] = useState<AdminRole>("admin");
   const [email, setEmail] = useState("");
+  const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
-    if (!supabase) return;
+    if (!supabase) {
+      setSessionReady(true);
+      return;
+    }
     void supabase.auth.getSession().then(({ data }) => {
       const sessionRole = String(data.session?.user.app_metadata.role ?? "admin") as AdminRole;
       setRole(sessionRole);
       setEmail(data.session?.user.email ?? "");
-    });
+    }).finally(() => setSessionReady(true));
   }, []);
+
+  const notificationsQuery = useQuery({
+    queryKey: ["admin-notifications"],
+    queryFn: () => lmsApi<AdminNotificationSummary>("admin/notification-summary/"),
+    enabled: sessionReady && ["owner", "admin", "editor", "support"].includes(role),
+    staleTime: 5_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+  });
+  const notificationCounts: Partial<Record<SectionKey, number>> = {
+    approvals: notificationsQuery.data?.course_reviews ?? 0,
+    enrollments: notificationsQuery.data?.course_requests ?? 0,
+  };
 
   const visibleItems = useMemo(() => navItems.filter((item) => item.roles.includes(role)), [role]);
   const visibleKeys = useMemo(() => new Set(visibleItems.map((item) => item.key)), [visibleItems]);
@@ -127,17 +142,26 @@ export default function AdminDashboard() {
                 <div key={group} className="shrink-0 lg:shrink lg:space-y-1">
                   <p className="hidden px-2 pb-1 text-[8px] font-bold uppercase tracking-[0.16em] text-white/25 lg:block">{group}</p>
                   <div className="flex gap-1 lg:block lg:space-y-0.5">
-                    {items.map(({ key, label, icon: Icon }) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setActive(key)}
-                        className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[10.5px] font-bold transition lg:w-full ${active === key ? "bg-brand-500 text-white shadow-lg shadow-brand-500/10" : "text-white/50 hover:bg-white/5 hover:text-white"}`}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                        {label}
-                      </button>
-                    ))}
+                    {items.map(({ key, label, icon: Icon }) => {
+                      const notificationCount = notificationCounts[key] ?? 0;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setActive(key)}
+                          className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[10.5px] font-bold transition lg:w-full ${active === key ? "bg-brand-500 text-white shadow-lg shadow-brand-500/10" : "text-white/50 hover:bg-white/5 hover:text-white"}`}
+                          aria-label={notificationCount > 0 ? `${label}: ${notificationCount} إشعار جديد` : label}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          <span>{label}</span>
+                          {notificationCount > 0 && (
+                            <span className={`mr-auto grid min-w-5 place-items-center rounded-full px-1.5 py-0.5 text-[8px] font-black leading-none ${active === key ? "bg-white text-brand-600" : "bg-brand-500 text-white shadow-md shadow-brand-500/20"}`}>
+                              {notificationCount > 99 ? "99+" : notificationCount}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -152,7 +176,7 @@ export default function AdminDashboard() {
           {active === "jobs" && <ResourceManager definition={resources.jobs} />}
           {active === "courses" && <ResourceManager definition={resources.courses} />}
           {active === "lms" && <LmsManager role={role} />}
-          {active === "approvals" && <LmsApprovals role={role} />}
+          {active === "approvals" && <LmsApprovals role={role} view="courses" />}
           {active === "clients" && <ResourceManager definition={resources.clients} />}
           {active === "knowledge" && <KnowledgeManager />}
 
@@ -175,12 +199,7 @@ export default function AdminDashboard() {
               { key: "cover_note", label: "نبذة المتقدم", wide: true }, { key: "admin_notes", label: "ملاحظات الإدارة", wide: true },
             ]} />
           )}
-          {active === "enrollments" && (
-            <InboxManager table="course_enrollments" title="طلبات الكورسات" description="طلبات التسجيل وطريقة الدفع المختارة." statusOptions={enrollmentStatuses} fields={[
-              { key: "email", label: "البريد", kind: "email" }, { key: "phone", label: "الهاتف", kind: "phone" },
-              { key: "experience_level", label: "المستوى" }, { key: "payment_preference", label: "الدفع" }, { key: "goal", label: "هدف المتدرب", wide: true },
-            ]} />
-          )}
+          {active === "enrollments" && <LmsApprovals role={role} view="payments" />}
           {active === "inquiries" && (
             <InboxManager table="ai_inquiries" title="أسئلة قاعدة المعرفة" description="راقب الأسئلة التي وجدت إجابة، ووسّع المعرفة للأسئلة التي تحتاج مراجعة." statusOptions={inquiryStatuses} fields={[
               { key: "email", label: "البريد", kind: "email" }, { key: "question", label: "السؤال", wide: true }, { key: "answer", label: "الإجابة المستخدمة", wide: true },

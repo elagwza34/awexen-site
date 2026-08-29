@@ -38,6 +38,7 @@ import {
 } from "./pages/Learning";
 import KnowledgeChat from "./components/KnowledgeChat";
 import { ContentProvider } from "./context/ContentContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import { supabase } from "./lib/supabase";
 
 function AwexenAdminRoute() {

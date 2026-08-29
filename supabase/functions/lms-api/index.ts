@@ -445,6 +445,49 @@ function applyOrdering(query: any, url: URL, fallback = "created_at", ascendingF
   return query.order(selected, { ascending: requested === fallback ? ascendingFallback : !descending });
 }
 
+async function adminNotificationSummary(db: DatabaseClient, context: LmsContext): Promise<Row> {
+  const contentOrganizations = allowedOrganizationIds(context, CONTENT_ROLES);
+  const enrollmentOrganizations = allowedOrganizationIds(context, ENROLLMENT_ROLES);
+
+  const courseReviewCount = async (): Promise<number> => {
+    if (contentOrganizations?.length === 0) return 0;
+
+    let allowedCourseIds: string[] | null = null;
+    if (contentOrganizations) {
+      const allowedCourses = unwrap(
+        await db.from("courses_course").select("id").in("organization_id", contentOrganizations),
+      ) as Row[];
+      allowedCourseIds = allowedCourses.map((row) => String(row.id));
+      if (!allowedCourseIds.length) return 0;
+    }
+
+    let query = db
+      .from("courses_courseversion")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "in_review");
+    if (allowedCourseIds) query = query.in("course_id", allowedCourseIds);
+    const result = await query;
+    if (result.error) throw databaseError(result.error);
+    return result.count ?? 0;
+  };
+
+  const courseRequestCount = async (): Promise<number> => {
+    if (enrollmentOrganizations?.length === 0) return 0;
+
+    let query = db
+      .from("commerce_coursebooking")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["awaiting_payment", "payment_submitted"]);
+    if (enrollmentOrganizations) query = query.in("organization_id", enrollmentOrganizations);
+    const result = await query;
+    if (result.error) throw databaseError(result.error);
+    return result.count ?? 0;
+  };
+
+  const [courseReviews, courseRequests] = await Promise.all([courseReviewCount(), courseRequestCount()]);
+  return { course_reviews: courseReviews, course_requests: courseRequests };
+}
+
 async function adminList(
   db: DatabaseClient,
   context: LmsContext,
@@ -523,7 +566,9 @@ async function adminList(
     query = db.from("commerce_coursebooking").select("*", { count: "exact" });
     if (enrollmentOrganizations) query = query.in("organization_id", enrollmentOrganizations);
     if (url.searchParams.get("organization")) query = query.eq("organization_id", uuid(url.searchParams.get("organization"), "المؤسسة"));
-    if (url.searchParams.get("status")) query = query.eq("status", url.searchParams.get("status"));
+    const statuses = (url.searchParams.get("statuses") ?? "").split(",").map((status) => status.trim()).filter(Boolean);
+    if (statuses.length) query = query.in("status", statuses);
+    else if (url.searchParams.get("status")) query = query.eq("status", url.searchParams.get("status"));
     if (url.searchParams.get("payment_method")) query = query.eq("payment_method", url.searchParams.get("payment_method"));
     transform = (rows) => bookingRows(db, rows);
   } else {
@@ -748,6 +793,90 @@ function cohortPayload(body: Row): Row {
   };
 }
 
+async function cloneVersionAsDraft(
+  db: DatabaseClient,
+  context: LmsContext,
+  version: Row,
+  course: Row,
+  mode: "admin" | "instructor",
+  requestIdValue: string,
+): Promise<Row> {
+  const existingDraft = unwrap(
+    await db.from("courses_courseversion")
+      .select("*")
+      .eq("course_id", course.id)
+      .eq("status", "draft")
+      .order("version_number", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ) as Row | null;
+  if (existingDraft) return versionOutput(existingDraft);
+
+  const payload: Row = { course: course.id };
+  for (const field of [
+    "title", "short_description", "description", "language", "difficulty", "estimated_minutes",
+    "thumbnail_url", "learning_outcomes", "requirements", "target_audience",
+  ]) payload[field] = version[field];
+  payload.change_notes = `Editable draft copied from version ${String(version.version_number ?? "")}`;
+
+  const draftId = await rpc<string>(db, "lms_edge_create_version", {
+    p_auth_user_id: context.auth_user_id,
+    p_payload: payload,
+    p_instructor_mode: mode === "instructor",
+    p_request_id: requestIdValue,
+  });
+
+  const sourceModules = unwrap(
+    await db.from("courses_module").select("*").eq("course_version_id", version.id).order("sort_order"),
+  ) as Row[];
+  const moduleIds = new Map<string, string>();
+  const now = new Date().toISOString();
+  const copiedModules = sourceModules.map((source) => {
+    const newId = crypto.randomUUID();
+    moduleIds.set(String(source.id), newId);
+    return {
+      id: newId,
+      created_at: now,
+      updated_at: now,
+      course_version_id: draftId,
+      created_by_id: context.id,
+      title: source.title,
+      description: source.description,
+      sort_order: source.sort_order,
+      status: source.status,
+    };
+  });
+  if (copiedModules.length) unwrap(await db.from("courses_module").insert(copiedModules));
+
+  const sourceLessons = sourceModules.length
+    ? unwrap(await db.from("courses_lesson").select("*").in("module_id", sourceModules.map((item) => item.id))) as Row[]
+    : [];
+  const copiedLessons = sourceLessons.map((source) => ({
+    id: crypto.randomUUID(),
+    created_at: now,
+    updated_at: now,
+    module_id: moduleIds.get(String(source.module_id)),
+    created_by_id: context.id,
+    title: source.title,
+    summary: source.summary,
+    content: source.content,
+    content_type: source.content_type,
+    video_url: source.video_url,
+    resource_url: source.resource_url,
+    duration_seconds: source.duration_seconds,
+    sort_order: source.sort_order,
+    status: source.status,
+    is_required: source.is_required,
+    weight: source.weight,
+    completion_rule: source.completion_rule,
+    completion_threshold: source.completion_threshold,
+  }));
+  if (copiedLessons.length) unwrap(await db.from("courses_lesson").insert(copiedLessons));
+
+  await audit(db, context, requestIdValue, "course_version.copied_to_draft", "course_version", draftId, String(course.organization_id));
+  return versionOutput(await versionById(db, draftId));
+}
+
 async function mutateContent(
   request: Request,
   db: DatabaseClient,
@@ -779,9 +908,20 @@ async function mutateContent(
     if (mode === "instructor") {
       requireInstructor(context);
       if (String(course.owner_id) !== context.id) throw new HttpError(403, "يمكنك تعديل كورساتك فقط.");
-      if (course.status !== "draft") throw new HttpError(400, "لا يمكن تعديل كورس منشور من لوحة المدرّب.");
     } else requireOrganization(context, course.organization_id, CONTENT_ROLES);
+    const action = parts[3];
+    if (method === "POST" && action === "restore") {
+      let restoredStatus = "draft";
+      if (course.current_version_id) {
+        const currentVersion = await versionById(db, String(course.current_version_id));
+        if (currentVersion.status === "published") restoredStatus = "published";
+      }
+      const restored = unwrap(await db.from("courses_course").update({ status: restoredStatus, updated_at: new Date().toISOString() }).eq("id", id).select("*").single()) as Row;
+      await audit(db, context, requestIdValue, "course.restored", "course", id, String(course.organization_id));
+      return jsonResponse(request, courseOutput(restored));
+    }
     if (method === "PATCH") {
+      if (course.status === "archived") throw new HttpError(400, "استرجع الكورس من المسودات قبل تعديله.");
       const payload: Row = { ...coursePayload(body), updated_at: new Date().toISOString() };
       delete payload.organization_id;
       const updated = unwrap(await db.from("courses_course").update(payload).eq("id", id).select("*").single()) as Row;
@@ -795,10 +935,9 @@ async function mutateContent(
       return jsonResponse(request, courseOutput(updated));
     }
     if (method === "DELETE") {
-      const versions = unwrap(await db.from("courses_courseversion").select("id").eq("course_id", id).limit(1)) as Row[];
-      if (versions.length) throw new HttpError(400, "لا يمكن حذف كورس له سجل إصدارات؛ قم بأرشفته.");
-      unwrap(await db.from("courses_course").delete().eq("id", id));
-      return jsonResponse(request, null, 204);
+      const archived = unwrap(await db.from("courses_course").update({ status: "archived", updated_at: new Date().toISOString() }).eq("id", id).select("*").single()) as Row;
+      await audit(db, context, requestIdValue, "course.moved_to_drafts", "course", id, String(course.organization_id));
+      return jsonResponse(request, courseOutput(archived));
     }
   }
 
@@ -817,7 +956,10 @@ async function mutateContent(
   if (resource === "course-versions" && id) {
     const { version, course } = await assertVersionAccess(db, context, id, mode);
     const action = parts[3];
-    if (method === "POST" && ["submit", "publish", "reject"].includes(action)) {
+    if (method === "POST" && ["submit", "publish", "reject", "edit-copy"].includes(action)) {
+      if (action === "edit-copy") {
+        return jsonResponse(request, await cloneVersionAsDraft(db, context, version, course, mode, requestIdValue), 201);
+      }
       if (mode === "instructor" && action !== "submit") throw new HttpError(403, "هذا الإجراء متاح للإدارة فقط.");
       const versionId = await rpc<string>(db, "lms_edge_version_action", {
         p_auth_user_id: context.auth_user_id,
@@ -838,10 +980,9 @@ async function mutateContent(
     }
     if (method === "DELETE") {
       if (version.status === "published") throw new HttpError(400, "لا يمكن حذف إصدار منشور.");
-      const enrollment = unwrap(await db.from("learning_enrollment").select("id").eq("course_version_id", id).limit(1)) as Row[];
-      if (enrollment.length) throw new HttpError(400, "لا يمكن حذف إصدار تم إسناده لمتعلمين.");
-      unwrap(await db.from("courses_courseversion").delete().eq("id", id));
-      return jsonResponse(request, null, 204);
+      const archived = unwrap(await db.from("courses_courseversion").update({ status: "archived", updated_at: new Date().toISOString() }).eq("id", id).select("*").single()) as Row;
+      await audit(db, context, requestIdValue, "course_version.moved_to_drafts", "course_version", id, String(course.organization_id));
+      return jsonResponse(request, versionOutput(archived));
     }
   }
 
@@ -1021,6 +1162,9 @@ async function routeRequest(
   }
   if (parts[0] === "admin") {
     const resource = parts[1];
+    if (method === "GET" && resource === "notification-summary" && !parts[2]) {
+      return jsonResponse(request, await adminNotificationSummary(db, context));
+    }
     if (method === "GET" && resource && parts[2]) {
       return jsonResponse(request, await adminDetail(db, context, resource, uuid(parts[2])));
     }

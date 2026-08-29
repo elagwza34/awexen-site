@@ -26,7 +26,8 @@ export type FieldOption = { label: string; value: string };
 export type FieldDefinition = {
   key: string;
   label: string;
-  type?: "text" | "textarea" | "number" | "url" | "date" | "datetime-local" | "select" | "checkbox";
+  type?: "text" | "textarea" | "number" | "url" | "image" | "date" | "datetime-local" | "select" | "checkbox";
+  storageBucket?: "course-images" | "portfolio-media";
   placeholder?: string;
   required?: boolean;
   nullable?: boolean;

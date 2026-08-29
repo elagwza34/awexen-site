@@ -5,6 +5,7 @@ import {
   CirclePlus,
   Edit3,
   GraduationCap,
+  ImagePlus,
   Loader2,
   Rocket,
   Save,
@@ -13,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { lmsApi } from "../lib/lmsApi";
+import { uploadPublicImage } from "../lib/storage";
 import type { AdminRole } from "./types";
 
 type Paged<T> = { count: number; results: T[] };
@@ -51,6 +53,9 @@ type Version = {
   difficulty: string;
   estimated_minutes: number;
   thumbnail_url: string;
+  learning_outcomes: string;
+  requirements: string;
+  target_audience: string;
 };
 type ModuleRow = {
   id: string;
@@ -118,10 +123,12 @@ export default function LmsManager({ role }: { role: AdminRole }) {
   const [courseId, setCourseId] = useState("");
   const [versionId, setVersionId] = useState("");
   const [busy, setBusy] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCourseForm, setShowCourseForm] = useState(false);
   const [courseDraft, setCourseDraft] = useState({ title: "", slug: "", short_description: "", delivery_mode: "recorded" as Course["delivery_mode"], price: 1500 });
   const [courseSettings, setCourseSettings] = useState({ delivery_mode: "recorded" as Course["delivery_mode"], price: 1500, capacity: "", starts_at: "", ends_at: "" });
+  const [versionDraft, setVersionDraft] = useState({ title: "", short_description: "", description: "", difficulty: "all_levels", estimated_minutes: 0, thumbnail_url: "", learning_outcomes: "", requirements: "", target_audience: "" });
   const [moduleDraft, setModuleDraft] = useState({ ...emptyModule });
   const [lessonDraft, setLessonDraft] = useState<(typeof emptyLesson & { id?: string; module: string }) | null>(null);
   const [studentEmail, setStudentEmail] = useState("");
@@ -173,6 +180,21 @@ export default function LmsManager({ role }: { role: AdminRole }) {
 
   const version = versions.find((item) => item.id === versionId) ?? null;
   const editable = Boolean(version && version.status !== "published" && version.status !== "archived");
+
+  useEffect(() => {
+    if (!version) return;
+    setVersionDraft({
+      title: version.title,
+      short_description: version.short_description,
+      description: version.description,
+      difficulty: version.difficulty,
+      estimated_minutes: version.estimated_minutes,
+      thumbnail_url: version.thumbnail_url,
+      learning_outcomes: version.learning_outcomes ?? "",
+      requirements: version.requirements ?? "",
+      target_audience: version.target_audience ?? "",
+    });
+  }, [version]);
   const modulesQuery = useQuery({
     queryKey: ["lms-admin", "modules", versionId],
     queryFn: () => lmsApi<Paged<ModuleRow>>(`admin/modules/?course_version=${versionId}&page_size=100&ordering=sort_order`),
@@ -259,20 +281,12 @@ export default function LmsManager({ role }: { role: AdminRole }) {
   };
 
   const createVersion = async () => {
-    if (!course) return;
+    if (!course || !version) return;
     setBusy(true);
     setError(null);
     try {
-      const created = await lmsApi<Version>("admin/course-versions/", {
+      const created = await lmsApi<Version>(`admin/course-versions/${version.id}/edit-copy/`, {
         method: "POST",
-        body: JSON.stringify({
-          course: course.id,
-          title: course.title,
-          short_description: course.short_description,
-          language: "ar",
-          difficulty: "all_levels",
-          estimated_minutes: 0,
-        }),
       });
       await refresh("versions");
       setVersionId(created.id);
@@ -280,6 +294,38 @@ export default function LmsManager({ role }: { role: AdminRole }) {
       setError(message(operationError));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const saveVersionDetails = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!version || !editable) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await lmsApi(`admin/course-versions/${version.id}/`, {
+        method: "PATCH",
+        body: JSON.stringify(versionDraft),
+      });
+      await refresh("versions");
+    } catch (operationError) {
+      setError(message(operationError));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const uploadThumbnail = async (file: File) => {
+    if (!course) return;
+    setUploadingImage(true);
+    setError(null);
+    try {
+      const publicUrl = await uploadPublicImage(file, "course-images", course.id);
+      setVersionDraft((current) => ({ ...current, thumbnail_url: publicUrl }));
+    } catch (operationError) {
+      setError(message(operationError));
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -435,7 +481,7 @@ export default function LmsManager({ role }: { role: AdminRole }) {
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.018] p-4">
             <div><p className="text-[9px] text-white/35">{course.title} · الإصدار {version.version_number}</p><p className="mt-1 text-[11px] font-bold text-white">{version.status === "published" ? "إصدار منشور ومحفوظ للطلاب الحاليين" : "إصدار قابل للتحرير"}</p></div>
             <div className="flex gap-2">
-              {version.status === "published" && <button type="button" disabled={busy} onClick={() => void createVersion()} className="admin-button-secondary"><CirclePlus className="h-3.5 w-3.5" /> إصدار جديد</button>}
+              {version.status === "published" && <button type="button" disabled={busy} onClick={() => void createVersion()} className="admin-button-secondary"><Edit3 className="h-3.5 w-3.5" /> تعديل كمسودة</button>}
               {editable && <button type="button" disabled={busy} onClick={() => void publishVersion()} className="admin-button-primary"><Rocket className="h-3.5 w-3.5" /> نشر الإصدار</button>}
             </div>
           </div>
@@ -461,6 +507,7 @@ export default function LmsManager({ role }: { role: AdminRole }) {
             </section>
 
             <aside className="space-y-5">
+              {editable && <form onSubmit={saveVersionDetails} className="rounded-xl border border-white/[0.08] bg-white/[0.018] p-4"><h2 className="text-[11px] font-black text-white">تفاصيل الكورس وصورته</h2><label className="mt-3 block text-[9px] font-bold text-white/40">العنوان<input required value={versionDraft.title} onChange={(event) => setVersionDraft((current) => ({ ...current, title: event.target.value }))} className="admin-input mt-1" /></label><label className="mt-3 block text-[9px] font-bold text-white/40">الوصف المختصر<textarea required rows={2} value={versionDraft.short_description} onChange={(event) => setVersionDraft((current) => ({ ...current, short_description: event.target.value }))} className="admin-input mt-1 resize-none" /></label><label className="mt-3 block text-[9px] font-bold text-white/40">الوصف الكامل<textarea rows={4} value={versionDraft.description} onChange={(event) => setVersionDraft((current) => ({ ...current, description: event.target.value }))} className="admin-input mt-1 resize-y" /></label><div className="mt-3 grid grid-cols-2 gap-2"><label className="text-[9px] font-bold text-white/40">المستوى<select value={versionDraft.difficulty} onChange={(event) => setVersionDraft((current) => ({ ...current, difficulty: event.target.value }))} className="admin-input mt-1"><option value="all_levels">كل المستويات</option><option value="beginner">مبتدئ</option><option value="intermediate">متوسط</option><option value="advanced">متقدم</option></select></label><label className="text-[9px] font-bold text-white/40">المدة بالدقائق<input type="number" min={0} value={versionDraft.estimated_minutes} onChange={(event) => setVersionDraft((current) => ({ ...current, estimated_minutes: Number(event.target.value) }))} className="admin-input mt-1" /></label></div><label className="mt-3 block text-[9px] font-bold text-white/40">صورة الكورس من الجهاز<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={uploadingImage} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadThumbnail(file); event.target.value = ""; }} className="admin-input mt-1 file:ml-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-[9px] file:font-black file:text-brand-700" /></label>{versionDraft.thumbnail_url && <img src={versionDraft.thumbnail_url} alt="معاينة صورة الكورس" className="mt-3 aspect-video w-full rounded-lg border border-white/10 object-cover" />}<button disabled={busy || uploadingImage} className="admin-button-primary mt-4 w-full justify-center">{uploadingImage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />} حفظ التفاصيل والصورة</button></form>}
               <form onSubmit={saveCourseSettings} className="rounded-xl border border-white/[0.08] bg-white/[0.018] p-4"><h2 className="text-[11px] font-black text-white">الحجز والموعد</h2><label className="mt-3 block text-[9px] font-bold text-white/40">نوع التقديم<select value={courseSettings.delivery_mode} onChange={(event) => setCourseSettings((current) => ({ ...current, delivery_mode: event.target.value as Course["delivery_mode"] }))} className="admin-input mt-1"><option value="recorded">مسجل</option><option value="online">مباشر أونلاين</option><option value="onsite">حضوري</option><option value="hybrid">هجين</option></select></label><div className="mt-3 grid grid-cols-2 gap-2"><label className="text-[9px] font-bold text-white/40">السعر<input type="number" min={0} value={courseSettings.price} onChange={(event) => setCourseSettings((current) => ({ ...current, price: Number(event.target.value) }))} className="admin-input mt-1" /></label><label className="text-[9px] font-bold text-white/40">السعة<input type="number" min={1} value={courseSettings.capacity} onChange={(event) => setCourseSettings((current) => ({ ...current, capacity: event.target.value }))} className="admin-input mt-1" /></label></div>{courseSettings.delivery_mode !== "recorded" && <div className="mt-3 grid gap-2"><label className="text-[9px] font-bold text-white/40">البداية<input type="datetime-local" value={courseSettings.starts_at} onChange={(event) => setCourseSettings((current) => ({ ...current, starts_at: event.target.value }))} className="admin-input mt-1" /></label><label className="text-[9px] font-bold text-white/40">النهاية<input type="datetime-local" value={courseSettings.ends_at} onChange={(event) => setCourseSettings((current) => ({ ...current, ends_at: event.target.value }))} className="admin-input mt-1" /></label></div>}<button disabled={busy} className="admin-button-secondary mt-4 w-full justify-center"><Save className="h-3.5 w-3.5" /> حفظ بيانات الحجز</button></form>
               {editable && <form onSubmit={saveModule} className="rounded-xl border border-white/[0.08] bg-white/[0.018] p-4"><div className="flex justify-between"><h2 className="text-[11px] font-black text-white">{moduleDraft.id ? "تعديل الوحدة" : "إضافة وحدة"}</h2>{moduleDraft.id && <button type="button" onClick={() => setModuleDraft({ ...emptyModule, sort_order: modules.length })} className="text-[9px] text-white/35">إلغاء</button>}</div><label className="mt-4 block text-[9px] font-bold text-white/40">اسم الوحدة<input required value={moduleDraft.title} onChange={(event) => setModuleDraft((current) => ({ ...current, title: event.target.value }))} className="admin-input mt-1" /></label><label className="mt-3 block text-[9px] font-bold text-white/40">الوصف<textarea rows={2} value={moduleDraft.description} onChange={(event) => setModuleDraft((current) => ({ ...current, description: event.target.value }))} className="admin-input mt-1 resize-none" /></label><div className="mt-3 grid grid-cols-2 gap-2"><input type="number" min={0} value={moduleDraft.sort_order} onChange={(event) => setModuleDraft((current) => ({ ...current, sort_order: Number(event.target.value) }))} className="admin-input" /><select value={moduleDraft.status} onChange={(event) => setModuleDraft((current) => ({ ...current, status: event.target.value as ModuleRow["status"] }))} className="admin-input"><option value="published">منشورة</option><option value="draft">مسودة</option></select></div><button disabled={busy} className="admin-button-primary mt-4 w-full justify-center"><Save className="h-3.5 w-3.5" /> حفظ الوحدة</button></form>}
 

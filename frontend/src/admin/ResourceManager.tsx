@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, ExternalLink, FileDown, Loader2, Pencil, Plus, RefreshCw, Save, Trash2, X } from "lucide-react";
+import { Check, ExternalLink, FileDown, ImagePlus, Loader2, Pencil, Plus, RefreshCw, Save, Trash2, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { uploadPublicImage } from "../lib/storage";
 import type { AdminRow, FieldDefinition, ResourceDefinition } from "./types";
 
 function normalizeInputValue(field: FieldDefinition, value: unknown) {
@@ -25,10 +26,12 @@ function buildPayload(fields: FieldDefinition[], form: AdminRow) {
   );
 }
 
-function Field({ field, value, onChange }: {
+function Field({ field, value, onChange, onImageUpload, uploading }: {
   field: FieldDefinition;
   value: unknown;
   onChange: (value: unknown) => void;
+  onImageUpload?: (file: File) => void;
+  uploading?: boolean;
 }) {
   const base = "mt-1.5 w-full rounded-lg border border-white/10 bg-ink-950/70 px-3 py-2.5 text-[12px] text-white outline-none transition placeholder:text-white/25 focus:border-brand-500";
 
@@ -46,6 +49,20 @@ function Field({ field, value, onChange }: {
 
   if (field.type === "checkbox") {
     return <input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} className="mt-2 h-4 w-4 accent-orange-500" />;
+  }
+
+  if (field.type === "image") {
+    return (
+      <div className="mt-1.5 space-y-2">
+        {Boolean(value) && <img src={String(value)} alt="معاينة الصورة" className="aspect-video w-full rounded-xl border border-white/10 object-cover" />}
+        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-brand-500/30 bg-brand-500/[0.04] px-4 py-3 text-[10px] font-black text-brand-500 transition hover:bg-brand-500/10">
+          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+          {uploading ? "جارٍ رفع الصورة..." : "رفع صورة من الجهاز"}
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={uploading} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) onImageUpload?.(file); event.target.value = ""; }} />
+        </label>
+        <input type="url" dir="ltr" value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} placeholder="أو الصق رابط الصورة" className={`${base} text-left`} />
+      </div>
+    );
   }
 
   return (
@@ -70,6 +87,8 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
   const [editorOpen, setEditorOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [view, setView] = useState<"content" | "draft">("content");
+  const [uploadingField, setUploadingField] = useState("");
   const [form, setForm] = useState<AdminRow>(definition.defaults);
 
   const load = useCallback(async () => {
@@ -137,10 +156,31 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
   };
 
   const remove = async (row: AdminRow) => {
-    if (!supabase || !row.id || !window.confirm(`حذف ${definition.singular} «${String(row[definition.titleKey] ?? "") }»؟`)) return;
-    const { error: deleteError } = await supabase.from(definition.table).delete().eq("id", row.id);
-    if (deleteError) setError(deleteError.message);
-    else await load();
+    if (!supabase || !row.id || !window.confirm(`نقل ${definition.singular} «${String(row[definition.titleKey] ?? "") }» إلى Draft؟ سيظل المحتوى محفوظًا ويمكن استرجاعه.`)) return;
+    if (!definition.statusKey) {
+      setError("هذا النوع لا يدعم المسودات، لذلك لم يتم حذف أي بيانات.");
+      return;
+    }
+    const { error: moveError } = await supabase.from(definition.table).update({ [definition.statusKey]: "draft" }).eq("id", row.id);
+    if (moveError) setError(moveError.message);
+    else {
+      setView("draft");
+      await load();
+    }
+  };
+
+  const uploadImage = async (field: FieldDefinition, file: File) => {
+    if (!field.storageBucket) return;
+    setUploadingField(field.key);
+    setError(null);
+    try {
+      const url = await uploadPublicImage(file, field.storageBucket, `${definition.table}-${String(editingId ?? "new")}`);
+      setForm((current) => ({ ...current, [field.key]: url }));
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "تعذّر رفع الصورة.");
+    } finally {
+      setUploadingField("");
+    }
   };
 
   const openStoredFile = async (path: string) => {
@@ -149,6 +189,12 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
     if (signedUrlError) setError(`تعذر فتح الملف: ${signedUrlError.message}`);
     else window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
+
+  const visibleRows = definition.statusKey
+    ? rows.filter((row) => view === "draft"
+      ? ["draft", "archived"].includes(String(row[definition.statusKey!] ?? ""))
+      : !["draft", "archived"].includes(String(row[definition.statusKey!] ?? "")))
+    : rows;
 
   return (
     <div className="space-y-4">
@@ -163,6 +209,8 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
         </div>
       </div>
 
+      {definition.statusKey && <div className="flex w-fit rounded-xl border border-white/10 bg-white/[0.025] p-1"><button type="button" onClick={() => setView("content")} className={`rounded-lg px-4 py-2 text-[10px] font-black transition ${view === "content" ? "bg-brand-500 text-white" : "text-white/45"}`}>المحتوى</button><button type="button" onClick={() => setView("draft")} className={`rounded-lg px-4 py-2 text-[10px] font-black transition ${view === "draft" ? "bg-brand-500 text-white" : "text-white/45"}`}>Draft · المسودات</button></div>}
+
       {error && <div className="rounded-xl border border-red-500/20 bg-red-500/8 p-3 text-[11.5px] leading-5 text-red-200">{error}</div>}
 
       {editorOpen && (
@@ -175,7 +223,7 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
             {definition.fields.map((field) => (
               <label key={field.key} className={`text-[11px] font-bold text-white/65 ${field.wide ? "md:col-span-2" : ""}`}>
                 {field.label}
-                <Field field={field} value={form[field.key]} onChange={(value) => setForm((current) => ({ ...current, [field.key]: value }))} />
+                <Field field={field} value={form[field.key]} onChange={(value) => setForm((current) => ({ ...current, [field.key]: value }))} onImageUpload={(file) => void uploadImage(field, file)} uploading={uploadingField === field.key} />
               </label>
             ))}
           </div>
@@ -191,11 +239,11 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
 
       {loading ? (
         <div className="grid min-h-36 place-items-center rounded-xl border border-white/8 bg-white/[0.02] text-[12px] text-white/40"><Loader2 className="h-5 w-5 animate-spin" /></div>
-      ) : rows.length === 0 ? (
+      ) : visibleRows.length === 0 ? (
         <div className="grid min-h-36 place-items-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-4 text-center text-[12px] text-white/40">لا توجد بيانات بعد. ابدأ بإضافة أول {definition.singular}.</div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-white/8">
-          {rows.map((row) => {
+          {visibleRows.map((row) => {
             const status = definition.statusKey ? String(row[definition.statusKey] ?? "") : "";
             const slug = typeof row.slug === "string" ? row.slug : null;
             const publicPath = definition.table === "blog_posts" ? `/blog/${slug}` : definition.table === "jobs" ? `/jobs/${slug}` : definition.table === "courses" ? `/courses/${slug}` : definition.table === "content_pages" ? `/pages/${slug}` : null;
@@ -213,7 +261,7 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
                   {publicPath && status === "published" && <a href={publicPath} target="_blank" rel="noreferrer" className="admin-icon-button" aria-label="فتح الصفحة"><ExternalLink className="h-3.5 w-3.5" /></a>}
                   {typeof row.file_path === "string" && row.file_path && <button type="button" onClick={() => void openStoredFile(row.file_path as string)} className="admin-icon-button" aria-label="فتح ملف PDF"><FileDown className="h-3.5 w-3.5" /></button>}
                   <button type="button" onClick={() => openEdit(row)} className="admin-icon-button" aria-label="تعديل"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button type="button" onClick={() => void remove(row)} className="admin-icon-button text-red-300 hover:bg-red-500/10" aria-label="حذف"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button type="button" onClick={() => void remove(row)} className="admin-icon-button text-red-300 hover:bg-red-500/10" aria-label="نقل إلى Draft" title="نقل إلى Draft بدون حذف"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               </div>
             );
