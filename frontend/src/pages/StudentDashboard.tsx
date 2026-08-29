@@ -33,6 +33,7 @@ import {
   type StudentEnrollment,
 } from "../lib/lms";
 import { supabase } from "../lib/supabase";
+import { DashboardThemeToggle, useDashboardTheme } from "../context/DashboardThemeContext";
 
 type DashboardTab = "overview" | "courses" | "completed" | "schedule" | "payments" | "profile";
 
@@ -157,6 +158,7 @@ function CourseCard({ enrollment, compact = false }: { enrollment: StudentEnroll
 }
 
 export default function StudentDashboard() {
+  const { theme } = useDashboardTheme();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
@@ -272,7 +274,7 @@ export default function StudentDashboard() {
   );
 
   return (
-    <section dir="rtl" className="portal-light min-h-screen bg-[#f5f7fb] text-ink-950" style={{ backgroundColor: "#f5f7fb", colorScheme: "light" }}>
+    <section dir="rtl" className={`portal-light dashboard-${theme} min-h-screen bg-[#f5f7fb] text-ink-950`}>
       <div className="fixed inset-y-0 right-0 z-50 hidden w-72 lg:block">{sidebar}</div>
       {mobileSidebar && (
         <div className="fixed inset-0 z-[70] lg:hidden">
@@ -289,6 +291,7 @@ export default function StudentDashboard() {
               <div className="min-w-0"><p className="text-[9px] font-bold text-ink-400">لوحة الطالب</p><h1 className="truncate text-[14px] font-black">{dashboardTabs.find((tab) => tab.id === activeTab)?.label}</h1></div>
             </div>
             <div className="flex items-center gap-2">
+              <DashboardThemeToggle />
               <button type="button" onClick={() => void refresh()} className="grid h-10 w-10 place-items-center rounded-xl border border-ink-200 bg-white text-ink-500 transition hover:text-brand-600" aria-label="تحديث البيانات"><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /></button>
               <button type="button" onClick={() => selectTab("payments")} className="relative grid h-10 w-10 place-items-center rounded-xl border border-ink-200 bg-white text-ink-500" aria-label="التنبيهات"><Bell className="h-4 w-4" />{pendingBookings.length > 0 && <span className="absolute -left-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full border-2 border-white bg-brand-500 px-1 text-[8px] font-black text-white">{pendingBookings.length}</span>}</button>
               <button type="button" onClick={() => selectTab("profile")} className="hidden items-center gap-2 rounded-xl border border-ink-200 bg-white py-1.5 pl-3 pr-1.5 sm:flex"><span className="grid h-8 w-8 place-items-center rounded-lg bg-ink-950 text-[9px] font-black text-white">{initials(displayName, user?.email ?? "")}</span><span className="max-w-28 truncate text-[10px] font-black">{displayName.split(" ")[0]}</span></button>

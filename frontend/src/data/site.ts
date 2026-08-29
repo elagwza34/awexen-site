@@ -91,6 +91,7 @@ export const projects = [
   {
     title: "vagory",
     desc: "متجر بيع عطور اوريجينال",
+    descEn: "Original perfume online store",
     tag: "Online Store",
     image: "https://awexen.com/wp-content/uploads/2026/07/vagory-1024x577.webp",
     site: "https://vagory.com/",
@@ -99,6 +100,7 @@ export const projects = [
   {
     title: "Lily decoration",
     desc: "متجر بيع ديكورات المنازل",
+    descEn: "Home decoration online store",
     tag: "Online Store",
     image:
       "https://awexen.com/wp-content/uploads/2026/05/Lily-decoration-1-1024x577.webp",
@@ -108,6 +110,7 @@ export const projects = [
   {
     title: "lifecare-hospital",
     desc: "مستشفى لخدمات الرعاية الصحيه",
+    descEn: "Healthcare and appointment booking platform",
     tag: "Booking Service",
     image:
       "https://awexen.com/wp-content/uploads/2026/06/lifecare-hospital-1024x577.webp",
@@ -117,6 +120,7 @@ export const projects = [
   {
     title: "Elsayehgroup",
     desc: "إستيراد وتصدير فواكة وخضروات",
+    descEn: "Fruit and vegetable import and export website",
     tag: "Online Store",
     image:
       "https://awexen.com/wp-content/uploads/2026/06/Elsayehgroup-1024x577.webp",
@@ -126,6 +130,7 @@ export const projects = [
   {
     title: "naasak",
     desc: "خدمات التسويق الإلكتروني",
+    descEn: "Digital marketing services portfolio",
     tag: "Portfolio",
     image: "https://awexen.com/wp-content/uploads/2026/07/naasak-1024x577.webp",
     site: "https://naasak.com/",
@@ -134,6 +139,7 @@ export const projects = [
   {
     title: "ynskin",
     desc: "مركز عناية بالبشرة والشعر والتغذية",
+    descEn: "Skin, hair and nutrition care center",
     tag: "Online Store",
     image: "https://awexen.com/wp-content/uploads/2026/07/ynskin-1024x577.webp",
     site: "https://ynskin.com/",

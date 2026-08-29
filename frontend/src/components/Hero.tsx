@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, PlayCircle, Star, TrendingUp, Zap } from "lucide-react";
 import { useContent } from "../context/ContentContext";
+import { useLanguage } from "../context/LanguageContext";
 import { AnchorLink, CountUp, Reveal } from "./ui";
 
 /* ---------- عنصر بصري: نافذة متصفح تعرض لوحة أداء مجردة ---------- */
 function ProductMockup() {
   const bars = [42, 68, 55, 88, 72, 96, 61];
+  const { t } = useLanguage();
 
   return (
     <div className="relative mx-auto w-full max-w-4xl">
@@ -19,8 +21,8 @@ function ProductMockup() {
             <TrendingUp className="h-4 w-4" />
           </span>
           <div className="text-right">
-            <p className="text-[13px] font-black leading-none text-white">نطاق واضح</p>
-            <p className="mt-1 text-[10.5px] text-ink-400">قبل بداية التنفيذ</p>
+            <p className="text-[13px] font-black leading-none text-white">{t("hero.clearScope")}</p>
+            <p className="mt-1 text-[10.5px] text-ink-400">{t("hero.beforeStart")}</p>
           </div>
         </div>
       </div>
@@ -35,8 +37,8 @@ function ProductMockup() {
             <Zap className="h-4 w-4" />
           </span>
           <div className="text-right">
-            <p className="text-[13px] font-black leading-none text-white">اختبار فعلي</p>
-            <p className="mt-1 text-[10.5px] text-ink-400">على الهاتف والكمبيوتر</p>
+            <p className="text-[13px] font-black leading-none text-white">{t("hero.realTesting")}</p>
+            <p className="mt-1 text-[10.5px] text-ink-400">{t("hero.allDevices")}</p>
           </div>
         </div>
       </div>
@@ -92,9 +94,9 @@ function ProductMockup() {
             {/* بطاقات KPI */}
             <div className="grid grid-cols-3 gap-2.5">
               {[
-                { v: "معتمد", l: "نطاق المشروع" },
-                { v: "واضحة", l: "مراحل الدفع" },
-                { v: "أسبوعية", l: "متابعة التنفيذ" },
+                { v: t("hero.approved"), l: t("hero.projectScope") },
+                { v: t("hero.clear"), l: t("hero.paymentStages") },
+                { v: t("hero.weekly"), l: t("hero.deliveryTracking") },
               ].map((k) => (
                 <div
                   key={k.l}
@@ -113,7 +115,7 @@ function ProductMockup() {
               <div className="mb-3 flex items-center justify-between">
                 <span className="h-1.5 w-16 rounded-full bg-white/12" />
                 <span className="rounded-md bg-brand-500/15 px-2 py-0.5 text-[9px] font-bold text-brand-400">
-                  آخر 7 أيام
+                  {t("hero.lastDays")}
                 </span>
               </div>
               <div className="flex h-24 items-end gap-1.5 sm:h-28">
@@ -137,6 +139,13 @@ function ProductMockup() {
 /* ------------------------------- Hero ---------------------------------- */
 export default function Hero() {
   const { stats } = useContent();
+  const { lang, t } = useLanguage();
+  const englishStatLabels = [
+    "Hours to initial reply",
+    "Available installments",
+    "Declared installment increase",
+    "Arabic-first experience",
+  ];
 
   return (
     <section
@@ -167,22 +176,21 @@ export default function Hero() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-400" />
               </span>
-              تصميم وبرمجة مواقع للشركات
+              {t("hero.badge")}
             </span>
           </Reveal>
 
           <Reveal delay={90}>
             <h1 className="mt-7 text-balance text-[clamp(2.5rem,7vw,5.25rem)] font-black leading-[1.16] tracking-tight text-white">
-              موقع يشرح شغلك
+              {t("hero.title1")}
               <br />
-              ويحوّل الزيارة إلى <span className="text-gradient-brand">طلب واضح</span>
+              <span className="text-gradient-brand">{t("hero.highlight")}</span>
             </h1>
           </Reveal>
 
           <Reveal delay={170}>
             <p className="mt-6 max-w-[620px] text-pretty text-[15px] leading-8 text-ink-300 sm:text-[17px]">
-              نخطط المحتوى، نصمم الواجهة، ونبرمج الموقع أو المتجر مع ربط النماذج
-              والقياس. تعرف ما الذي سيُنفذ، ومتى تراجعه، وما الذي تدفع مقابله.
+              {t("hero.desc")}
             </p>
           </Reveal>
 
@@ -193,13 +201,13 @@ export default function Hero() {
                 className="group inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/[0.04] px-7 py-3.5 text-[15px] font-semibold text-white backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500 sm:w-auto"
               >
                 <PlayCircle className="h-[18px] w-[18px]" />
-                شاهد مشاريع نفذناها
+                {t("hero.ctaPrimary")}
               </AnchorLink>
               <Link
                 to="/services"
                 className="group inline-flex w-full items-center justify-center gap-3 rounded-xl bg-brand-500 px-7 py-3.5 text-[15px] font-bold text-white shadow-[var(--shadow-brand)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 sm:w-auto"
               >
-                اختر الخدمة المناسبة
+                {t("hero.ctaSecondary")}
                 <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-x-1" />
               </Link>
             </div>
@@ -210,11 +218,11 @@ export default function Hero() {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-3">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-[12px] text-ink-300">
                 <Star className="h-3.5 w-3.5 text-brand-400" />
-                رد أولي خلال يوم عمل
+                {t("hero.trustResponse")}
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-[12px] text-ink-300">
                 <Zap className="h-3.5 w-3.5 text-brand-400" />
-                عرض سعر بنطاق ومراحل واضحة
+                {t("hero.trustScope")}
               </span>
             </div>
           </Reveal>
@@ -235,7 +243,7 @@ export default function Hero() {
                   className="text-[clamp(1.75rem,4vw,2.35rem)] font-black text-white"
                 />
                 <span className="text-[13.5px] font-semibold text-ink-400">
-                  {s.label}
+                  {lang === "en" ? englishStatLabels[i] ?? s.label : s.label}
                 </span>
               </div>
             </Reveal>

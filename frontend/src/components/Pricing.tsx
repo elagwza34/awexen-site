@@ -4,13 +4,33 @@ import { useContent } from "../context/ContentContext";
 import { Reveal, SectionHeading, Spotlight } from "./ui";
 import { cn } from "../utils/cn";
 import { loadPricingSettings, type PricingSettings } from "../lib/cms";
+import { useLanguage } from "../context/LanguageContext";
 
 type Mode = "once" | "split";
 
 const WHATSAPP_NUMBER = "201092400443";
 
+const englishPlans = [
+  {
+    name: "Essential",
+    desc: "Ideal for small businesses and startups.",
+    features: ["Website design up to 5 pages", "Responsive on all devices", "Easy WordPress dashboard", "Basic SEO setup", "Contact form and WhatsApp", "One year of free hosting", "30 days of technical support"],
+  },
+  {
+    name: "Professional",
+    desc: "For growing businesses that need a strong digital presence.",
+    features: ["Website design up to 15 pages", "Complete online store", "Essential visual identity", "Advanced SEO setup", "Payment gateway integration", "Speed and performance optimization", "Monthly analytics dashboard", "Three months of technical support"],
+  },
+  {
+    name: "Enterprise",
+    desc: "A complete solution for established brands that expect more.",
+    features: ["Page scope defined after analysis", "Custom development", "Complete visual identity", "Custom system or operations dashboard", "Business automation and integrations", "Managed dedicated server", "Analytics setup", "Dedicated account manager", "Agreed support and maintenance plan"],
+  },
+];
+
 export default function Pricing() {
   const { plans } = useContent();
+  const { lang } = useLanguage();
   const [mode, setMode] = useState<Mode>("once");
   const [pricing, setPricing] = useState<PricingSettings>({
     installments_enabled: true,
@@ -35,10 +55,10 @@ export default function Pricing() {
 
       <div className="container-x relative">
         <SectionHeading
-          badge="الأسعار"
-          title="الخطط"
-          highlight="والأسعار"
-          desc="اختر الباقة التي تناسب احتياجاتك. جميع الباقات تتضمن جودتنا المميزة والدعم."
+          badge={lang === "ar" ? "الأسعار" : "Pricing"}
+          title={lang === "ar" ? "الخطط" : "Plans &"}
+          highlight={lang === "ar" ? "والأسعار" : "pricing"}
+          desc={lang === "ar" ? "اختر الباقة التي تناسب احتياجاتك. جميع الباقات تتضمن جودتنا المميزة والدعم." : "Choose the package that fits your needs. Every plan includes our delivery quality and support."}
         />
 
         {/* مبدّل طريقة الدفع */}
@@ -46,14 +66,14 @@ export default function Pricing() {
           <div className="mt-9 flex flex-col items-center gap-3">
             <div
               role="tablist"
-              aria-label="طريقة الدفع"
+              aria-label={lang === "ar" ? "طريقة الدفع" : "Payment method"}
               className="inline-flex rounded-full border border-ink-200 bg-ink-50 p-1"
             >
               {(
                 [
-                  { k: "once", label: "دفعة واحدة" },
+                  { k: "once", label: lang === "ar" ? "دفعة واحدة" : "One payment" },
                   ...(pricing.installments_enabled
-                    ? [{ k: "split", label: `على ${pricing.installment_count} دفعات` } as const]
+                    ? [{ k: "split", label: lang === "ar" ? `على ${pricing.installment_count} دفعات` : `${pricing.installment_count} installments` } as const]
                     : []),
                 ] as const
               ).map((o) => (
@@ -75,14 +95,19 @@ export default function Pricing() {
             </div>
             <p className="text-[12.5px] text-ink-400">
               {mode === "once"
-                ? "السعر الأساسي عند السداد الكامل"
-                : `إجمالي التقسيط يشمل زيادة ${pricing.installment_markup_percent}% على السعر الأساسي`}
+                ? (lang === "ar" ? "السعر الأساسي عند السداد الكامل" : "Base price when paid in full")
+                : (lang === "ar" ? `إجمالي التقسيط يشمل زيادة ${pricing.installment_markup_percent}% على السعر الأساسي` : `The installment total includes a ${pricing.installment_markup_percent}% increase over the base price`)}
             </p>
           </div>
         </Reveal>
 
         <div className="mt-12 grid items-stretch gap-6 lg:grid-cols-3">
           {plans.map((p, i) => {
+            const localizedPlan = lang === "en" ? englishPlans[i] : null;
+            const planName = localizedPlan?.name ?? p.name;
+            const planDesc = localizedPlan?.desc ?? p.desc;
+            const planFeatures = localizedPlan?.features ?? p.features;
+            const currency = lang === "en" ? "EGP" : p.currency;
             const basePrice = numericPrice(p.price);
             const installmentTotal = basePrice === null
               ? null
@@ -95,24 +120,35 @@ export default function Pricing() {
               : installmentValue === null ? p.price : formatPrice(installmentValue);
             const paymentDetails =
               mode === "once"
-                ? `دفعة واحدة: ${displayedPrice} ${p.currency}`
-                : `${pricing.installment_count} دفعات: ${displayedPrice} ${p.currency} لكل دفعة\nالإجمالي بعد زيادة ${pricing.installment_markup_percent}%: ${installmentTotal === null ? p.price : formatPrice(installmentTotal)} ${p.currency}`;
-            const whatsappMessage = [
+                ? (lang === "ar" ? `دفعة واحدة: ${displayedPrice} ${currency}` : `One payment: ${displayedPrice} ${currency}`)
+                : (lang === "ar" ? `${pricing.installment_count} دفعات: ${displayedPrice} ${currency} لكل دفعة\nالإجمالي بعد زيادة ${pricing.installment_markup_percent}%: ${installmentTotal === null ? p.price : formatPrice(installmentTotal)} ${currency}` : `${pricing.installment_count} installments: ${displayedPrice} ${currency} each\nTotal after ${pricing.installment_markup_percent}% increase: ${installmentTotal === null ? p.price : formatPrice(installmentTotal)} ${currency}`);
+            const whatsappMessage = lang === "ar" ? [
               "مرحباً، أرغب في الاستفسار عن إحدى خطط Awexen:",
               "",
-              `الخطة: ${p.name}`,
-              `الوصف: ${p.desc}`,
+              `الخطة: ${planName}`,
+              `الوصف: ${planDesc}`,
               `طريقة الدفع: ${paymentDetails}`,
               "",
               "مميزات الخطة:",
-              ...p.features.map((feature) => `• ${feature}`),
+              ...planFeatures.map((feature) => `• ${feature}`),
               "",
               "أرغب في معرفة خطوات البدء والتفاصيل المتاحة.",
+            ].join("\n") : [
+              "Hello, I would like to ask about an Awexen plan:",
+              "",
+              `Plan: ${planName}`,
+              `Description: ${planDesc}`,
+              `Payment: ${paymentDetails}`,
+              "",
+              "Plan features:",
+              ...planFeatures.map((feature) => `• ${feature}`),
+              "",
+              "I would like to know the available details and next steps.",
             ].join("\n");
             const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappMessage)}`;
 
             return (
-              <Reveal key={p.name} delay={i * 110}>
+              <Reveal key={planName} delay={i * 110}>
               <Spotlight
                 className={cn(
                   "group relative flex h-full flex-col rounded-3xl border p-7 transition-all duration-400 hover:-translate-y-2 sm:p-8",
@@ -129,7 +165,7 @@ export default function Pricing() {
                     </div>
                     <span className="absolute -top-3.5 right-8 inline-flex items-center gap-1.5 rounded-full bg-brand-500 px-4 py-1.5 text-[12px] font-bold text-white shadow-lg shadow-brand-500/40">
                       <Crown className="h-3.5 w-3.5" />
-                      الأكثر طلباً
+                      {lang === "ar" ? "الأكثر طلباً" : "Most popular"}
                     </span>
                   </>
                 )}
@@ -141,7 +177,7 @@ export default function Pricing() {
                       p.featured && "text-white",
                     )}
                   >
-                    {p.name}
+                    {planName}
                   </h3>
                   <p
                     className={cn(
@@ -149,7 +185,7 @@ export default function Pricing() {
                       p.featured ? "text-ink-300" : "text-ink-500",
                     )}
                   >
-                    {p.desc}
+                    {planDesc}
                   </p>
 
                   <div className="mt-5 flex items-end gap-2">
@@ -167,8 +203,8 @@ export default function Pricing() {
                         p.featured ? "text-brand-400" : "text-ink-400",
                       )}
                     >
-                      {p.currency}
-                      {mode === "split" && " / دفعة"}
+                      {currency}
+                      {mode === "split" && (lang === "ar" ? " / دفعة" : " / installment")}
                     </span>
                   </div>
 
@@ -179,7 +215,7 @@ export default function Pricing() {
                         p.featured ? "text-ink-400" : "text-ink-400",
                       )}
                     >
-                      الإجمالي بعد زيادة {pricing.installment_markup_percent}%: {installmentTotal === null ? p.price : formatPrice(installmentTotal)} {p.currency}
+                      {lang === "ar" ? "الإجمالي بعد زيادة" : "Total after"} {pricing.installment_markup_percent}%: {installmentTotal === null ? p.price : formatPrice(installmentTotal)} {currency}
                     </p>
                   )}
 
@@ -192,7 +228,7 @@ export default function Pricing() {
                 </div>
 
                 <ul className="relative flex-1 space-y-3.5">
-                  {p.features.map((f) => (
+                  {planFeatures.map((f) => (
                     <li key={f} className="flex items-start gap-3">
                       <span
                         className={cn(
@@ -220,7 +256,7 @@ export default function Pricing() {
                   href={whatsappUrl}
                   target="_blank"
                   rel="noreferrer"
-                  aria-label={`اطلب خطة ${p.name} عبر واتساب`}
+                  aria-label={lang === "ar" ? `اطلب خطة ${planName} عبر واتساب` : `Request the ${planName} plan on WhatsApp`}
                   className={cn(
                     "relative mt-8 inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[15px] font-bold transition-all duration-300",
                     p.featured
@@ -229,7 +265,7 @@ export default function Pricing() {
                   )}
                 >
                   <MessageCircle className="h-4 w-4" />
-                  اطلب عبر واتساب
+                  {lang === "ar" ? "اطلب عبر واتساب" : "Request on WhatsApp"}
                 </a>
               </Spotlight>
               </Reveal>
@@ -239,14 +275,18 @@ export default function Pricing() {
 
         <Reveal delay={140}>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[13px] text-ink-400">
-            {[
+            {(lang === "ar" ? [
               "السعر النهائي يعتمد على نطاق المشروع المعتمد",
               `التقسيط يضيف ${pricing.installment_markup_percent}% بوضوح قبل الاتفاق`,
               "لا يبدأ التنفيذ قبل اعتماد العرض ومراحل الدفع",
-            ].map((t) => (
-              <span key={t} className="inline-flex items-center gap-2">
+            ] : [
+              "The final price depends on the approved project scope",
+              `Installments add ${pricing.installment_markup_percent}% transparently before agreement`,
+              "Work starts after approving the quote and payment stages",
+            ]).map((item) => (
+              <span key={item} className="inline-flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-brand-500" />
-                {t}
+                {item}
               </span>
             ))}
           </div>

@@ -38,11 +38,15 @@ import {
 } from "./pages/Learning";
 import KnowledgeChat from "./components/KnowledgeChat";
 import { ContentProvider } from "./context/ContentContext";
-import { LanguageProvider } from "./context/LanguageContext";
+import { LanguageProvider, useLanguage } from "./context/LanguageContext";
+import { DashboardThemeProvider } from "./context/DashboardThemeContext";
 import { supabase } from "./lib/supabase";
+import { loadDashboardAccess, type DashboardAccess } from "./lib/roleRouting";
 
 function AwexenAdminRoute() {
-  const [authenticated, setAuthenticated] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
+  const [access, setAccess] = useState<DashboardAccess | null>(null);
+  const [accessError, setAccessError] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
@@ -51,18 +55,36 @@ function AwexenAdminRoute() {
       return;
     }
 
+    let active = true;
+    const checkSession = async (session: Parameters<typeof loadDashboardAccess>[0] | null) => {
+      if (!active) return;
+      setHasSession(Boolean(session));
+      setAccess(null);
+      setAccessError(false);
+      if (!session) {
+        setCheckingSession(false);
+        return;
+      }
+      try {
+        const nextAccess = await loadDashboardAccess(session);
+        if (active) setAccess(nextAccess);
+      } catch {
+        if (active) setAccessError(true);
+      } finally {
+        if (active) setCheckingSession(false);
+      }
+    };
+
+    void supabase.auth.getSession().then(({ data }) => checkSession(data.session));
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthenticated(
-        ["owner", "admin", "editor", "hr", "support"].includes(
-          String(session?.user.app_metadata.role ?? ""),
-        ),
-      );
-      setCheckingSession(false);
+      setCheckingSession(true);
+      window.setTimeout(() => void checkSession(session), 0);
     });
 
     return () => {
+      active = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -75,7 +97,18 @@ function AwexenAdminRoute() {
     );
   }
 
-  return authenticated ? <AdminDashboard /> : <AdminLogin />;
+  if (!hasSession) return <AdminLogin />;
+  if (accessError || !access) {
+    return (
+      <section className="grid min-h-screen place-items-center bg-white px-4 text-center text-ink-950">
+        <div>
+          <p className="font-black">تعذر التحقق من صلاحية حساب الإدارة.</p>
+          <p className="mt-2 text-sm text-ink-500">تأكد من نشر دالة LMS ثم حدّث الصفحة.</p>
+        </div>
+      </section>
+    );
+  }
+  return access.role === "admin" ? <AdminDashboard /> : <Navigate to={access.path} replace />;
 }
 
 /** يضبط التمرير وعنوان الصفحة عند كل تنقل */
@@ -102,9 +135,11 @@ function RouteEffects() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ContentProvider>
-        <AppShell />
-      </ContentProvider>
+      <LanguageProvider>
+        <ContentProvider>
+          <AppShell />
+        </ContentProvider>
+      </LanguageProvider>
     </BrowserRouter>
   );
 }
@@ -116,6 +151,7 @@ function LegacyLoginRedirect() {
 
 function AppShell() {
   const { pathname } = useLocation();
+  const { lang } = useLanguage();
   const isAdminRoute = pathname === "/awexen" || pathname.startsWith("/awexen/");
   const isLearningRoute = pathname === "/learn" || pathname.startsWith("/learn/");
   const isInstructorRoute = pathname === "/instructor" || pathname.startsWith("/instructor/");
@@ -130,7 +166,7 @@ function AppShell() {
       {!isStandaloneRoute && <ScrollProgress />}
 
       <a href="#main" className="skip-link">
-        تخطَّ إلى المحتوى الرئيسي
+        {lang === "ar" ? "تخطَّ إلى المحتوى الرئيسي" : "Skip to main content"}
       </a>
 
       <div
@@ -158,16 +194,16 @@ function AppShell() {
             <Route path="/learn/login" element={<LegacyLoginRedirect />} />
             <Route element={<LearningGuard />}>
               <Route path="/checkout/:slug" element={<CourseCheckout />} />
-              <Route path="/learn" element={<StudentDashboard />} />
+              <Route path="/learn" element={<DashboardThemeProvider><StudentDashboard /></DashboardThemeProvider>} />
               <Route path="/learn/enrollments/:enrollmentId" element={<LessonPlayer />} />
               <Route path="/learn/enrollments/:enrollmentId/lessons/:lessonId" element={<LessonPlayer />} />
-              <Route path="/instructor" element={<InstructorDashboard />} />
+              <Route path="/instructor" element={<DashboardThemeProvider><InstructorDashboard /></DashboardThemeProvider>} />
             </Route>
             <Route path="/pages/:slug" element={<DynamicPage />} />
             <Route path="/export" element={<ExportData />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsPage />} />
-            <Route path="/awexen" element={<AwexenAdminRoute />} />
+            <Route path="/awexen" element={<DashboardThemeProvider><AwexenAdminRoute /></DashboardThemeProvider>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

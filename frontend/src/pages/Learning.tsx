@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -40,6 +41,11 @@ import {
   setLessonCompleted,
   type CourseLesson,
 } from "../lib/lms";
+import {
+  loadDashboardAccess,
+  pathMatchesDashboardRole,
+  type DashboardAccess,
+} from "../lib/roleRouting";
 
 function friendlyError(error: unknown) {
   const message = error instanceof Error ? error.message : "حدث خطأ غير متوقع.";
@@ -105,7 +111,9 @@ function LearningTopbar({ email }: { email?: string }) {
 
 export function LearningGuard() {
   const [checking, setChecking] = useState(true);
+  const [access, setAccess] = useState<DashboardAccess | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
+  const [accessError, setAccessError] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -114,21 +122,54 @@ export function LearningGuard() {
       return;
     }
 
-    void supabase.auth.getSession().then(({ data }) => {
-      setAuthenticated(Boolean(data.session));
-      setChecking(false);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    let active = true;
+    const checkSession = async (session: Session | null) => {
+      if (!active) return;
       setAuthenticated(Boolean(session));
-      setChecking(false);
+      setAccess(null);
+      setAccessError(false);
+      if (!session) {
+        setChecking(false);
+        return;
+      }
+      try {
+        const nextAccess = await loadDashboardAccess(session);
+        if (active) setAccess(nextAccess);
+      } catch {
+        if (active) setAccessError(true);
+      } finally {
+        if (active) setChecking(false);
+      }
+    };
+
+    void supabase.auth.getSession().then(({ data }) => checkSession(data.session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setChecking(true);
+      window.setTimeout(() => void checkSession(session), 0);
     });
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   if (checking) {
     return <div className="grid min-h-screen place-items-center bg-ink-950"><Loader2 className="h-8 w-8 animate-spin text-brand-400" /></div>;
   }
   if (!authenticated) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (accessError || !access) {
+    return (
+      <section className="grid min-h-screen place-items-center bg-ink-950 px-4 text-center text-white">
+        <div>
+          <p className="font-black">تعذر التحقق من دور الحساب.</p>
+          <p className="mt-2 text-sm text-white/55">حدّث الصفحة، وإذا استمرت المشكلة تأكد من نشر دالة LMS في Supabase.</p>
+        </div>
+      </section>
+    );
+  }
+  if (!pathMatchesDashboardRole(location.pathname, access.role)) {
+    return <Navigate to={access.path} replace />;
+  }
   return <Outlet />;
 }
 
@@ -153,16 +194,17 @@ export function LearningAuth() {
   );
 
   const finishLogin = async () => {
-    const me = await loadCurrentLmsUser();
+    if (!supabase) throw new Error("Supabase is not configured.");
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw new Error("انتهت جلسة تسجيل الدخول. حاول مرة أخرى.");
+    const access = await loadDashboardAccess(data.session);
     const requested = requestedDestination();
     window.localStorage.removeItem("awexen.auth.next");
     window.localStorage.removeItem("awexen.auth.account_type");
-    const isInstructor = me.memberships.some((membership) => membership.role === "instructor");
-    const roleDestination = isInstructor ? "/instructor" : "/learn";
-    const requestedMatchesRole = isInstructor
-      ? requested.startsWith("/instructor")
-      : requested.startsWith("/learn") || requested.startsWith("/checkout/");
-    navigate(requested && requestedMatchesRole ? requested : roleDestination, { replace: true });
+    navigate(
+      requested && pathMatchesDashboardRole(requested, access.role) ? requested : access.path,
+      { replace: true },
+    );
   };
 
   useEffect(() => {
@@ -201,6 +243,10 @@ export function LearningAuth() {
     setError(null);
     if (!supabase) {
       setError("بيانات ربط Supabase غير موجودة في ملف البيئة.");
+      return;
+    }
+    if (accountType === "instructor") {
+      setError("تسجيل حساب المدرب يتم بالبريد وكلمة المرور لتثبيت الدور بأمان. يمكنك استخدام Google لحساب المتدرب.");
       return;
     }
     setBusy(true);
@@ -283,7 +329,7 @@ export function LearningAuth() {
       } else if (mode === "recovery") {
         const { error: updateError } = await supabase.auth.updateUser({ password });
         if (updateError) throw updateError;
-        navigate("/learn", { replace: true });
+        await finishLogin();
       } else if (mode === "login") {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
         if (signInError) throw signInError;
@@ -325,7 +371,7 @@ export function LearningAuth() {
   const inputClass = "mt-2 w-full rounded-xl border border-white/10 bg-white/[0.055] px-4 py-3.5 text-[14px] text-white outline-none transition placeholder:text-white/25 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10";
 
   return (
-    <section className="relative grid min-h-screen overflow-hidden bg-ink-950 lg:grid-cols-[1.05fr_0.95fr]">
+    <section dir="rtl" className="relative grid min-h-screen overflow-hidden bg-ink-950 lg:grid-cols-[1.05fr_0.95fr]">
       <div className="absolute inset-0 grid-lines opacity-40" />
       <div className="relative hidden flex-col justify-between overflow-hidden border-l border-white/10 p-12 lg:flex">
         <div className="absolute -right-32 top-16 h-96 w-96 rounded-full bg-brand-500/15 blur-[100px]" />
@@ -373,9 +419,10 @@ export function LearningAuth() {
 
             {mode === "signup" && (
               <>
-                <button type="button" disabled={busy} onClick={() => void signInWithGoogle()} className="mt-4 flex w-full items-center justify-center gap-3 rounded-xl border border-white/15 bg-white px-5 py-3.5 text-[13px] font-black text-ink-900 transition hover:bg-white/90 disabled:opacity-60">
+                <button type="button" disabled={busy || accountType === "instructor"} onClick={() => void signInWithGoogle()} className="mt-4 flex w-full items-center justify-center gap-3 rounded-xl border border-white/15 bg-white px-5 py-3.5 text-[13px] font-black text-ink-900 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-45">
                   <span className="text-[17px] font-black text-blue-600">G</span> التسجيل باستخدام Google
                 </button>
+                {accountType === "instructor" && <p className="mt-2 text-[10px] leading-5 text-amber-200/75">ثبّت حساب المدرب بالبريد وكلمة المرور حتى يُحفظ دوره بأمان ولا يمكن تغييره لاحقًا.</p>}
                 <div className="my-5 flex items-center gap-3 text-[10px] text-white/25"><span className="h-px flex-1 bg-white/10" /> أو بالبريد <span className="h-px flex-1 bg-white/10" /></div>
               </>
             )}

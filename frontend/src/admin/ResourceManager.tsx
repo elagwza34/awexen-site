@@ -60,7 +60,7 @@ function Field({ field, value, onChange, onImageUpload, uploading }: {
           {uploading ? "جارٍ رفع الصورة..." : "رفع صورة من الجهاز"}
           <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={uploading} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) onImageUpload?.(file); event.target.value = ""; }} />
         </label>
-        <input type="url" dir="ltr" value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} placeholder="أو الصق رابط الصورة" className={`${base} text-left`} />
+        <input required={field.required} type="url" dir="ltr" value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} placeholder="أو الصق رابط الصورة" className={`${base} text-left`} />
       </div>
     );
   }
@@ -104,7 +104,7 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
     const { data, error: loadError } = await supabase
       .from(definition.table)
       .select("*")
-      .order(definition.orderBy ?? "created_at", { ascending: false });
+      .order(definition.orderBy ?? "created_at", { ascending: definition.orderAscending ?? false });
 
     if (loadError) {
       setRows([]);
@@ -151,6 +151,7 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
       setSaved(true);
       setTimeout(() => setSaved(false), 1800);
       await load();
+      window.dispatchEvent(new Event("awexen-content-updated"));
     }
     setSaving(false);
   };
@@ -166,6 +167,7 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
     else {
       setView("draft");
       await load();
+      window.dispatchEvent(new Event("awexen-content-updated"));
     }
   };
 
@@ -246,7 +248,7 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
           {visibleRows.map((row) => {
             const status = definition.statusKey ? String(row[definition.statusKey] ?? "") : "";
             const slug = typeof row.slug === "string" ? row.slug : null;
-            const publicPath = definition.table === "blog_posts" ? `/blog/${slug}` : definition.table === "jobs" ? `/jobs/${slug}` : definition.table === "courses" ? `/courses/${slug}` : definition.table === "content_pages" ? `/pages/${slug}` : null;
+            const publicPath = definition.table === "portfolio_projects" ? "/portfolio" : definition.table === "blog_posts" ? `/blog/${slug}` : definition.table === "jobs" ? `/jobs/${slug}` : definition.table === "courses" ? `/courses/${slug}` : definition.table === "content_pages" ? `/pages/${slug}` : null;
             return (
               <div key={String(row.id)} className="flex flex-col gap-3 border-b border-white/8 bg-white/[0.018] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">

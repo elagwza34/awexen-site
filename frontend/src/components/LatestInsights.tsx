@@ -4,15 +4,21 @@ import { Link } from "react-router-dom";
 import { fallbackPosts, loadBlogPosts, type BlogPost } from "../lib/cms";
 import { Reveal, SectionHeading } from "./ui";
 import { openKnowledgeChat } from "../lib/uiEvents";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function LatestInsights() {
   const [posts, setPosts] = useState<BlogPost[]>(fallbackPosts);
+  const { lang, t } = useLanguage();
 
   useEffect(() => {
     void loadBlogPosts().then(setPosts);
   }, []);
 
-  const paths = [
+  const paths = lang === "en" ? [
+    { to: "/courses", title: "Learn by building", desc: "Focused courses that end with a reviewable project.", icon: GraduationCap },
+    { to: "/jobs", title: "Work with us", desc: "Explore open roles or send your profile to our hiring team.", icon: BriefcaseBusiness },
+    { to: "", title: "Ask Awexen", desc: "Answers grounded only in approved content.", icon: MessageCircleQuestion },
+  ] : [
     { to: "/courses", title: "تعلم بالتطبيق", desc: "كورسات صغيرة تنتهي بمشروع قابل للمراجعة.", icon: GraduationCap },
     { to: "/jobs", title: "اعمل معنا", desc: "تابع الأدوار المتاحة أو أرسل ملفك لفريق التوظيف.", icon: BriefcaseBusiness },
     { to: "", title: "اسأل Awexen", desc: "إجابة من المحتوى المعتمد فقط، بلا تخمين.", icon: MessageCircleQuestion },
@@ -22,10 +28,10 @@ export default function LatestInsights() {
     <section className="bg-ink-50 py-20 sm:py-24">
       <div className="container-x">
         <SectionHeading
-          badge="من خبرة التنفيذ"
-          title="ملاحظات تفيدك"
-          highlight="قبل بدء المشروع"
-          desc="نكتب عن القرارات التي تتكرر في الشغل الحقيقي: ما الذي تختبره، وما الذي تسأل عنه، وما الذي يؤثر على التكلفة."
+          badge={t("latest.badge")}
+          title={t("latest.title")}
+          highlight={t("latest.highlight")}
+          desc={t("latest.desc")}
         />
 
         <div className="mt-11 grid gap-5 lg:grid-cols-3">
@@ -36,7 +42,7 @@ export default function LatestInsights() {
                 <p className="mt-5 text-[11px] font-bold text-brand-600">{post.category}</p>
                 <h3 className="mt-2 text-[18px] font-extrabold leading-8 text-ink-900">{post.title}</h3>
                 <p className="mt-3 flex-1 text-[13.5px] leading-7 text-ink-500">{post.excerpt}</p>
-                <Link to={`/blog/${post.slug}`} className="mt-5 inline-flex items-center gap-2 text-[13px] font-bold text-brand-600">اقرأ المقال <ArrowLeft className="h-4 w-4" /></Link>
+                <Link to={`/blog/${post.slug}`} className="mt-5 inline-flex items-center gap-2 text-[13px] font-bold text-brand-600">{t("latest.read")} <ArrowLeft className="h-4 w-4" /></Link>
               </article>
             </Reveal>
           ))}

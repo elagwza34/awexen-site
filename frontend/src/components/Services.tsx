@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useContent } from "../context/ContentContext";
+import { useLanguage } from "../context/LanguageContext";
 import { CardSkeleton, Icon, Reveal, SectionHeading, Spotlight } from "./ui";
 
 const HOME_SLUGS = [
@@ -12,8 +13,18 @@ const HOME_SLUGS = [
   "digital-marketing",
 ];
 
+const englishDescriptions: Record<string, string> = {
+  wordpress: "Fast, secure, custom WordPress websites with an easy content dashboard.",
+  "vibe-code": "Custom web applications built around your workflow and growth goals.",
+  "mobile-app": "Reliable mobile experiences designed for iOS and Android users.",
+  hosting: "Managed hosting, deployment, monitoring, backups, and technical support.",
+  "graphic-design": "A consistent visual identity and practical assets for your brand.",
+  "digital-marketing": "Measurable campaigns, content, and performance marketing that drive growth.",
+};
+
 export default function Services() {
   const { services, loading } = useContent();
+  const { lang, t } = useLanguage();
   const list = services.filter((s) => HOME_SLUGS.includes(s.slug));
 
   return (
@@ -23,10 +34,10 @@ export default function Services() {
 
       <div className="container-x relative">
         <SectionHeading
-          badge="خدماتنا"
-          title="كل ما يحتاجه"
-          highlight="عملك"
-          desc="من الاستراتيجية إلى التنفيذ، نقدم حلولاً رقمية شاملة تحقق نتائج حقيقية."
+          badge={t("services.badge")}
+          title={t("services.title")}
+          highlight={t("services.highlight")}
+          desc={t("services.desc")}
         />
 
         <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -44,14 +55,14 @@ export default function Services() {
                     </span>
 
                     <h3 className="relative mt-5 text-[19px] font-extrabold text-ink-900 transition-colors group-hover:text-brand-600">
-                      {s.title}
+                      {lang === "en" ? s.tagline : s.title}
                     </h3>
                     <p className="relative mt-2.5 flex-1 text-[14.5px] leading-7 text-ink-500">
-                      {s.short}
+                      {lang === "en" ? englishDescriptions[s.slug] ?? s.tagline : s.short}
                     </p>
 
                     <span className="relative mt-5 inline-flex items-center gap-2 text-[14px] font-bold text-brand-600">
-                      عرض المزيد
+                      {t("services.more")}
                       <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-1.5" />
                     </span>
                   </Spotlight>
@@ -65,7 +76,7 @@ export default function Services() {
               to="/services"
               className="group inline-flex items-center gap-3 rounded-xl bg-ink-900 px-8 py-4 text-[15px] font-bold text-white shadow-xl shadow-ink-900/15 transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-600"
             >
-              عرض جميع الخدمات
+              {t("services.all")}
               <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-x-1.5" />
             </Link>
           </div>

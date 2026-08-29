@@ -1,19 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowLeft, ChevronDown, LogIn, Menu, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, Languages, LayoutDashboard, LogIn, Menu, Sparkles, X } from "lucide-react";
 import { useContent } from "../context/ContentContext";
+import { useLanguage } from "../context/LanguageContext";
+import { loadDashboardAccess } from "../lib/roleRouting";
+import { supabase } from "../lib/supabase";
 import { Icon, Logo } from "./ui";
 import { cn } from "../utils/cn";
 
 const links = [
-  { label: "الرئيسية", to: "/" },
-  { label: "معرض الأعمال", to: "/portfolio" },
-  { label: "الخطط والاسعار", to: "/#pricing" },
-  { label: "المدونة", to: "/blog" },
-  { label: "الكورسات", to: "/courses" },
-  { label: "الوظائف", to: "/jobs" },
-  { label: "من نحن", to: "/about" },
-  { label: "تواصل معنا", to: "/contact" },
+  { key: "nav.home", to: "/" },
+  { key: "nav.portfolio", to: "/portfolio" },
+  { key: "nav.pricing", to: "/#pricing" },
+  { key: "nav.blog", to: "/blog" },
+  { key: "nav.courses", to: "/courses" },
+  { key: "nav.jobs", to: "/jobs" },
+  { key: "nav.about", to: "/about" },
+  { key: "nav.contact", to: "/contact" },
 ];
 
 export default function Navbar() {
@@ -21,8 +24,10 @@ export default function Navbar() {
   const [drawer, setDrawer] = useState(false);
   const [mega, setMega] = useState(false);
   const [subOpen, setSubOpen] = useState(false);
+  const [dashboardPath, setDashboardPath] = useState<string | null>(null);
   const { pathname } = useLocation();
   const { services } = useContent();
+  const { lang, t, toggleLang } = useLanguage();
   const megaRef = useRef<HTMLLIElement>(null);
 
   useEffect(() => {
@@ -61,6 +66,31 @@ export default function Navbar() {
 
   useEffect(() => setMega(false), [pathname]);
 
+  useEffect(() => {
+    if (!supabase) return;
+    let active = true;
+    const syncSession = async (session: Parameters<typeof loadDashboardAccess>[0] | null) => {
+      if (!session) {
+        if (active) setDashboardPath(null);
+        return;
+      }
+      try {
+        const access = await loadDashboardAccess(session);
+        if (active) setDashboardPath(access.path);
+      } catch {
+        if (active) setDashboardPath(null);
+      }
+    };
+    void supabase.auth.getSession().then(({ data }) => syncSession(data.session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      window.setTimeout(() => void syncSession(session), 0);
+    });
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const active = (to: string) =>
     to === "/" ? pathname === "/" : !to.includes("#") && pathname.startsWith(to);
 
@@ -68,9 +98,9 @@ export default function Navbar() {
     <>
       {/* شريط إعلاني */}
       <div className="hidden bg-ink-950 py-2 text-center text-[12.5px] text-white/60 lg:block">
-        <span className="text-brand-400">●</span> عندك مشروع جديد؟ أرسل المطلوب وسنرتب معك النطاق والخطوات —{" "}
+        <span className="text-brand-400">●</span> {t("nav.newProjectBanner")}{" "}
         <Link to="/services" className="link-underline font-semibold text-white">
-          ابدأ من هنا
+          {t("nav.startProject")}
         </Link>
       </div>
 
@@ -85,7 +115,7 @@ export default function Navbar() {
         <div className="container-x">
           <nav
             className="flex h-[74px] items-center justify-between gap-4"
-            aria-label="التنقل الرئيسي"
+            aria-label={t("nav.mainNav")}
           >
             <Logo dark />
 
@@ -98,7 +128,7 @@ export default function Navbar() {
                     active("/") ? "text-brand-400" : "text-white/75",
                   )}
                 >
-                  الرئيسية
+                  {t("nav.home")}
                 </Link>
               </li>
 
@@ -116,7 +146,7 @@ export default function Navbar() {
                       : "text-white/75",
                   )}
                 >
-                  الخدمات
+                  {t("nav.services")}
                   <ChevronDown
                     className={cn(
                       "h-3.5 w-3.5 transition-transform duration-300",
@@ -152,10 +182,10 @@ export default function Navbar() {
                           </span>
                           <span className="min-w-0">
                             <span className="block text-[13.5px] font-bold text-white transition-colors group-hover:text-brand-300">
-                              {s.title}
+                              {lang === "en" ? s.tagline : s.title}
                             </span>
                             <span className="mt-0.5 line-clamp-1 block text-[11.5px] text-ink-400">
-                              {s.tagline}
+                              {lang === "en" ? t("nav.serviceDetails") : s.tagline}
                             </span>
                           </span>
                         </Link>
@@ -166,7 +196,7 @@ export default function Navbar() {
                       to="/services"
                       className="flex items-center justify-between border-t border-white/8 bg-white/[0.03] px-5 py-3.5 text-[13.5px] font-bold text-brand-400 transition-colors hover:bg-brand-500/10"
                     >
-                      عرض جميع الخدمات وتفاصيل الباقات
+                      {t("nav.allServices")}
                       <ArrowLeft className="h-4 w-4" />
                     </Link>
                   </div>
@@ -174,7 +204,7 @@ export default function Navbar() {
               </li>
 
               {links.slice(1).map((l) => (
-                <li key={l.label}>
+                <li key={l.key}>
                   <Link
                     to={l.to}
                     className={cn(
@@ -182,31 +212,40 @@ export default function Navbar() {
                       active(l.to) ? "text-brand-400" : "text-white/75",
                     )}
                   >
-                    {l.label}
+                    {t(l.key)}
                   </Link>
                 </li>
               ))}
             </ul>
 
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleLang}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2.5 text-[12px] font-black text-white/75 transition hover:border-brand-400/40 hover:bg-white/5 hover:text-white"
+                aria-label={t("nav.switchLanguage")}
+              >
+                <Languages className="h-4 w-4 text-brand-400" />
+                <span dir="ltr">{lang === "ar" ? "EN" : "AR"}</span>
+              </button>
               <Link
-                to="/login"
+                to={dashboardPath ?? "/login"}
                 className="hidden items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-[13px] font-bold text-white/75 transition hover:border-brand-400/40 hover:bg-white/5 hover:text-white lg:inline-flex"
               >
-                <LogIn className="h-4 w-4 text-brand-400" />
-                تسجيل جديد / دخول
+                {dashboardPath ? <LayoutDashboard className="h-4 w-4 text-brand-400" /> : <LogIn className="h-4 w-4 text-brand-400" />}
+                {dashboardPath ? t("nav.dashboard") : t("nav.signup")}
               </Link>
               <Link
                 to="/contact"
                 className="hidden items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-[14px] font-bold text-white shadow-lg shadow-brand-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 hover:shadow-[var(--shadow-brand)] sm:inline-flex"
               >
                 <Sparkles className="h-4 w-4" />
-                احجز استشارة
+                {t("nav.bookConsult")}
               </Link>
 
               <button
                 onClick={() => setDrawer(true)}
-                aria-label="فتح القائمة"
+                aria-label={lang === "ar" ? "فتح القائمة" : "Open menu"}
                 aria-expanded={drawer}
                 className="grid h-11 w-11 place-items-center rounded-xl border border-white/15 bg-white/5 text-white transition-colors hover:bg-white/10 xl:hidden"
               >
@@ -234,7 +273,7 @@ export default function Navbar() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="قائمة التنقل"
+          aria-label={lang === "ar" ? "قائمة التنقل" : "Navigation menu"}
           className={cn(
             "absolute inset-y-0 right-0 flex w-[88%] max-w-sm flex-col bg-ink-950 shadow-2xl transition-transform duration-300 ease-[var(--ease-out-expo)]",
             drawer ? "translate-x-0" : "translate-x-full",
@@ -244,7 +283,7 @@ export default function Navbar() {
             <Logo dark />
             <button
               onClick={() => setDrawer(false)}
-              aria-label="إغلاق القائمة"
+              aria-label={lang === "ar" ? "إغلاق القائمة" : "Close menu"}
               className="grid h-10 w-10 place-items-center rounded-xl border border-white/15 text-white"
             >
               <X className="h-5 w-5" />
@@ -259,7 +298,7 @@ export default function Navbar() {
                   onClick={() => setDrawer(false)}
                   className="block rounded-xl px-4 py-3 text-[15px] font-semibold text-white/80 hover:bg-white/5"
                 >
-                  الرئيسية
+                  {t("nav.home")}
                 </Link>
               </li>
 
@@ -269,7 +308,7 @@ export default function Navbar() {
                   aria-expanded={subOpen}
                   className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-[15px] font-semibold text-white/80 hover:bg-white/5"
                 >
-                  الخدمات
+                  {t("nav.services")}
                   <ChevronDown
                     className={cn(
                       "h-4 w-4 transition-transform duration-300",
@@ -291,7 +330,7 @@ export default function Navbar() {
                         className="flex items-center gap-2.5 rounded-lg px-4 py-2.5 text-[13.5px] font-bold text-brand-400 hover:bg-brand-500/10"
                       >
                         <Icon name="layers" className="h-4 w-4" />
-                        جميع الخدمات
+                        {t("nav.allServices")}
                       </Link>
                     </li>
                     {services.map((s) => (
@@ -302,7 +341,7 @@ export default function Navbar() {
                           className="flex items-center gap-2.5 rounded-lg px-4 py-2.5 text-[13.5px] text-white/60 hover:bg-brand-500/10 hover:text-brand-300"
                         >
                           <Icon name={s.icon} className="h-4 w-4 text-brand-500" />
-                          {s.title}
+                          {lang === "en" ? s.tagline : s.title}
                         </Link>
                       </li>
                     ))}
@@ -311,13 +350,13 @@ export default function Navbar() {
               </li>
 
               {links.slice(1).map((l) => (
-                <li key={l.label}>
+                <li key={l.key}>
                   <Link
                     to={l.to}
                     onClick={() => setDrawer(false)}
                     className="block rounded-xl px-4 py-3 text-[15px] font-semibold text-white/80 hover:bg-white/5"
                   >
-                    {l.label}
+                    {t(l.key)}
                   </Link>
                 </li>
               ))}
@@ -325,13 +364,21 @@ export default function Navbar() {
           </div>
 
           <div className="border-t border-white/10 p-5">
+            <button
+              type="button"
+              onClick={toggleLang}
+              className="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 px-5 py-3 text-[14px] font-bold text-white/80"
+            >
+              <Languages className="h-4 w-4 text-brand-400" />
+              <span dir="ltr">{lang === "ar" ? "EN" : "AR"}</span>
+            </button>
             <Link
-              to="/login"
+              to={dashboardPath ?? "/login"}
               onClick={() => setDrawer(false)}
               className="mb-2 flex items-center justify-center gap-2 rounded-xl border border-white/15 px-5 py-3 text-[14px] font-bold text-white/80"
             >
-              <LogIn className="h-4 w-4 text-brand-400" />
-              تسجيل جديد / دخول
+              {dashboardPath ? <LayoutDashboard className="h-4 w-4 text-brand-400" /> : <LogIn className="h-4 w-4 text-brand-400" />}
+              {dashboardPath ? t("nav.dashboard") : t("nav.signup")}
             </Link>
             <Link
               to="/contact"
@@ -339,7 +386,7 @@ export default function Navbar() {
               className="flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3.5 font-bold text-white shadow-lg shadow-brand-500/25"
             >
               <Sparkles className="h-4 w-4" />
-              احجز استشارة
+              {t("nav.bookConsult")}
             </Link>
           </div>
         </div>

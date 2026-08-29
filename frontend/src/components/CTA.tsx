@@ -1,16 +1,18 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, Clock3, Mail, MessageCircle, Phone, ShieldCheck } from "lucide-react";
 import { useContent } from "../context/ContentContext";
+import { useLanguage } from "../context/LanguageContext";
 import { Reveal } from "./ui";
 
 const assurances = [
-  { Icon: Clock3, text: "رد خلال 24 ساعة" },
-  { Icon: ShieldCheck, text: "استشارة مجانية بالكامل" },
-  { Icon: MessageCircle, text: "بدون التزام أو رسوم" },
+  { Icon: Clock3, key: "cta.response" },
+  { Icon: ShieldCheck, key: "cta.free" },
+  { Icon: MessageCircle, key: "cta.noCommitment" },
 ];
 
 export default function CTA() {
   const { settings } = useContent();
+  const { t } = useLanguage();
 
   return (
     <section id="contact" className="relative bg-white pb-20 pt-4 sm:pb-28">
@@ -27,17 +29,16 @@ export default function CTA() {
             <div className="relative mx-auto flex max-w-3xl flex-col items-center text-center">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-[13px] font-semibold text-brand-300">
                 <MessageCircle className="h-3.5 w-3.5" />
-                جاهز للبدء؟
+                {t("cta.badge")}
               </span>
 
               <h2 className="mt-6 text-balance text-[clamp(1.8rem,4.5vw,2.85rem)] font-black leading-[1.28] text-white">
-                لنصنع معاً مشروعك الرقمي{" "}
-                <span className="text-gradient-brand">القادم</span>
+                {t("cta.title1")}{" "}
+                <span className="text-gradient-brand">{t("cta.highlight")}</span>
               </h2>
 
               <p className="mt-5 max-w-xl text-pretty text-[15px] leading-8 text-ink-300">
-                احجز استشارة مجانية مع فريقنا وسنساعدك على تحويل فكرتك إلى منتج
-                رقمي ناجح يحقق أهدافك.
+                {t("cta.desc")}
               </p>
 
               <div className="mt-9 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
@@ -45,7 +46,7 @@ export default function CTA() {
                   to="/contact"
                   className="group inline-flex w-full items-center justify-center gap-3 rounded-xl bg-brand-500 px-8 py-4 text-[15px] font-bold text-white shadow-[var(--shadow-brand)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 sm:w-auto"
                 >
-                  احجز استشارة مجانية
+                  {t("cta.button")}
                   <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-x-1.5" />
                 </Link>
                 <a
@@ -53,19 +54,19 @@ export default function CTA() {
                   className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/5 px-8 py-4 text-[15px] font-semibold text-white backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500 sm:w-auto"
                 >
                   <Phone className="h-[18px] w-[18px]" />
-                  اتصل بنا
+                  {t("cta.call")}
                 </a>
               </div>
 
               {/* طمأنة */}
               <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5">
-                {assurances.map(({ Icon, text }) => (
+                {assurances.map(({ Icon, key }) => (
                   <span
-                    key={text}
+                    key={key}
                     className="inline-flex items-center gap-2 text-[13px] text-ink-400"
                   >
                     <Icon className="h-4 w-4 text-brand-500" />
-                    {text}
+                    {t(key)}
                   </span>
                 ))}
               </div>

@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Loader2, Lock, LogIn, ShieldAlert } from "lucide-react";
 import { supabase } from "../lib/supabase";
-
-const dashboardRoles = ["owner", "admin", "editor", "hr", "support"];
+import { loadDashboardAccess } from "../lib/roleRouting";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -28,9 +27,12 @@ export default function AdminLogin() {
 
       if (signInError) {
         setError("البريد الإلكتروني أو كلمة المرور غير صحيحة.");
-      } else if (!dashboardRoles.includes(String(data.user.app_metadata.role ?? ""))) {
-        await supabase.auth.signOut();
-        setError("هذا الحساب لا يملك صلاحية الدخول إلى لوحة الإدارة.");
+      } else {
+        const access = data.session ? await loadDashboardAccess(data.session) : null;
+        if (access?.role !== "admin") {
+          await supabase.auth.signOut();
+          setError("هذا الحساب لا يملك صلاحية الدخول إلى لوحة الإدارة.");
+        }
       }
     } catch {
       setError("تعذر الاتصال بخدمة تسجيل الدخول. حاول مرة أخرى.");
@@ -40,7 +42,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <section className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
+    <section dir="rtl" className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
       <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.035] p-6 shadow-2xl shadow-black/30 backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-500/15 text-brand-400">

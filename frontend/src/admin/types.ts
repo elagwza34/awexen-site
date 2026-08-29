@@ -3,6 +3,7 @@ export type AdminRole = "owner" | "admin" | "editor" | "hr" | "support" | "viewe
 export type SectionKey =
   | "overview"
   | "pages"
+  | "portfolio"
   | "blog"
   | "messages"
   | "newsletter"
@@ -45,6 +46,7 @@ export type ResourceDefinition = {
   subtitleKey?: string;
   statusKey?: string;
   orderBy?: string;
+  orderAscending?: boolean;
   defaults: AdminRow;
   fields: FieldDefinition[];
 };

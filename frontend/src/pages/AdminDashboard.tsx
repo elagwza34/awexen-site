@@ -8,6 +8,7 @@ import {
   GraduationCap,
   House,
   Inbox,
+  Images,
   FileCheck2,
   LayoutDashboard,
   LibraryBig,
@@ -32,6 +33,8 @@ import { resources } from "../admin/resourceDefinitions";
 import type { AdminRole, SectionKey } from "../admin/types";
 import { lmsApi } from "../lib/lmsApi";
 import { supabase } from "../lib/supabase";
+import { loadDashboardAccess } from "../lib/roleRouting";
+import { DashboardThemeToggle, useDashboardTheme } from "../context/DashboardThemeContext";
 
 const allRoles: AdminRole[] = ["owner", "admin", "editor", "hr", "support"];
 type AdminNotificationSummary = { course_reviews: number; course_requests: number };
@@ -48,6 +51,7 @@ const navItems: Array<{
   { key: "newsletter", label: "القائمة البريدية", icon: Send, roles: ["owner", "admin", "editor", "support"], group: "المبيعات" },
   { key: "clients", label: "إدارة العملاء", icon: UsersRound, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "pages", label: "الصفحات", icon: FilePlus2, roles: ["owner", "admin", "editor"], group: "المحتوى" },
+  { key: "portfolio", label: "معرض الأعمال", icon: Images, roles: ["owner", "admin", "editor"], group: "المحتوى" },
   { key: "blog", label: "المدونة", icon: BookOpenText, roles: ["owner", "admin", "editor"], group: "المحتوى" },
   { key: "jobs", label: "الوظائف", icon: BriefcaseBusiness, roles: ["owner", "admin", "hr"], group: "التوظيف والتدريب" },
   { key: "applications", label: "طلبات التوظيف", icon: UserRoundCheck, roles: ["owner", "admin", "hr"], group: "التوظيف والتدريب" },
@@ -76,6 +80,7 @@ const inquiryStatuses = [
 ];
 
 export default function AdminDashboard() {
+  const { theme } = useDashboardTheme();
   const [active, setActive] = useState<SectionKey>("overview");
   const [role, setRole] = useState<AdminRole>("admin");
   const [email, setEmail] = useState("");
@@ -86,11 +91,13 @@ export default function AdminDashboard() {
       setSessionReady(true);
       return;
     }
-    void supabase.auth.getSession().then(({ data }) => {
-      const sessionRole = String(data.session?.user.app_metadata.role ?? "admin") as AdminRole;
-      setRole(sessionRole);
+    void supabase.auth.getSession().then(async ({ data }) => {
+      if (data.session) {
+        const access = await loadDashboardAccess(data.session);
+        if (access.adminRole) setRole(access.adminRole);
+      }
       setEmail(data.session?.user.email ?? "");
-    }).finally(() => setSessionReady(true));
+    }).catch(() => {}).finally(() => setSessionReady(true));
   }, []);
 
   const notificationsQuery = useQuery({
@@ -116,14 +123,15 @@ export default function AdminDashboard() {
   };
 
   return (
-    <section className="admin-shell min-h-screen bg-[#080b12] text-white">
+    <section dir="rtl" className={`admin-shell dashboard-${theme} min-h-screen bg-[#080b12] text-white`}>
       <header className="sticky top-0 z-40 border-b border-white/[0.07] bg-[#080b12]/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-[1500px] items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="flex h-14 w-full items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-500/15 text-brand-300"><LayoutDashboard className="h-4 w-4" /></span>
             <div className="min-w-0"><p className="truncate text-[11.5px] font-extrabold">Awexen Admin</p><p className="truncate text-[9px] text-white/35">{activeLabel}</p></div>
           </div>
           <div className="flex items-center gap-2">
+            <DashboardThemeToggle />
             <a href="/" target="_blank" rel="noreferrer" className="admin-button-secondary hidden sm:inline-flex">عرض الموقع</a>
             <span className="hidden max-w-44 truncate text-[9.5px] text-white/35 lg:block" dir="ltr">{email}</span>
             <span className="rounded-full border border-brand-500/20 bg-brand-500/[0.06] px-2.5 py-1 text-[9px] font-bold text-brand-200">{role}</span>
@@ -132,7 +140,7 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-[1500px] gap-4 px-3 py-4 sm:px-6 lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-5">
+      <div className="grid w-full gap-4 px-3 py-4 sm:px-6 lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-5">
         <aside className="h-fit rounded-xl border border-white/[0.07] bg-white/[0.018] p-2 lg:sticky lg:top-[72px]">
           <nav className="flex gap-1 overflow-x-auto lg:block lg:space-y-4" aria-label="أقسام لوحة التحكم">
             {groups.map((group) => {
@@ -171,6 +179,7 @@ export default function AdminDashboard() {
 
         <main className="min-w-0 rounded-xl border border-white/[0.07] bg-[#0d111b] p-4 sm:p-5">
           {active === "overview" && <OverviewPanel role={role} goTo={safeGoTo} />}
+          {active === "portfolio" && <ResourceManager definition={resources.portfolio} />}
           {active === "pages" && <ResourceManager definition={resources.pages} />}
           {active === "blog" && <ResourceManager definition={resources.blog} />}
           {active === "jobs" && <ResourceManager definition={resources.jobs} />}

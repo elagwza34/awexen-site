@@ -135,12 +135,9 @@ begin
     resolved_lms_user_id, default_organization_id
   )
   on conflict (organization_id, user_id) do update
-  set role = case
-      when public.organizations_membership.role = 'student' and excluded.role <> 'student'
-        then excluded.role
-      else public.organizations_membership.role
-    end,
-    is_active = true,
+  -- The selected learning role is immutable after the first membership is
+  -- created. raw_user_meta_data is user-editable and must never promote it.
+  set is_active = true,
     updated_at = now();
 
   update private.lms_auth_identity

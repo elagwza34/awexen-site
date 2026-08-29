@@ -1,7 +1,17 @@
 import { processSteps } from "../data/site";
+import { useLanguage } from "../context/LanguageContext";
 import { Icon, Reveal, SectionHeading } from "./ui";
 
 export default function Process() {
+  const { lang, t } = useLanguage();
+  const englishSteps = [
+    { title: "Discovery", desc: "We explore your business, audience, and goals to build a strong strategic foundation." },
+    { title: "Strategy", desc: "We create a tailored roadmap with defined deliverables and success indicators." },
+    { title: "Design", desc: "Pixel-precise interfaces and prototypes bring your vision to life." },
+    { title: "Development", desc: "Clean, scalable code built for performance and maintainability." },
+    { title: "Launch", desc: "We deploy, monitor, and optimize your project from day one." },
+    { title: "Growth", desc: "Continuous improvement, analytics, and support for long-term success." },
+  ];
   return (
     <section
       id="process"
@@ -13,10 +23,10 @@ export default function Process() {
 
       <div className="container-x relative">
         <SectionHeading
-          badge="آلية العمل"
-          title="كيف"
-          highlight="نعمل"
-          desc="ست مراحل واضحة، ولكل مرحلة مخرج يمكن مراجعته قبل الانتقال لما بعدها."
+          badge={t("process.badge")}
+          title={t("process.title")}
+          highlight={t("process.highlight")}
+          desc={t("process.desc")}
           dark
         />
 
@@ -52,13 +62,13 @@ export default function Process() {
                         STEP {s.no}
                       </span>
                       <h3 className="text-[19px] font-extrabold text-white">
-                        {s.title}
+                        {lang === "en" ? englishSteps[i]?.title : s.title}
                       </h3>
                     </div>
                   </div>
 
                   <p className="relative mt-4 text-[14.5px] leading-7 text-ink-300">
-                    {s.desc}
+                    {lang === "en" ? englishSteps[i]?.desc : s.desc}
                   </p>
                 </li>
               </Reveal>

@@ -8,7 +8,23 @@ import {
   testimonials as localTestimonials,
 } from "../data/site";
 
-export type Project = (typeof localProjects)[number];
+export type Project = {
+  id?: string;
+  slug?: string;
+  title: string;
+  titleEn?: string;
+  desc: string;
+  descEn?: string;
+  tag: string;
+  tagEn?: string;
+  image: string;
+  site: string;
+  accent: string;
+  client?: string;
+  clientEn?: string;
+  technologies?: string;
+  completedAt?: string;
+};
 export type Plan = (typeof localPlans)[number];
 export type Testimonial = (typeof localTestimonials)[number];
 export type Stat = (typeof localStats)[number];
@@ -29,7 +45,7 @@ export type Content = {
 // dedicated data modules; there is no remote Django fallback anymore.
 export const localContent: Content = {
   services: localServices,
-  projects: localProjects,
+  projects: localProjects as Project[],
   plans: localPlans,
   testimonials: localTestimonials,
   stats: localStats,

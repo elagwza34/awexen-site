@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { ArrowUp } from "lucide-react";
 import { cn } from "../utils/cn";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function FloatingActions() {
   const [show, setShow] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const onScroll = () => setShow(window.scrollY > 620);
@@ -19,7 +21,7 @@ export default function FloatingActions() {
         href="https://wa.me/201092400443"
         target="_blank"
         rel="noreferrer"
-        aria-label="تواصل عبر واتساب"
+        aria-label={t("floating.whatsapp")}
         className="relative hidden h-12 w-12 place-items-center rounded-full bg-[#25D366] text-white shadow-xl shadow-[#25D366]/30 transition-transform duration-300 hover:scale-110 sm:grid"
       >
         <span
@@ -39,7 +41,7 @@ export default function FloatingActions() {
 
       {/* العودة للأعلى */}
       <button
-        aria-label="العودة إلى أعلى الصفحة"
+        aria-label={t("floating.backToTop")}
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         className={cn(
           "grid h-11 w-11 place-items-center rounded-full bg-ink-900/90 text-white shadow-xl backdrop-blur transition-all duration-300 hover:bg-brand-500 sm:h-12 sm:w-12",

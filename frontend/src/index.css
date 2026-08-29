@@ -492,7 +492,7 @@
 }
 .spotlight:hover::before { opacity: 1; }
 
-/* لوحة الإدارة داكنة بالكامل؛ لا ترث ألوان العناوين الفاتحة من صفحات الموقع. */
+/* Themes are scoped to dashboard roots; the public website remains unchanged. */
 .admin-shell :is(h1, h2, h3, h4, h5) {
   color: #fff;
 }
@@ -572,6 +572,86 @@
   scrollbar-color: rgb(255 98 0 / 0.4) transparent;
 }
 
+.dashboard-theme-toggle {
+  display: inline-grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(15 23 42 / 0.14);
+  border-radius: 0.75rem;
+  background: #fff;
+  color: #334155;
+  transition: 160ms ease;
+}
+
+.dashboard-theme-toggle:hover {
+  border-color: rgb(255 98 0 / 0.45);
+  color: var(--color-brand-600);
+}
+
+/* Admin dashboard: light is the default presentation. */
+.dashboard-light.admin-shell {
+  background: #f5f7fb !important;
+  color: #0f172a !important;
+  color-scheme: light;
+}
+
+.dashboard-light.admin-shell > header {
+  border-color: #e2e8f0 !important;
+  background: rgb(255 255 255 / 0.96) !important;
+}
+
+.dashboard-light.admin-shell > div > aside,
+.dashboard-light.admin-shell > div > main {
+  border-color: #e2e8f0 !important;
+  background: #fff !important;
+}
+
+.dashboard-light.admin-shell :is(h1, h2, h3, h4, h5) { color: #0f172a; }
+.dashboard-light.admin-shell [class*="text-white/"] { color: #64748b !important; }
+.dashboard-light.admin-shell .text-white { color: #0f172a !important; }
+.dashboard-light.admin-shell [class*="border-white"] { border-color: #e2e8f0 !important; }
+.dashboard-light.admin-shell [class*="bg-[#"] { background-color: #fff !important; }
+.dashboard-light.admin-shell .bg-brand-500.text-white,
+.dashboard-light.admin-shell .bg-emerald-500.text-white,
+.dashboard-light.admin-shell .bg-red-500.text-white { color: #fff !important; }
+
+.dashboard-light.admin-shell .admin-button-secondary,
+.dashboard-light.admin-shell .admin-icon-button {
+  border-color: #dbe3ee;
+  background: #fff;
+  color: #475569;
+}
+
+.dashboard-light.admin-shell .admin-button-secondary:hover,
+.dashboard-light.admin-shell .admin-icon-button:hover {
+  border-color: rgb(255 98 0 / 0.4);
+  color: var(--color-brand-600);
+}
+
+.dashboard-light.admin-shell .admin-input {
+  border-color: #dbe3ee;
+  background: #fff;
+  color: #0f172a;
+}
+
+.dashboard-light.admin-shell .admin-input::placeholder { color: #94a3b8; }
+.dashboard-light.admin-shell .admin-input:focus { background: #fff; }
+.dashboard-light.admin-shell :is(input:not([type="checkbox"]), select, textarea) {
+  border-color: #dbe3ee !important;
+  background-color: #fff !important;
+  color: #0f172a !important;
+}
+
+/* The original admin palette remains available as dark mode. */
+.dashboard-dark.admin-shell { color-scheme: dark; }
+.dashboard-dark .dashboard-theme-toggle {
+  border-color: rgb(255 255 255 / 0.1);
+  background: rgb(255 255 255 / 0.04);
+  color: #cbd5e1;
+}
+
 .portal-light,
 .portal-light > div,
 .portal-light main {
@@ -581,6 +661,49 @@
 
 .portal-light header {
   background-color: rgb(255 255 255 / 0.96);
+}
+
+/* Student and instructor dashboards share the same dark palette. */
+.portal-light.dashboard-dark,
+.portal-light.dashboard-dark > div,
+.portal-light.dashboard-dark main {
+  background-color: #080b12 !important;
+  color: #f8fafc !important;
+  color-scheme: dark;
+}
+
+.portal-light.dashboard-dark header {
+  border-color: rgb(255 255 255 / 0.09) !important;
+  background-color: rgb(8 11 18 / 0.96) !important;
+}
+
+.portal-light.dashboard-dark .bg-white,
+.portal-light.dashboard-dark [class*="bg-white/"] {
+  background-color: #101722 !important;
+}
+
+.portal-light.dashboard-dark [class*="border-ink-"] {
+  border-color: rgb(255 255 255 / 0.1) !important;
+}
+
+.portal-light.dashboard-dark :is(.bg-ink-50, .bg-ink-100) {
+  background-color: #182131 !important;
+}
+
+.portal-light.dashboard-dark :is(.text-ink-950, .text-ink-900, .text-ink-800, .text-ink-700, .text-ink-600) {
+  color: #f1f5f9 !important;
+}
+
+.portal-light.dashboard-dark :is(.text-ink-500, .text-ink-400, .text-ink-300) {
+  color: #94a3b8 !important;
+}
+
+.portal-light.dashboard-dark input,
+.portal-light.dashboard-dark select,
+.portal-light.dashboard-dark textarea {
+  border-color: rgb(255 255 255 / 0.12) !important;
+  background-color: #0b111c !important;
+  color: #f8fafc !important;
 }
 
 /* ============================================================

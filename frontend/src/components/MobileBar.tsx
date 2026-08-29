@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Grid2x2, Home, MessageCircle, Phone } from "lucide-react";
 import { cn } from "../utils/cn";
+import { useLanguage } from "../context/LanguageContext";
 
 /**
  * شريط إجراءات سفلي للموبايل — يظهر بعد التمرير.
@@ -10,6 +11,7 @@ import { cn } from "../utils/cn";
 export default function MobileBar() {
   const [show, setShow] = useState(false);
   const { pathname } = useLocation();
+  const { t } = useLanguage();
 
   useEffect(() => {
     const onScroll = () => setShow(window.scrollY > 420);
@@ -19,10 +21,10 @@ export default function MobileBar() {
   }, []);
 
   const items = [
-    { to: "/", label: "الرئيسية", Icon: Home, active: pathname === "/" },
+    { to: "/", label: t("nav.home"), Icon: Home, active: pathname === "/" },
     {
       to: "/services",
-      label: "الخدمات",
+      label: t("nav.services"),
       Icon: Grid2x2,
       active: pathname.startsWith("/services"),
     },
@@ -30,7 +32,7 @@ export default function MobileBar() {
 
   return (
     <nav
-      aria-label="إجراءات سريعة"
+      aria-label={t("nav.quickActions")}
       className={cn(
         "fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-ink-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl transition-transform duration-300 sm:hidden",
         show ? "translate-y-0" : "translate-y-full",
@@ -56,7 +58,7 @@ export default function MobileBar() {
           className="flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold text-white/60 transition-colors hover:text-brand-400"
         >
           <Phone className="h-[19px] w-[19px]" strokeWidth={1.9} />
-          اتصال
+          {t("mobile.call")}
         </a>
 
         <a
@@ -66,7 +68,7 @@ export default function MobileBar() {
           className="flex flex-col items-center gap-1 bg-brand-500 py-2.5 text-[11px] font-bold text-white"
         >
           <MessageCircle className="h-[19px] w-[19px]" strokeWidth={1.9} />
-          واتساب
+          {t("mobile.whatsapp")}
         </a>
       </div>
     </nav>

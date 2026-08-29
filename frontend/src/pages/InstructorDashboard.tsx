@@ -31,6 +31,7 @@ import { loadCurrentLmsUser } from "../lib/lms";
 import { lmsApi } from "../lib/lmsApi";
 import { uploadPublicImage } from "../lib/storage";
 import { supabase } from "../lib/supabase";
+import { DashboardThemeToggle, useDashboardTheme } from "../context/DashboardThemeContext";
 import { Logo } from "../components/ui";
 
 type Paged<T> = { count: number; results: T[] };
@@ -169,6 +170,7 @@ function CourseCard({ course, thumbnail, selected, onSelect, onArchive, onRestor
 }
 
 export default function InstructorDashboard() {
+  const { theme } = useDashboardTheme();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
@@ -332,11 +334,11 @@ export default function InstructorDashboard() {
   );
 
   return (
-    <section dir="rtl" className="portal-light min-h-screen bg-[#f5f7fb] text-ink-950" style={{ backgroundColor: "#f5f7fb", colorScheme: "light" }}>
+    <section dir="rtl" className={`portal-light dashboard-${theme} min-h-screen bg-[#f5f7fb] text-ink-950`}>
       <div className="fixed inset-y-0 right-0 z-50 hidden w-72 lg:block">{sidebar}</div>
       {mobileSidebar && <div className="fixed inset-0 z-[70] lg:hidden"><button type="button" aria-label="إغلاق القائمة" onClick={() => setMobileSidebar(false)} className="absolute inset-0 bg-black/55 backdrop-blur-sm" /><div className="absolute inset-y-0 right-0 w-[min(86vw,300px)] shadow-2xl">{sidebar}</div></div>}
       <div className="min-w-0 lg:pr-72">
-        <header className="sticky top-0 z-40 border-b border-ink-100 bg-white/90 backdrop-blur-xl"><div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-7 lg:px-10"><div className="flex min-w-0 items-center gap-3"><button type="button" onClick={() => setMobileSidebar(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-ink-200 bg-white text-ink-700 lg:hidden"><Menu className="h-4 w-4" /></button><div className="min-w-0"><p className="text-[9px] font-bold text-ink-400">لوحة المدرب</p><h1 className="truncate text-[14px] font-black">{dashboardTabs.find((tab) => tab.id === activeTab)?.label}</h1></div></div><div className="flex items-center gap-2"><button type="button" onClick={() => void refresh()} className="grid h-10 w-10 place-items-center rounded-xl border border-ink-200 bg-white text-ink-500 transition hover:text-brand-600" aria-label="تحديث البيانات"><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /></button>{membership && <button type="button" onClick={openNewCourse} className="hidden items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-[11px] font-black text-white shadow-lg shadow-brand-500/15 sm:inline-flex"><CirclePlus className="h-4 w-4" /> كورس جديد</button>}<button type="button" onClick={() => selectTab("profile")} className="hidden items-center gap-2 rounded-xl border border-ink-200 bg-white py-1.5 pl-3 pr-1.5 sm:flex"><span className="grid h-8 w-8 place-items-center rounded-lg bg-ink-950 text-[9px] font-black text-white">{initials(displayName, meQuery.data?.email ?? "")}</span><span className="max-w-28 truncate text-[10px] font-black">{displayName.split(" ")[0]}</span></button></div></div></header>
+        <header className="sticky top-0 z-40 border-b border-ink-100 bg-white/90 backdrop-blur-xl"><div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-7 lg:px-10"><div className="flex min-w-0 items-center gap-3"><button type="button" onClick={() => setMobileSidebar(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-ink-200 bg-white text-ink-700 lg:hidden"><Menu className="h-4 w-4" /></button><div className="min-w-0"><p className="text-[9px] font-bold text-ink-400">لوحة المدرب</p><h1 className="truncate text-[14px] font-black">{dashboardTabs.find((tab) => tab.id === activeTab)?.label}</h1></div></div><div className="flex items-center gap-2"><DashboardThemeToggle /><button type="button" onClick={() => void refresh()} className="grid h-10 w-10 place-items-center rounded-xl border border-ink-200 bg-white text-ink-500 transition hover:text-brand-600" aria-label="تحديث البيانات"><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /></button>{membership && <button type="button" onClick={openNewCourse} className="hidden items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-[11px] font-black text-white shadow-lg shadow-brand-500/15 sm:inline-flex"><CirclePlus className="h-4 w-4" /> كورس جديد</button>}<button type="button" onClick={() => selectTab("profile")} className="hidden items-center gap-2 rounded-xl border border-ink-200 bg-white py-1.5 pl-3 pr-1.5 sm:flex"><span className="grid h-8 w-8 place-items-center rounded-lg bg-ink-950 text-[9px] font-black text-white">{initials(displayName, meQuery.data?.email ?? "")}</span><span className="max-w-28 truncate text-[10px] font-black">{displayName.split(" ")[0]}</span></button></div></div></header>
         <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-7 sm:py-8 lg:px-10">
           {loading && <div className="grid min-h-[65vh] place-items-center"><div className="text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-brand-500" /><p className="mt-3 text-[11px] text-ink-400">جاري تجهيز لوحة المدرب...</p></div></div>}
           {(error || queryError) && <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-[12px] leading-6 text-red-700">{error ?? errorMessage(queryError)}</div>}

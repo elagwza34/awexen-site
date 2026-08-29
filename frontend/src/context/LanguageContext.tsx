@@ -40,7 +40,8 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
   },
   "nav.mainNav": { ar: "التنقل الرئيسي", en: "Main navigation" },
   "nav.quickActions": { ar: "إجراءات سريعة", en: "Quick actions" },
-  "nav.switchLanguage": { ar: "English", en: "العربية" },
+  "nav.switchLanguage": { ar: "Switch to English", en: "التبديل إلى العربية" },
+  "nav.serviceDetails": { ar: "تفاصيل الخدمة والباقات", en: "Service details and packages" },
 
   // ---------- الفوتر ----------
   "footer.quickLinks": { ar: "روابط سريعة", en: "Quick Links" },
@@ -54,12 +55,12 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
   "footer.privacy": { ar: "سياسة الخصوصية", en: "Privacy Policy" },
   "footer.terms": { ar: "الشروط والأحكام", en: "Terms & Conditions" },
   "footer.newsletterTitle": {
-    ar: "ملخص أسبوعي مختصر",
-    en: "A short weekly digest",
+    ar: "نصائح رقمية تصلك كل أسبوع",
+    en: "Digital tips delivered every week",
   },
   "footer.newsletterDesc": {
-    ar: "نصيحة واحدة عملية من شغل مواقع ومتاجر حقيقية، كل أسبوع. بلا إزعاج.",
-    en: "One practical tip from real client work, every week. No spam.",
+    ar: "رسالة واحدة أسبوعياً تحتوي على أفكار عملية لتحسين موقعك وزيادة مبيعاتك. بلا إزعاج، وإلغاء الاشتراك بنقرة.",
+    en: "One weekly email with practical ideas to improve your website and increase sales. No spam, unsubscribe in one click.",
   },
   "footer.emailPlaceholder": {
     ar: "بريدك الإلكتروني",
@@ -71,6 +72,14 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
     en: "You have subscribed successfully — welcome!",
   },
   "footer.followUs": { ar: "تابعنا", en: "Follow us" },
+  "footer.companyDesc": {
+    ar: "نصمم ونطوّر تجارب رقمية واضحة تساعد الشركات على النمو وتحويل الزيارات إلى نتائج قابلة للقياس.",
+    en: "We design and build clear digital experiences that help businesses grow and turn visits into measurable results.",
+  },
+  "footer.location": { ar: "الموقع", en: "Location" },
+  "footer.email": { ar: "البريد", en: "Email" },
+  "footer.support": { ar: "الدعم الفني", en: "Technical support" },
+  "footer.hours": { ar: "ساعات العمل", en: "Working hours" },
 
   // ---------- معرض الأعمال ----------
   "portfolio.badge": { ar: "معرض الأعمال", en: "Our Portfolio" },
@@ -121,15 +130,28 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
   "floating.backToTop": { ar: "العودة إلى أعلى الصفحة", en: "Back to top" },
 
   // ---------- الواجهة الرئيسية ----------
-  "hero.badge": { ar: "تصميم، تعلّم، نمو", en: "Design, Learn, Grow" },
-  "hero.title1": { ar: "نبني مواقع", en: "We build websites" },
-  "hero.highlight": { ar: "تبيع وتعمل 24/7", en: "that sell & work 24/7" },
+  "hero.badge": { ar: "تصميم وبرمجة مواقع للشركات", en: "Web design and development for businesses" },
+  "hero.title1": { ar: "موقع يشرح شغلك", en: "A website that explains your business" },
+  "hero.highlight": { ar: "ويحوّل الزيارة إلى طلب واضح", en: "and turns visits into clear requests" },
   "hero.desc": {
-    ar: "من التصميم والتطوير إلى الاستضافة والتسويق، فريق Awexen يبني حضورك الرقمي خطوة بخطوة.",
-    en: "From design and development to hosting and marketing, the Awexen team builds your digital presence step by step.",
+    ar: "نخطط المحتوى، نصمم الواجهة، ونبرمج الموقع أو المتجر مع ربط النماذج والقياس. تعرف ما الذي سيُنفذ، ومتى تراجعه، وما الذي تدفع مقابله.",
+    en: "We plan the content, design the interface, and build your website or store with forms and analytics. You know what will be delivered, when to review it, and what you are paying for.",
   },
-  "hero.ctaPrimary": { ar: "ابدأ مشروعك", en: "Start your project" },
-  "hero.ctaSecondary": { ar: "تصفح خدماتنا", en: "Explore services" },
+  "hero.ctaPrimary": { ar: "شاهد مشاريع نفذناها", en: "View our projects" },
+  "hero.ctaSecondary": { ar: "اختر الخدمة المناسبة", en: "Choose the right service" },
+  "hero.trustResponse": { ar: "رد أولي خلال يوم عمل", en: "Initial reply within one business day" },
+  "hero.trustScope": { ar: "عرض سعر بنطاق ومراحل واضحة", en: "A quote with clear scope and milestones" },
+  "hero.clearScope": { ar: "نطاق واضح", en: "Clear scope" },
+  "hero.beforeStart": { ar: "قبل بداية التنفيذ", en: "Before implementation starts" },
+  "hero.realTesting": { ar: "اختبار فعلي", en: "Real testing" },
+  "hero.allDevices": { ar: "على الهاتف والكمبيوتر", en: "On mobile and desktop" },
+  "hero.projectScope": { ar: "نطاق المشروع", en: "Project scope" },
+  "hero.paymentStages": { ar: "مراحل الدفع", en: "Payment stages" },
+  "hero.deliveryTracking": { ar: "متابعة التنفيذ", en: "Delivery tracking" },
+  "hero.approved": { ar: "معتمد", en: "Approved" },
+  "hero.clear": { ar: "واضحة", en: "Clear" },
+  "hero.weekly": { ar: "أسبوعية", en: "Weekly" },
+  "hero.lastDays": { ar: "آخر 7 أيام", en: "Last 7 days" },
 
   "cta.title": {
     ar: "جاهز تبدأ مشروعك الرقمي؟",
@@ -140,6 +162,37 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
     en: "Book a quick call with the team and we will agree on the scope, price, and timeline before any commitment.",
   },
   "cta.button": { ar: "احجز استشارة مجانية", en: "Book a free consultation" },
+  "cta.badge": { ar: "جاهز للبدء؟", en: "Ready to get started?" },
+  "cta.title1": { ar: "لنصنع معاً مشروعك الرقمي", en: "Let us build your next digital" },
+  "cta.highlight": { ar: "القادم", en: "project together" },
+  "cta.call": { ar: "اتصل بنا", en: "Call us" },
+  "cta.response": { ar: "رد خلال 24 ساعة", en: "Reply within 24 hours" },
+  "cta.free": { ar: "استشارة مجانية بالكامل", en: "Completely free consultation" },
+  "cta.noCommitment": { ar: "بدون التزام أو رسوم", en: "No commitment or fees" },
+
+  // ---------- أقسام الصفحة الرئيسية ----------
+  "brands.title": { ar: "التقنية تتبع احتياج المشروع", en: "Technology follows the project needs" },
+  "brands.desc": { ar: "نختار الأدوات التي تناسب التشغيل والميزانية، ولا نفرض Stack واحدًا على كل عميل", en: "We choose tools that fit the operation and budget instead of forcing one stack on every client." },
+  "services.badge": { ar: "خدماتنا", en: "Our Services" },
+  "services.title": { ar: "كل ما يحتاجه", en: "Everything your" },
+  "services.highlight": { ar: "عملك", en: "business needs" },
+  "services.desc": { ar: "من الاستراتيجية إلى التنفيذ، نقدم حلولاً رقمية شاملة تحقق نتائج حقيقية.", en: "From strategy to delivery, we provide complete digital solutions that create real results." },
+  "services.more": { ar: "عرض المزيد", en: "Learn more" },
+  "services.all": { ar: "عرض جميع الخدمات", en: "View all services" },
+  "process.badge": { ar: "آلية العمل", en: "Our Process" },
+  "process.title": { ar: "كيف", en: "How we" },
+  "process.highlight": { ar: "نعمل", en: "work" },
+  "process.desc": { ar: "ست مراحل واضحة، ولكل مرحلة مخرج يمكن مراجعته قبل الانتقال لما بعدها.", en: "Six clear stages, each with a reviewable deliverable before moving to the next." },
+  "why.badge": { ar: "لماذا أوكسين", en: "Why Awexen" },
+  "why.title": { ar: "تنفيذ واضح", en: "Clear delivery" },
+  "why.highlight": { ar: "من أول اتفاق", en: "from the first agreement" },
+  "why.desc": { ar: "لا نبدأ من قالب أو تقنية. نبدأ من المطلوب إنجازه، ثم نحدد النطاق وطريقة القياس وخطوات التسليم بلغة يفهمها فريقك.", en: "We do not start with a template or technology. We start with the outcome, then define the scope, measurement, and delivery steps in language your team understands." },
+  "why.about": { ar: "تعرف علينا", en: "About us" },
+  "latest.badge": { ar: "من خبرة التنفيذ", en: "From delivery experience" },
+  "latest.title": { ar: "ملاحظات تفيدك", en: "Useful insights" },
+  "latest.highlight": { ar: "قبل بدء المشروع", en: "before you start" },
+  "latest.desc": { ar: "نكتب عن القرارات التي تتكرر في الشغل الحقيقي: ما الذي تختبره، وما الذي تسأل عنه، وما الذي يؤثر على التكلفة.", en: "We write about recurring real-world decisions: what to test, what to ask, and what affects cost." },
+  "latest.read": { ar: "اقرأ المقال", en: "Read article" },
 };
 export function pickByLang(lang: Lang, ar: string, en: string, fallbackAr = ar) {
   if (!ar && !en) return fallbackAr;

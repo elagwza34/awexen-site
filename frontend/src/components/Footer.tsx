@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, Clock, Loader2, Mail, MapPin, Phone, Send } from "lucide-react";
 import { useContent } from "../context/ContentContext";
+import { useLanguage } from "../context/LanguageContext";
 import { supabase } from "../lib/supabase";
 import { Logo } from "./ui";
 
@@ -47,41 +48,42 @@ const socials = [
 
 const columns = [
   {
-    title: "روابط سريعة",
+    title: { ar: "روابط سريعة", en: "Quick Links" },
     links: [
-      { label: "الرئيسية", to: "/" },
-      { label: "جميع الخدمات", to: "/services" },
-      { label: "معرض الأعمال", to: "/portfolio" },
-      { label: "من نحن", to: "/about" },
-      { label: "تواصل معنا", to: "/contact" },
+      { label: { ar: "الرئيسية", en: "Home" }, to: "/" },
+      { label: { ar: "جميع الخدمات", en: "All Services" }, to: "/services" },
+      { label: { ar: "معرض الأعمال", en: "Portfolio" }, to: "/portfolio" },
+      { label: { ar: "من نحن", en: "About Us" }, to: "/about" },
+      { label: { ar: "تواصل معنا", en: "Contact Us" }, to: "/contact" },
     ],
   },
   {
-    title: "خدماتنا",
+    title: { ar: "خدماتنا", en: "Our Services" },
     links: [
-      { label: "تطوير وردبريس", to: "/services/wordpress" },
-      { label: "برمجة خاصة", to: "/services/vibe-code" },
-      { label: "تطبيقات الهاتف", to: "/services/mobile-app" },
-      { label: "التسويق الإلكتروني", to: "/services/digital-marketing" },
-      { label: "الاستضافة والسيرفرات", to: "/services/hosting" },
+      { label: { ar: "تطوير وردبريس", en: "WordPress Development" }, to: "/services/wordpress" },
+      { label: { ar: "برمجة خاصة", en: "Custom Development" }, to: "/services/vibe-code" },
+      { label: { ar: "تطبيقات الهاتف", en: "Mobile Applications" }, to: "/services/mobile-app" },
+      { label: { ar: "التسويق الإلكتروني", en: "Digital Marketing" }, to: "/services/digital-marketing" },
+      { label: { ar: "الاستضافة والسيرفرات", en: "Hosting & Servers" }, to: "/services/hosting" },
     ],
   },
   {
-    title: "المعرفة والفرص",
+    title: { ar: "المعرفة والفرص", en: "Knowledge & Opportunities" },
     links: [
-      { label: "المدونة", to: "/blog" },
-      { label: "الكورسات", to: "/courses" },
-      { label: "الوظائف", to: "/jobs" },
+      { label: { ar: "المدونة", en: "Blog" }, to: "/blog" },
+      { label: { ar: "الكورسات", en: "Courses" }, to: "/courses" },
+      { label: { ar: "الوظائف", en: "Jobs" }, to: "/jobs" },
     ],
   },
 ];
 
 export default function Footer() {
   const { settings } = useContent();
+  const { lang, t, pick } = useLanguage();
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [subscriptionMessage, setSubscriptionMessage] = useState("تم تسجيل بريدك بنجاح — أهلاً بك!");
+  const [subscriptionMessage, setSubscriptionMessage] = useState("");
   const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
 
   const subscribe = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -108,17 +110,19 @@ export default function Footer() {
       return;
     }
 
-    setSubscriptionMessage(error?.code === "23505" ? "هذا البريد مشترك بالفعل — أهلاً بعودتك!" : "تم تسجيل بريدك بنجاح — أهلاً بك!");
+    setSubscriptionMessage(error?.code === "23505"
+      ? (lang === "ar" ? "هذا البريد مشترك بالفعل — أهلاً بعودتك!" : "This email is already subscribed — welcome back!")
+      : t("footer.subscribed"));
     setEmail("");
     setDone(true);
     setSubmitting(false);
   };
 
   const contact = [
-    { Icon: MapPin, title: "الموقع", value: settings.address },
-    { Icon: Mail, title: "البريد", value: settings.email, href: `mailto:${settings.email}` },
-    { Icon: Phone, title: "الدعم الفني", value: settings.phones },
-    { Icon: Clock, title: "ساعات العمل", value: settings.hours },
+    { Icon: MapPin, title: t("footer.location"), value: settings.address },
+    { Icon: Mail, title: t("footer.email"), value: settings.email, href: `mailto:${settings.email}` },
+    { Icon: Phone, title: t("footer.support"), value: settings.phones },
+    { Icon: Clock, title: t("footer.hours"), value: settings.hours },
   ];
 
   return (
@@ -131,18 +135,17 @@ export default function Footer() {
           <div className="grid items-center gap-6 lg:grid-cols-[1.1fr_0.9fr]">
             <div>
               <h3 className="text-[21px] font-extrabold text-white sm:text-[24px]">
-                نصائح رقمية تصلك كل أسبوع
+                {t("footer.newsletterTitle")}
               </h3>
               <p className="mt-2 text-[14.5px] leading-7 text-ink-400">
-                رسالة واحدة أسبوعياً تحتوي على أفكار عملية لتحسين موقعك وزيادة
-                مبيعاتك. بلا إزعاج، وإلغاء الاشتراك بنقرة.
+                {t("footer.newsletterDesc")}
               </p>
             </div>
 
             {done ? (
               <div className="flex items-center gap-3 rounded-xl bg-emerald-500/12 px-5 py-4 text-[14px] font-semibold text-emerald-400">
                 <Check className="h-5 w-5" />
-                {subscriptionMessage}
+                {subscriptionMessage || t("footer.subscribed")}
               </div>
             ) : (
               <form
@@ -151,7 +154,7 @@ export default function Footer() {
               >
                 <div className="flex flex-col gap-2.5 sm:flex-row">
                   <label htmlFor="nl-email" className="sr-only">
-                    البريد الإلكتروني
+                    {t("footer.email")}
                   </label>
                   <input
                     id="nl-email"
@@ -161,7 +164,7 @@ export default function Footer() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@company.com"
-                    className="w-full rounded-xl border border-white/12 bg-white/5 px-4 py-3.5 text-right text-[14.5px] text-white outline-none transition-all placeholder:text-ink-500 focus:border-brand-500 focus:bg-white/8"
+                    className={`w-full rounded-xl border border-white/12 bg-white/5 px-4 py-3.5 text-[14.5px] text-white outline-none transition-all placeholder:text-ink-500 focus:border-brand-500 focus:bg-white/8 ${lang === "ar" ? "text-right" : "text-left"}`}
                   />
                   <button
                     type="submit"
@@ -169,7 +172,7 @@ export default function Footer() {
                     className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3.5 text-[14.5px] font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    {submitting ? "جارٍ التسجيل..." : "اشترك"}
+                    {submitting ? (lang === "ar" ? "جارٍ التسجيل..." : "Subscribing...") : t("footer.subscribe")}
                   </button>
                 </div>
                 {subscriptionError && <p role="alert" className="text-[11px] text-red-300">{subscriptionError}</p>}
@@ -182,7 +185,7 @@ export default function Footer() {
           <div>
             <Logo dark />
             <p className="mt-5 max-w-sm text-[14.5px] leading-8 text-ink-400">
-              {settings.description}
+              {lang === "ar" ? settings.description : t("footer.companyDesc")}
             </p>
             <div className="mt-6 flex items-center gap-2.5">
               {socials.map(({ Icon, label }) => (
@@ -199,18 +202,18 @@ export default function Footer() {
           </div>
 
           {columns.map((col) => (
-            <nav key={col.title} aria-label={col.title}>
-              <h4 className="text-[16px] font-extrabold text-white">{col.title}</h4>
+            <nav key={col.title.en} aria-label={pick(col.title.ar, col.title.en)}>
+              <h4 className="text-[16px] font-extrabold text-white">{pick(col.title.ar, col.title.en)}</h4>
               <span className="mt-3 block h-0.5 w-9 rounded-full bg-brand-500" />
               <ul className="mt-5 space-y-3">
                 {col.links.map((l) => (
-                  <li key={l.label}>
+                  <li key={l.label.en}>
                     <Link
                       to={l.to}
                       className="group inline-flex items-center gap-2 text-[14.5px] text-ink-400 transition-colors hover:text-brand-400"
                     >
                       <span className="h-1 w-1 rounded-full bg-brand-500/60 transition-all duration-300 group-hover:w-3.5" />
-                      {l.label}
+                      {pick(l.label.ar, l.label.en)}
                     </Link>
                   </li>
                 ))}
@@ -219,7 +222,7 @@ export default function Footer() {
           ))}
 
           <div>
-            <h4 className="text-[16px] font-extrabold text-white">تواصل معنا</h4>
+            <h4 className="text-[16px] font-extrabold text-white">{t("footer.contactUs")}</h4>
             <span className="mt-3 block h-0.5 w-9 rounded-full bg-brand-500" />
             <ul className="mt-5 space-y-4">
               {contact.map(({ Icon, title, value, href }) => (
@@ -249,15 +252,15 @@ export default function Footer() {
 
         <div className="flex flex-col items-center justify-between gap-4 border-t border-white/10 py-6 sm:flex-row">
           <p className="text-[13.5px] text-ink-400">
-            © {new Date().getFullYear()} جميع الحقوق محفوظة لـ{" "}
+            © {new Date().getFullYear()} {t("footer.allRights")}{" "}
             <span className="font-bold text-white">awexen.com</span>
           </p>
           <div className="flex items-center gap-6 text-[13.5px] text-ink-400">
             <Link to="/privacy" className="link-underline hover:text-brand-400">
-              سياسة الخصوصية
+              {t("footer.privacy")}
             </Link>
             <Link to="/terms" className="link-underline hover:text-brand-400">
-              الشروط والأحكام
+              {t("footer.terms")}
             </Link>
           </div>
         </div>
