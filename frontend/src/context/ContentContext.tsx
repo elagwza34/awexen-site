@@ -38,7 +38,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     settings: { ...localContent.settings, ...readStoredSettings() },
   });
   const [source, setSource] = useState<"supabase" | "local">("local");
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(supabase));
   const [error] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
@@ -48,6 +48,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       setData((prev) => ({ ...prev, settings: nextSettings }));
 
       if (supabase) {
+        setLoading(true);
         void supabase
           .from("site_settings")
           .select("name,brand_ar,tagline,description,address,email,phones,hours")
@@ -72,12 +73,13 @@ export function ContentProvider({ children }: { children: ReactNode }) {
             }));
           });
 
-        void supabase
-          .from("portfolio_projects")
-          .select("id,slug,title_ar,title_en,description_ar,description_en,category_ar,category_en,client_name_ar,client_name_en,image_url,project_url,technologies,completed_at,accent,sort_order")
-          .eq("status", "published")
-          .order("sort_order", { ascending: true })
-          .then(({ data: remoteProjects, error: projectsError }) => {
+        void (async () => {
+          try {
+            const { data: remoteProjects, error: projectsError } = await supabase
+              .from("portfolio_projects")
+              .select("*")
+              .eq("status", "published")
+              .order("sort_order", { ascending: true });
             if (projectsError || !remoteProjects) return;
             setSource("supabase");
             setData((prev) => ({
@@ -98,9 +100,20 @@ export function ContentProvider({ children }: { children: ReactNode }) {
                 clientEn: String(project.client_name_en ?? ""),
                 technologies: String(project.technologies ?? ""),
                 completedAt: String(project.completed_at ?? ""),
+                challenge: String(project.challenge_ar ?? ""),
+                challengeEn: String(project.challenge_en ?? ""),
+                solution: String(project.solution_ar ?? ""),
+                solutionEn: String(project.solution_en ?? ""),
+                results: String(project.results_ar ?? ""),
+                resultsEn: String(project.results_en ?? ""),
               })),
             }));
-          });
+          } finally {
+            setLoading(false);
+          }
+        })();
+      } else {
+        setLoading(false);
       }
     };
 

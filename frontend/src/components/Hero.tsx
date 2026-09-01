@@ -181,7 +181,7 @@ export default function Hero() {
           </Reveal>
 
           <Reveal delay={90}>
-            <h1 className="mt-7 text-balance text-[clamp(2.5rem,7vw,5.25rem)] font-black leading-[1.16] tracking-tight text-white">
+            <h1 className="mt-7 text-balance text-[clamp(2.15rem,7vw,5.25rem)] font-black leading-[1.16] tracking-tight text-white">
               {t("hero.title1")}
               <br />
               <span className="text-gradient-brand">{t("hero.highlight")}</span>
@@ -196,6 +196,13 @@ export default function Hero() {
 
           <Reveal delay={240}>
             <div className="mt-9 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
+              <Link
+                to="/contact"
+                className="group inline-flex w-full items-center justify-center gap-3 rounded-xl bg-brand-500 px-7 py-3.5 text-[15px] font-bold text-white shadow-[var(--shadow-brand)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 sm:w-auto"
+              >
+                {t("nav.startProject")}
+                <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-x-1" />
+              </Link>
               <AnchorLink
                 to="#portfolio"
                 className="group inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/[0.04] px-7 py-3.5 text-[15px] font-semibold text-white backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500 sm:w-auto"
@@ -203,13 +210,6 @@ export default function Hero() {
                 <PlayCircle className="h-[18px] w-[18px]" />
                 {t("hero.ctaPrimary")}
               </AnchorLink>
-              <Link
-                to="/services"
-                className="group inline-flex w-full items-center justify-center gap-3 rounded-xl bg-brand-500 px-7 py-3.5 text-[15px] font-bold text-white shadow-[var(--shadow-brand)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 sm:w-auto"
-              >
-                {t("hero.ctaSecondary")}
-                <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-x-1" />
-              </Link>
             </div>
           </Reveal>
 
@@ -229,7 +229,7 @@ export default function Hero() {
         </div>
 
         {/* العنصر البصري */}
-        <Reveal delay={380} dir="scale" className="mt-16 sm:mt-20">
+        <Reveal delay={380} dir="scale" className="mt-12 sm:mt-20">
           <ProductMockup />
         </Reveal>
 

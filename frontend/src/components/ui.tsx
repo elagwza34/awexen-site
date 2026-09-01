@@ -34,7 +34,7 @@ import { cn } from "../utils/cn";
 /* ============================ Motion helpers ============================ */
 
 /** يراقب دخول العنصر للشاشة مرة واحدة */
-export function useInView<T extends HTMLElement>(threshold = 0.15) {
+export function useInView<T extends HTMLElement>(threshold = 0.08) {
   const ref = useRef<T>(null);
   const [inView, setInView] = useState(false);
 
@@ -48,7 +48,7 @@ export function useInView<T extends HTMLElement>(threshold = 0.15) {
           io.unobserve(e.target);
         }
       },
-      { threshold, rootMargin: "0px 0px -60px 0px" },
+      { threshold, rootMargin: "0px 0px 120px 0px" },
     );
     io.observe(el);
     return () => io.disconnect();
@@ -68,7 +68,7 @@ export function Reveal({
   dir?: "up" | "left" | "right" | "scale";
   className?: string;
 }) {
-  const { ref, inView } = useInView<HTMLDivElement>(0.12);
+  const { ref, inView } = useInView<HTMLDivElement>(0.08);
   return (
     <div
       ref={ref}

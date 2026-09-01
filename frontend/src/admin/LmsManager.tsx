@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { lmsApi } from "../lib/lmsApi";
 import { uploadPublicImage } from "../lib/storage";
+import { useConfirmDialog } from "../components/ConfirmDialog";
 import type { AdminRole } from "./types";
 
 type Paged<T> = { count: number; results: T[] };
@@ -119,6 +120,7 @@ function message(error: unknown) {
 }
 
 export default function LmsManager({ role }: { role: AdminRole }) {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const queryClient = useQueryClient();
   const [courseId, setCourseId] = useState("");
   const [versionId, setVersionId] = useState("");
@@ -330,7 +332,11 @@ export default function LmsManager({ role }: { role: AdminRole }) {
   };
 
   const publishVersion = async () => {
-    if (!version || !window.confirm(`نشر الإصدار ${version.version_number}؟ المحتوى المنشور يصبح غير قابل للتعديل.`)) return;
+    if (!version || !await confirm({
+      title: `نشر الإصدار ${version.version_number}؟`,
+      description: "سيصبح هذا الإصدار هو النسخة المعروضة للطلاب، وسيظل محفوظًا وغير قابل للتعديل مباشرة. يمكن إنشاء مسودة جديدة للتعديلات القادمة.",
+      confirmLabel: "نشر الإصدار",
+    })) return;
     setBusy(true);
     setError(null);
     try {
@@ -370,7 +376,12 @@ export default function LmsManager({ role }: { role: AdminRole }) {
   };
 
   const removeModule = async (module: ModuleRow) => {
-    if (!editable || !window.confirm(`حذف وحدة «${module.title}» وكل دروسها؟`)) return;
+    if (!editable || !await confirm({
+      title: `حذف وحدة «${module.title}»؟`,
+      description: "سيتم حذف الوحدة وكل الدروس الموجودة داخلها من هذه المسودة. لا يمكن التراجع عن هذا الإجراء بعد الحفظ.",
+      confirmLabel: "حذف الوحدة",
+      tone: "danger",
+    })) return;
     setBusy(true);
     try {
       await lmsApi(`admin/modules/${module.id}/`, { method: "DELETE" });
@@ -402,7 +413,12 @@ export default function LmsManager({ role }: { role: AdminRole }) {
   };
 
   const removeLesson = async (lesson: LessonRow) => {
-    if (!editable || !window.confirm(`حذف درس «${lesson.title}»؟`)) return;
+    if (!editable || !await confirm({
+      title: `حذف درس «${lesson.title}»؟`,
+      description: "سيتم حذف الدرس من هذه المسودة نهائيًا. تأكد أن محتواه غير مطلوب قبل المتابعة.",
+      confirmLabel: "حذف الدرس",
+      tone: "danger",
+    })) return;
     setBusy(true);
     try {
       await lmsApi(`admin/lessons/${lesson.id}/`, { method: "DELETE" });
@@ -518,6 +534,7 @@ export default function LmsManager({ role }: { role: AdminRole }) {
       )}
 
       {lessonDraft && <div className="fixed inset-0 z-[80] grid place-items-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm"><form onSubmit={saveLesson} className="my-6 w-full max-w-3xl rounded-2xl border border-white/10 bg-[#101622] p-5 sm:p-6"><div className="flex justify-between"><div><p className="text-[9px] font-bold text-brand-300">Course Version {version?.version_number}</p><h2 className="mt-1 text-[16px] font-black text-white">{lessonDraft.id ? "تعديل الدرس" : "درس جديد"}</h2></div><button type="button" onClick={() => setLessonDraft(null)} className="admin-icon-button"><X className="h-4 w-4" /></button></div><div className="mt-5 grid gap-4 sm:grid-cols-2"><label className="text-[9px] font-bold text-white/40 sm:col-span-2">العنوان<input required value={lessonDraft.title} onChange={(event) => setLessonDraft((current) => current && ({ ...current, title: event.target.value }))} className="admin-input mt-1" /></label><label className="text-[9px] font-bold text-white/40">النوع<select value={lessonDraft.content_type} onChange={(event) => setLessonDraft((current) => current && ({ ...current, content_type: event.target.value as LessonRow["content_type"] }))} className="admin-input mt-1"><option value="text">نص</option><option value="video">فيديو</option><option value="audio">صوت</option><option value="document">مستند</option><option value="presentation">عرض</option><option value="external_url">رابط خارجي</option><option value="live">جلسة مباشرة</option></select></label><label className="text-[9px] font-bold text-white/40">قاعدة الإكمال<select value={lessonDraft.completion_rule} onChange={(event) => setLessonDraft((current) => current && ({ ...current, completion_rule: event.target.value as LessonRow["completion_rule"] }))} className="admin-input mt-1"><option value="manual">يدوي</option><option value="view">عند الفتح</option><option value="video_threshold">نسبة مشاهدة فيديو</option></select></label><label className="text-[9px] font-bold text-white/40 sm:col-span-2">الملخص<textarea rows={2} value={lessonDraft.summary} onChange={(event) => setLessonDraft((current) => current && ({ ...current, summary: event.target.value }))} className="admin-input mt-1 resize-none" /></label><label className="text-[9px] font-bold text-white/40 sm:col-span-2">محتوى الدرس<textarea rows={7} value={lessonDraft.content} onChange={(event) => setLessonDraft((current) => current && ({ ...current, content: event.target.value }))} className="admin-input mt-1 resize-y leading-6" /></label><label className="text-[9px] font-bold text-white/40">رابط الفيديو<input dir="ltr" type="url" value={lessonDraft.video_url} onChange={(event) => setLessonDraft((current) => current && ({ ...current, video_url: event.target.value }))} className="admin-input mt-1 text-left" /></label><label className="text-[9px] font-bold text-white/40">رابط المرفق<input dir="ltr" type="url" value={lessonDraft.resource_url} onChange={(event) => setLessonDraft((current) => current && ({ ...current, resource_url: event.target.value }))} className="admin-input mt-1 text-left" /></label><label className="text-[9px] font-bold text-white/40">المدة بالثواني<input type="number" min={0} value={lessonDraft.duration_seconds} onChange={(event) => setLessonDraft((current) => current && ({ ...current, duration_seconds: Number(event.target.value) }))} className="admin-input mt-1" /></label><label className="text-[9px] font-bold text-white/40">الترتيب<input type="number" min={0} value={lessonDraft.sort_order} onChange={(event) => setLessonDraft((current) => current && ({ ...current, sort_order: Number(event.target.value) }))} className="admin-input mt-1" /></label><label className="flex items-center gap-2 text-[9px] font-bold text-white/50"><input type="checkbox" checked={lessonDraft.is_required} onChange={(event) => setLessonDraft((current) => current && ({ ...current, is_required: event.target.checked }))} /> درس مطلوب</label><label className="text-[9px] font-bold text-white/40">الحالة<select value={lessonDraft.status} onChange={(event) => setLessonDraft((current) => current && ({ ...current, status: event.target.value as LessonRow["status"] }))} className="admin-input mt-1"><option value="published">منشور</option><option value="draft">مسودة</option></select></label></div><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setLessonDraft(null)} className="admin-button-secondary">إلغاء</button><button disabled={busy} className="admin-button-primary"><Save className="h-3.5 w-3.5" /> حفظ الدرس</button></div></form></div>}
+      {confirmDialog}
     </div>
   );
 }

@@ -20,6 +20,11 @@ npx.cmd supabase db push
 
 1. `supabase/migrations/202608280001_lms_identity_security.sql`
 2. `supabase/migrations/202608280002_lms_transactions.sql`
+3. `supabase/migrations/202608280003_lms_learning_role_column.sql`
+4. `supabase/migrations/202608280004_portfolio_and_media.sql`
+5. `supabase/migrations/202608290001_lock_learning_role.sql`
+6. `supabase/migrations/202608290002_portfolio_admin_access.sql`
+7. `supabase/migrations/202609010001_portfolio_case_studies.sql`
 
 ## 3. نشر Edge Functions
 

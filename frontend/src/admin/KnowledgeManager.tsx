@@ -7,7 +7,7 @@ import ResourceManager from "./ResourceManager";
 
 const MAX_PDF_SIZE = 10 * 1024 * 1024;
 
-export default function KnowledgeManager() {
+export default function KnowledgeManager({ userId }: { userId: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [topic, setTopic] = useState("عام");
@@ -126,7 +126,7 @@ export default function KnowledgeManager() {
         </form>
       </section>
 
-      <ResourceManager key={refreshKey} definition={resources.knowledge} />
+      <ResourceManager key={refreshKey} definition={resources.knowledge} draftOwnerId={userId} />
     </div>
   );
 }

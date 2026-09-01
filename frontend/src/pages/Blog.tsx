@@ -5,14 +5,15 @@ import PageHero from "../components/PageHero";
 import { Reveal } from "../components/ui";
 import { fallbackPosts, loadBlogPosts, type BlogPost } from "../lib/cms";
 import { useSeoOverride } from "../components/SeoManager";
+import { useLanguage } from "../context/LanguageContext";
 
 function readingMinutes(content: string) {
   return Math.max(2, Math.ceil(content.split(/\s+/).length / 180));
 }
 
-function formatDate(value: string | null) {
-  if (!value) return "قريبًا";
-  return new Intl.DateTimeFormat("ar-EG", {
+function formatDate(value: string | null, locale = "ar-EG") {
+  if (!value) return locale === "ar-EG" ? "قريبًا" : "Coming soon";
+  return new Intl.DateTimeFormat(locale, {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -21,6 +22,8 @@ function formatDate(value: string | null) {
 
 export default function Blog() {
   const [posts, setPosts] = useState<BlogPost[]>(fallbackPosts);
+  const { lang } = useLanguage();
+  const isArabic = lang === "ar";
 
   useEffect(() => {
     void loadBlogPosts().then(setPosts);
@@ -29,15 +32,16 @@ export default function Blog() {
   return (
     <>
       <PageHero
-        badge="خبرة من التنفيذ"
-        title="مدونة"
-        highlight="Awexen"
-        desc="ملاحظات عملية من شغل المواقع والمتاجر والمنتجات الرقمية؛ بلا حشو أو وعود عامة."
-        crumbs={[{ label: "الرئيسية", to: "/" }, { label: "المدونة" }]}
+        badge={isArabic ? "خبرة من التنفيذ" : "Insights from delivery"}
+        title={isArabic ? "مدونة" : "The"}
+        highlight={isArabic ? "Awexen" : "Awexen Blog"}
+        desc={isArabic ? "ملاحظات عملية من شغل المواقع والمتاجر والمنتجات الرقمية؛ بلا حشو أو وعود عامة." : "Practical notes from building websites, stores, and digital products—with no filler or vague promises."}
+        crumbs={[{ label: isArabic ? "الرئيسية" : "Home", to: "/" }, { label: isArabic ? "المدونة" : "Blog" }]}
       />
 
       <section className="bg-white py-20 sm:py-24">
         <div className="container-x">
+          {!isArabic && <p className="mb-8 rounded-2xl border border-brand-100 bg-brand-50 p-4 text-[13px] leading-7 text-brand-800">Articles are currently published in Arabic. English editions will appear as they are approved from the dashboard.</p>}
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {posts.map((post, index) => (
               <Reveal key={post.id} delay={(index % 3) * 80}>
@@ -46,7 +50,7 @@ export default function Blog() {
                     {post.featured_image ? (
                       <img
                         src={post.featured_image}
-                        alt=""
+                        alt={post.title}
                         loading="lazy"
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                       />
@@ -62,11 +66,11 @@ export default function Blog() {
                     <div className="flex flex-wrap items-center gap-3 text-[12px] text-ink-400">
                       <span className="inline-flex items-center gap-1.5">
                         <CalendarDays className="h-3.5 w-3.5" />
-                        {formatDate(post.published_at)}
+                        {formatDate(post.published_at, isArabic ? "ar-EG" : "en-GB")}
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <Clock3 className="h-3.5 w-3.5" />
-                        {readingMinutes(post.content)} دقائق
+                        {readingMinutes(post.content)} {isArabic ? "دقائق" : "min"}
                       </span>
                     </div>
                     <h2 className="mt-4 text-[20px] font-extrabold leading-8 text-ink-900">
@@ -79,7 +83,7 @@ export default function Blog() {
                       to={`/blog/${post.slug}`}
                       className="mt-6 inline-flex items-center gap-2 text-[14px] font-bold text-brand-600"
                     >
-                      اقرأ المقال
+                      {isArabic ? "اقرأ المقال" : "Read article"}
                       <ArrowLeft className="h-4 w-4" />
                     </Link>
                   </div>
@@ -98,6 +102,8 @@ export function BlogArticle() {
   const [post, setPost] = useState<BlogPost | null>(
     fallbackPosts.find((item) => item.slug === slug) ?? null,
   );
+  const { lang } = useLanguage();
+  const isArabic = lang === "ar";
 
   useEffect(() => {
     void loadBlogPosts().then((items) => {
@@ -114,8 +120,8 @@ export function BlogArticle() {
     return (
       <section className="grid min-h-[65vh] place-items-center bg-ink-950 px-5 text-center text-white">
         <div>
-          <h1 className="text-3xl font-black">المقال غير موجود</h1>
-          <Link to="/blog" className="mt-5 inline-flex text-brand-400">العودة إلى المدونة</Link>
+          <h1 className="text-3xl font-black">{isArabic ? "المقال غير موجود" : "Article not found"}</h1>
+          <Link to="/blog" className="mt-5 inline-flex text-brand-400">{isArabic ? "العودة إلى المدونة" : "Back to blog"}</Link>
         </div>
       </section>
     );
@@ -128,21 +134,22 @@ export function BlogArticle() {
         title={post.title}
         desc={post.excerpt}
         crumbs={[
-          { label: "الرئيسية", to: "/" },
-          { label: "المدونة", to: "/blog" },
+          { label: isArabic ? "الرئيسية" : "Home", to: "/" },
+          { label: isArabic ? "المدونة" : "Blog", to: "/blog" },
           { label: post.title },
         ]}
       >
         <div className="mt-6 flex flex-wrap gap-4 text-[13px] text-ink-300">
           <span className="inline-flex items-center gap-2"><UserRound className="h-4 w-4" />{post.author_name}</span>
-          <span className="inline-flex items-center gap-2"><CalendarDays className="h-4 w-4" />{formatDate(post.published_at)}</span>
-          <span className="inline-flex items-center gap-2"><Clock3 className="h-4 w-4" />{readingMinutes(post.content)} دقائق قراءة</span>
+          <span className="inline-flex items-center gap-2"><CalendarDays className="h-4 w-4" />{formatDate(post.published_at, isArabic ? "ar-EG" : "en-GB")}</span>
+          <span className="inline-flex items-center gap-2"><Clock3 className="h-4 w-4" />{readingMinutes(post.content)} {isArabic ? "دقائق قراءة" : "min read"}</span>
         </div>
       </PageHero>
 
       <article className="bg-white py-16 sm:py-20">
         <div className="container-x">
           <div className="mx-auto max-w-3xl rounded-3xl border border-ink-100 bg-white p-7 shadow-sm sm:p-11">
+            {!isArabic && <p className="mb-7 rounded-2xl border border-brand-100 bg-brand-50 p-4 text-[13px] leading-7 text-brand-800">This article is currently available in Arabic. The English version will appear once approved.</p>}
             {post.content.split(/\n\s*\n/).map((paragraph, index) => (
               <p key={index} className="mb-6 text-[16px] leading-9 text-ink-700 last:mb-0">
                 {paragraph}

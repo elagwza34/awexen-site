@@ -429,10 +429,10 @@
   opacity: 0;
   transform: translateY(26px);
   transition:
-    opacity 0.75s var(--ease-out-expo),
-    transform 0.75s var(--ease-out-expo);
-  will-change: opacity, transform;
+    opacity 0.5s var(--ease-out-expo),
+    transform 0.5s var(--ease-out-expo);
 }
+.reveal:not(.is-visible) { will-change: opacity, transform; }
 .reveal[data-dir="right"] { transform: translateX(32px); }
 .reveal[data-dir="left"]  { transform: translateX(-32px); }
 .reveal[data-dir="scale"] { transform: scale(0.94); }
@@ -499,7 +499,7 @@
 
 .admin-shell {
   font-family: "Cairo", "Tajawal", sans-serif;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .admin-button-primary,
@@ -509,15 +509,15 @@
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  border-radius: 0.5rem;
-  font-size: 10.5px;
+  border-radius: 0.65rem;
+  font-size: 13px;
   font-weight: 700;
   transition: 160ms ease;
 }
 
 .admin-button-primary {
-  min-height: 32px;
-  padding: 0.45rem 0.8rem;
+  min-height: 40px;
+  padding: 0.55rem 0.9rem;
   background: var(--color-brand-500);
   color: #fff;
 }
@@ -526,8 +526,8 @@
 .admin-button-primary:disabled { cursor: not-allowed; opacity: 0.55; }
 
 .admin-button-secondary {
-  min-height: 32px;
-  padding: 0.45rem 0.75rem;
+  min-height: 40px;
+  padding: 0.55rem 0.85rem;
   border: 1px solid rgb(255 255 255 / 0.09);
   background: rgb(255 255 255 / 0.035);
   color: rgb(255 255 255 / 0.68);
@@ -539,8 +539,8 @@
 }
 
 .admin-icon-button {
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   border: 1px solid rgb(255 255 255 / 0.08);
   background: rgb(255 255 255 / 0.025);
   color: rgb(255 255 255 / 0.55);
@@ -557,9 +557,10 @@
   border: 1px solid rgb(255 255 255 / 0.1);
   border-radius: 0.5rem;
   background: rgb(8 11 18 / 0.72);
-  padding: 0.625rem 0.75rem;
+  min-height: 42px;
+  padding: 0.7rem 0.8rem;
   color: #fff;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   outline: none;
   transition: border-color 160ms ease, background-color 160ms ease;
 }
@@ -616,6 +617,10 @@
 .dashboard-light.admin-shell .bg-brand-500.text-white,
 .dashboard-light.admin-shell .bg-emerald-500.text-white,
 .dashboard-light.admin-shell .bg-red-500.text-white { color: #fff !important; }
+.dashboard-light.admin-shell .confirm-dialog { background: #0b1020 !important; color: #fff !important; }
+.dashboard-light.admin-shell .confirm-dialog .text-white { color: #fff !important; }
+.dashboard-light.admin-shell .confirm-dialog [class*="text-white/"] { color: rgb(255 255 255 / 0.65) !important; }
+.dashboard-light.admin-shell .confirm-dialog [class*="border-white"] { border-color: rgb(255 255 255 / 0.12) !important; }
 
 .dashboard-light.admin-shell .admin-button-secondary,
 .dashboard-light.admin-shell .admin-icon-button {
@@ -704,6 +709,28 @@
   border-color: rgb(255 255 255 / 0.12) !important;
   background-color: #0b111c !important;
   color: #f8fafc !important;
+}
+
+/* Keep operational dashboards readable even where older utility sizes remain. */
+.admin-shell :is([class*="text-[8px]"], [class*="text-[9px]"], [class*="text-[9.5px]"], [class*="text-[10px]"], [class*="text-[10.5px]"]),
+.portal-light :is([class*="text-[8px]"], [class*="text-[9px]"], [class*="text-[9.5px]"], [class*="text-[10px]"], [class*="text-[10.5px]"]) {
+  font-size: 0.75rem !important;
+}
+
+.admin-shell :is([class*="text-[11px]"], [class*="text-[11.5px]"], [class*="text-[12px]"]),
+.portal-light :is([class*="text-[11px]"], [class*="text-[11.5px]"], [class*="text-[12px]"]) {
+  font-size: 0.8125rem !important;
+}
+
+@media (max-width: 639px) {
+  body:has(input:focus, textarea:focus, select:focus) #ask-awexen-launcher,
+  body:has(input:focus, textarea:focus, select:focus) nav[aria-label="إجراءات سريعة"],
+  body:has(input:focus, textarea:focus, select:focus) nav[aria-label="Quick actions"] {
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  footer { padding-bottom: 4.5rem; }
 }
 
 /* ============================================================

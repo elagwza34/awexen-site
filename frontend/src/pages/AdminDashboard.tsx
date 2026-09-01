@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import {
   BookOpenText,
   BriefcaseBusiness,
@@ -16,6 +17,7 @@ import {
   Mail,
   MessageCircleQuestion,
   Send,
+  Search,
   Settings,
   Sparkles,
   UserCog,
@@ -34,6 +36,7 @@ import type { AdminRole, SectionKey } from "../admin/types";
 import { lmsApi } from "../lib/lmsApi";
 import { supabase } from "../lib/supabase";
 import { loadDashboardAccess } from "../lib/roleRouting";
+import { clearAdminSessionDrafts, lockAdminSession } from "../lib/adminSession";
 import { DashboardThemeToggle, useDashboardTheme } from "../context/DashboardThemeContext";
 
 const allRoles: AdminRole[] = ["owner", "admin", "editor", "hr", "support"];
@@ -79,12 +82,13 @@ const inquiryStatuses = [
   { label: "يحتاج مراجعة", value: "needs_review" }, { label: "مغلق", value: "closed" },
 ];
 
-export default function AdminDashboard() {
+export default function AdminDashboard({ userId }: { userId: string }) {
   const { theme } = useDashboardTheme();
-  const [active, setActive] = useState<SectionKey>("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
   const [role, setRole] = useState<AdminRole>("admin");
   const [email, setEmail] = useState("");
   const [sessionReady, setSessionReady] = useState(false);
+  const [navSearch, setNavSearch] = useState("");
 
   useEffect(() => {
     if (!supabase) {
@@ -114,12 +118,26 @@ export default function AdminDashboard() {
   };
 
   const visibleItems = useMemo(() => navItems.filter((item) => item.roles.includes(role)), [role]);
+  const filteredItems = useMemo(() => {
+    const query = navSearch.trim().toLocaleLowerCase("ar");
+    return query ? visibleItems.filter((item) => `${item.label} ${item.group}`.toLocaleLowerCase("ar").includes(query)) : visibleItems;
+  }, [navSearch, visibleItems]);
   const visibleKeys = useMemo(() => new Set(visibleItems.map((item) => item.key)), [visibleItems]);
-  const safeGoTo = (section: SectionKey) => setActive(visibleKeys.has(section) ? section : "overview");
+  const requestedSection = searchParams.get("section") as SectionKey | null;
+  const active: SectionKey = requestedSection && visibleKeys.has(requestedSection) ? requestedSection : "overview";
+  const safeGoTo = (section: SectionKey) => {
+    const nextSection = visibleKeys.has(section) ? section : "overview";
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextSection === "overview") nextParams.delete("section");
+    else nextParams.set("section", nextSection);
+    setSearchParams(nextParams);
+  };
   const activeLabel = navItems.find((item) => item.key === active)?.label ?? "لوحة التحكم";
 
   const logout = async () => {
-    await supabase?.auth.signOut();
+    lockAdminSession();
+    clearAdminSessionDrafts();
+    await supabase?.auth.signOut({ scope: "local" });
   };
 
   return (
@@ -142,9 +160,13 @@ export default function AdminDashboard() {
 
       <div className="grid w-full gap-4 px-3 py-4 sm:px-6 lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-5">
         <aside className="h-fit rounded-xl border border-white/[0.07] bg-white/[0.018] p-2 lg:sticky lg:top-[72px]">
+          <label className="relative mb-3 hidden lg:block">
+            <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+            <input value={navSearch} onChange={(event) => setNavSearch(event.target.value)} placeholder="ابحث في الأقسام" aria-label="البحث في أقسام لوحة التحكم" className="admin-input pr-9" />
+          </label>
           <nav className="flex gap-1 overflow-x-auto lg:block lg:space-y-4" aria-label="أقسام لوحة التحكم">
             {groups.map((group) => {
-              const items = visibleItems.filter((item) => item.group === group);
+              const items = filteredItems.filter((item) => item.group === group);
               if (!items.length) return null;
               return (
                 <div key={group} className="shrink-0 lg:shrink lg:space-y-1">
@@ -156,7 +178,7 @@ export default function AdminDashboard() {
                         <button
                           key={key}
                           type="button"
-                          onClick={() => setActive(key)}
+                          onClick={() => safeGoTo(key)}
                           className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[10.5px] font-bold transition lg:w-full ${active === key ? "bg-brand-500 text-white shadow-lg shadow-brand-500/10" : "text-white/50 hover:bg-white/5 hover:text-white"}`}
                           aria-label={notificationCount > 0 ? `${label}: ${notificationCount} إشعار جديد` : label}
                         >
@@ -179,15 +201,15 @@ export default function AdminDashboard() {
 
         <main className="min-w-0 rounded-xl border border-white/[0.07] bg-[#0d111b] p-4 sm:p-5">
           {active === "overview" && <OverviewPanel role={role} goTo={safeGoTo} />}
-          {active === "portfolio" && <ResourceManager definition={resources.portfolio} />}
-          {active === "pages" && <ResourceManager definition={resources.pages} />}
-          {active === "blog" && <ResourceManager definition={resources.blog} />}
-          {active === "jobs" && <ResourceManager definition={resources.jobs} />}
-          {active === "courses" && <ResourceManager definition={resources.courses} />}
+          {active === "portfolio" && <ResourceManager definition={resources.portfolio} draftOwnerId={userId} />}
+          {active === "pages" && <ResourceManager definition={resources.pages} draftOwnerId={userId} />}
+          {active === "blog" && <ResourceManager definition={resources.blog} draftOwnerId={userId} />}
+          {active === "jobs" && <ResourceManager definition={resources.jobs} draftOwnerId={userId} />}
+          {active === "courses" && <ResourceManager definition={resources.courses} draftOwnerId={userId} />}
           {active === "lms" && <LmsManager role={role} />}
           {active === "approvals" && <LmsApprovals role={role} view="courses" />}
-          {active === "clients" && <ResourceManager definition={resources.clients} />}
-          {active === "knowledge" && <KnowledgeManager />}
+          {active === "clients" && <ResourceManager definition={resources.clients} draftOwnerId={userId} />}
+          {active === "knowledge" && <KnowledgeManager userId={userId} />}
 
           {active === "messages" && (
             <InboxManager table="contact_messages" title="رسائل التواصل" description="طلبات الخدمات وعروض الأسعار الواردة من صفحة التواصل." fields={[

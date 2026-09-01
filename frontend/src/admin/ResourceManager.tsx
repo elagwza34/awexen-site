@@ -1,14 +1,59 @@
-import { useCallback, useEffect, useState } from "react";
-import { Check, ExternalLink, FileDown, ImagePlus, Loader2, Pencil, Plus, RefreshCw, Save, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useId, useState } from "react";
+import {
+  Check,
+  Clock3,
+  ExternalLink,
+  FileDown,
+  ImagePlus,
+  Loader2,
+  Pencil,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Save,
+  Trash2,
+  X,
+} from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { uploadPublicImage } from "../lib/storage";
+import { ADMIN_DRAFT_PREFIX } from "../lib/adminSession";
+import { useConfirmDialog } from "../components/ConfirmDialog";
 import type { AdminRow, FieldDefinition, ResourceDefinition } from "./types";
+
+const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+
+type StoredResourceDraft = {
+  version: 1;
+  userId: string;
+  table: string;
+  editingId: string | number | null;
+  form: AdminRow;
+  savedAt: number;
+};
 
 function normalizeInputValue(field: FieldDefinition, value: unknown) {
   if (field.type === "checkbox") return Boolean(value);
   if (value === null || value === undefined) return "";
   if (field.type === "datetime-local" && typeof value === "string") return value.slice(0, 16);
   return value;
+}
+
+function normalizeRow(definition: ResourceDefinition, row: AdminRow) {
+  return Object.fromEntries(
+    definition.fields.map((field) => [
+      field.key,
+      normalizeInputValue(field, row[field.key] ?? definition.defaults[field.key]),
+    ]),
+  );
+}
+
+function normalizeSlug(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-+/, "");
 }
 
 function buildPayload(fields: FieldDefinition[], form: AdminRow) {
@@ -21,9 +66,76 @@ function buildPayload(fields: FieldDefinition[], form: AdminRow) {
       }
       if (field.type === "checkbox") return [field.key, Boolean(value)];
       if (field.nullable && (value === "" || value === undefined)) return [field.key, null];
-      return [field.key, value ?? ""];
+      const normalizedValue = typeof value === "string" && field.type !== "textarea"
+        ? value.trim()
+        : value;
+      return [field.key, normalizedValue ?? ""];
     }),
   );
+}
+
+function getDraftStorage() {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function draftKey(userId: string, table: string) {
+  return `${ADMIN_DRAFT_PREFIX}${userId}:${table}`;
+}
+
+function clearStoredDraft(userId: string, table: string) {
+  getDraftStorage()?.removeItem(draftKey(userId, table));
+}
+
+function readStoredDraft(userId: string, definition: ResourceDefinition): StoredResourceDraft | null {
+  const storage = getDraftStorage();
+  if (!storage) return null;
+
+  try {
+    const draft = JSON.parse(storage.getItem(draftKey(userId, definition.table)) ?? "null") as StoredResourceDraft | null;
+    const valid = Boolean(
+      draft
+      && draft.version === 1
+      && draft.userId === userId
+      && draft.table === definition.table
+      && draft.form
+      && typeof draft.form === "object"
+      && Number.isFinite(draft.savedAt)
+      && Date.now() - draft.savedAt < DRAFT_TTL_MS,
+    );
+    if (!valid) {
+      storage.removeItem(draftKey(userId, definition.table));
+      return null;
+    }
+    return draft;
+  } catch {
+    storage.removeItem(draftKey(userId, definition.table));
+    return null;
+  }
+}
+
+function writeStoredDraft(userId: string, definition: ResourceDefinition, editingId: string | number | null, form: AdminRow) {
+  const storage = getDraftStorage();
+  if (!storage) return null;
+  const savedAt = Date.now();
+  const draft: StoredResourceDraft = {
+    version: 1,
+    userId,
+    table: definition.table,
+    editingId,
+    form: normalizeRow(definition, form),
+    savedAt,
+  };
+  storage.setItem(draftKey(userId, definition.table), JSON.stringify(draft));
+  return savedAt;
+}
+
+function fingerprint(value: AdminRow) {
+  return JSON.stringify(value);
 }
 
 function Field({ field, value, onChange, onImageUpload, uploading }: {
@@ -33,53 +145,117 @@ function Field({ field, value, onChange, onImageUpload, uploading }: {
   onImageUpload?: (file: File) => void;
   uploading?: boolean;
 }) {
-  const base = "mt-1.5 w-full rounded-lg border border-white/10 bg-ink-950/70 px-3 py-2.5 text-[12px] text-white outline-none transition placeholder:text-white/25 focus:border-brand-500";
+  const inputId = useId();
+  const [dragging, setDragging] = useState(false);
+  const base = "mt-1.5 w-full rounded-lg border border-white/10 bg-ink-950/70 px-3 py-2.5 text-[12px] text-white outline-none transition placeholder:text-white/25 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10";
 
   if (field.type === "textarea") {
-    return <textarea required={field.required} rows={field.key === "body" || field.key === "content" ? 9 : 4} value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} placeholder={field.placeholder} className={`${base} resize-y leading-6`} />;
+    return (
+      <textarea
+        name={field.key}
+        aria-label={field.label}
+        required={field.required}
+        rows={field.key === "body" || field.key === "content" ? 9 : 4}
+        value={String(value ?? "")}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={field.placeholder}
+        className={`${base} resize-y leading-6`}
+      />
+    );
   }
 
   if (field.type === "select") {
     return (
-      <select required={field.required} value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} className={base}>
+      <select name={field.key} aria-label={field.label} required={field.required} value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} className={base}>
         {field.options?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     );
   }
 
   if (field.type === "checkbox") {
-    return <input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} className="mt-2 h-4 w-4 accent-orange-500" />;
+    return <input name={field.key} aria-label={field.label} type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} className="mt-2 h-4 w-4 accent-orange-500" />;
   }
 
   if (field.type === "image") {
+    const selectFile = (file: File | undefined) => {
+      if (file && !uploading) onImageUpload?.(file);
+    };
+
     return (
-      <div className="mt-1.5 space-y-2">
-        {Boolean(value) && <img src={String(value)} alt="معاينة الصورة" className="aspect-video w-full rounded-xl border border-white/10 object-cover" />}
-        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-brand-500/30 bg-brand-500/[0.04] px-4 py-3 text-[10px] font-black text-brand-500 transition hover:bg-brand-500/10">
-          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-          {uploading ? "جارٍ رفع الصورة..." : "رفع صورة من الجهاز"}
-          <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={uploading} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) onImageUpload?.(file); event.target.value = ""; }} />
+      <div className="mt-1.5 space-y-3">
+        {Boolean(value) && (
+          <div className="relative overflow-hidden rounded-xl border border-white/10 bg-ink-950/70">
+            <img src={String(value)} alt="معاينة صورة المشروع" className="aspect-video w-full object-cover" />
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              disabled={uploading}
+              className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-lg bg-red-600/90 px-3 py-2 text-[9px] font-black text-white shadow-lg backdrop-blur transition hover:bg-red-500 disabled:opacity-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> إزالة الصورة
+            </button>
+          </div>
+        )}
+        <label
+          htmlFor={inputId}
+          onDragEnter={(event) => { event.preventDefault(); if (!uploading) setDragging(true); }}
+          onDragOver={(event) => { event.preventDefault(); if (!uploading) setDragging(true); }}
+          onDragLeave={(event) => { event.preventDefault(); setDragging(false); }}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragging(false);
+            selectFile(event.dataTransfer.files?.[0]);
+          }}
+          className={`flex min-h-28 items-center justify-center rounded-xl border border-dashed px-4 py-5 text-center transition ${uploading ? "cursor-wait border-brand-500/25 bg-brand-500/[0.03] opacity-70" : dragging ? "cursor-copy border-brand-400 bg-brand-500/15" : "cursor-pointer border-brand-500/35 bg-brand-500/[0.05] hover:border-brand-400 hover:bg-brand-500/10"}`}
+          aria-busy={uploading}
+        >
+          <span className="flex flex-col items-center gap-2">
+            {uploading ? <Loader2 className="h-6 w-6 animate-spin text-brand-400" /> : <ImagePlus className="h-6 w-6 text-brand-400" />}
+            <span className="text-[11px] font-black text-white/80">{uploading ? "جارٍ رفع الصورة من الكمبيوتر..." : value ? "اضغط أو اسحب صورة جديدة لاستبدال الحالية" : "اضغط لاختيار صورة من الكمبيوتر أو اسحبها هنا"}</span>
+            <span className="text-[9px] font-medium text-white/35">JPG أو PNG أو WebP أو AVIF · بحد أقصى 8MB</span>
+          </span>
+          <input
+            id={inputId}
+            aria-label={field.label}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            disabled={uploading}
+            className="sr-only"
+            onChange={(event) => {
+              selectFile(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
         </label>
-        <input required={field.required} type="url" dir="ltr" value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} placeholder="أو الصق رابط الصورة" className={`${base} text-left`} />
+        <details className="rounded-lg border border-white/8 bg-white/[0.02] px-3 py-2">
+          <summary className="cursor-pointer text-[9.5px] font-bold text-white/40">استخدام رابط صورة بدل الرفع</summary>
+          <input name={field.key} aria-label={`${field.label} كرابط`} type="url" dir="ltr" value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} placeholder="https://example.com/project.webp" className={`${base} text-left`} />
+        </details>
       </div>
     );
   }
 
+  const isSlug = field.key === "slug";
   return (
     <input
+      name={field.key}
+      aria-label={field.label}
       required={field.required}
       type={field.type ?? "text"}
       min={field.min}
+      pattern={isSlug ? "[a-z0-9]+(?:-[a-z0-9]+)*" : undefined}
+      title={isSlug ? "استخدم حروفًا إنجليزية صغيرة وأرقامًا وشرطة فقط" : undefined}
       value={String(value ?? "")}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={(event) => onChange(isSlug ? normalizeSlug(event.target.value) : event.target.value)}
       placeholder={field.placeholder}
       className={base}
-      dir={field.type === "url" ? "ltr" : undefined}
+      dir={field.type === "url" || isSlug ? "ltr" : undefined}
     />
   );
 }
 
-export default function ResourceManager({ definition }: { definition: ResourceDefinition }) {
+export default function ResourceManager({ definition, draftOwnerId }: { definition: ResourceDefinition; draftOwnerId: string }) {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const [rows, setRows] = useState<AdminRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +265,16 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
   const [saved, setSaved] = useState(false);
   const [view, setView] = useState<"content" | "draft">("content");
   const [uploadingField, setUploadingField] = useState("");
-  const [form, setForm] = useState<AdminRow>(definition.defaults);
+  const [form, setForm] = useState<AdminRow>({ ...definition.defaults });
+  const [initialForm, setInitialForm] = useState<AdminRow>({ ...definition.defaults });
+  const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
+  const [restoredDraft, setRestoredDraft] = useState(false);
+
+  const statusField = definition.statusKey
+    ? definition.fields.find((field) => field.key === definition.statusKey)
+    : undefined;
+  const supportsDrafts = Boolean(statusField?.options?.some((option) => option.value === "draft"));
+  const dirty = editorOpen && fingerprint(form) !== fingerprint(initialForm);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,7 +293,7 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
 
     if (loadError) {
       setRows([]);
-      setError(`تعذر تحميل البيانات. شغّل ملف awexen_cms_schema.sql ثم حدّث الصفحة. (${loadError.message})`);
+      setError(`تعذر تحميل ${definition.title}. تأكد من تطبيق أحدث Supabase migrations ثم حدّث الصفحة. (${loadError.message})`);
     } else {
       setRows((data ?? []) as AdminRow[]);
     }
@@ -118,50 +303,151 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
   useEffect(() => {
     setEditorOpen(false);
     setEditingId(null);
-    setForm(definition.defaults);
-    void load();
-  }, [definition, load]);
+    setView("content");
+    setRestoredDraft(false);
+    setDraftSavedAt(null);
 
-  const openNew = () => {
+    const storedDraft = readStoredDraft(draftOwnerId, definition);
+    if (storedDraft) {
+      const restoredForm = normalizeRow(definition, storedDraft.form);
+      setEditingId(storedDraft.editingId);
+      setForm(restoredForm);
+      setInitialForm({ ...definition.defaults });
+      setEditorOpen(true);
+      setRestoredDraft(true);
+      setDraftSavedAt(storedDraft.savedAt);
+    } else {
+      setForm({ ...definition.defaults });
+      setInitialForm({ ...definition.defaults });
+    }
+
+    void load();
+  }, [definition, draftOwnerId, load]);
+
+  useEffect(() => {
+    if (!editorOpen || !dirty) return;
+    const savedAt = writeStoredDraft(draftOwnerId, definition, editingId, form);
+    if (savedAt) setDraftSavedAt(savedAt);
+  }, [definition, dirty, draftOwnerId, editingId, editorOpen, form]);
+
+  const confirmReplacingEditor = async () => (
+    !editorOpen
+    || !dirty
+    || confirm({
+      title: "تغييرات غير محفوظة",
+      description: "سيتم تجاهل التغييرات الحالية وفتح نموذج آخر. توجد نسخة مؤقتة محفوظة داخل هذا التبويب حتى تؤكد الاستبدال.",
+      confirmLabel: "تجاهل وفتح النموذج",
+      tone: "danger",
+    })
+  );
+
+  const openNew = async () => {
+    if (!await confirmReplacingEditor()) return;
+    clearStoredDraft(draftOwnerId, definition.table);
+    const nextForm = { ...definition.defaults };
     setEditingId(null);
-    setForm({ ...definition.defaults });
+    setForm(nextForm);
+    setInitialForm(nextForm);
+    setRestoredDraft(false);
+    setDraftSavedAt(null);
+    setError(null);
     setEditorOpen(true);
   };
 
-  const openEdit = (row: AdminRow) => {
+  const openEdit = async (row: AdminRow) => {
+    if (!await confirmReplacingEditor()) return;
+    clearStoredDraft(draftOwnerId, definition.table);
+    const nextForm = normalizeRow(definition, row);
     setEditingId(row.id ?? null);
-    setForm(Object.fromEntries(definition.fields.map((field) => [field.key, normalizeInputValue(field, row[field.key])])));
+    setForm(nextForm);
+    setInitialForm(nextForm);
+    setRestoredDraft(false);
+    setDraftSavedAt(null);
+    setError(null);
     setEditorOpen(true);
+  };
+
+  const closeEditor = async () => {
+    if (dirty && !await confirm({
+      title: "إغلاق المحرر؟",
+      description: "سيتم حذف المسودة المؤقتة غير المحفوظة والعودة إلى آخر نسخة محفوظة.",
+      confirmLabel: "إغلاق وتجاهل التغييرات",
+      tone: "danger",
+    })) return;
+    clearStoredDraft(draftOwnerId, definition.table);
+    setEditorOpen(false);
+    setEditingId(null);
+    setRestoredDraft(false);
+    setDraftSavedAt(null);
+    setError(null);
+  };
+
+  const discardRestoredDraft = async () => {
+    if (!await confirm({
+      title: "استعادة النسخة الأصلية؟",
+      description: "ستُحذف المسودة المؤقتة من هذا التبويب ويُستعاد آخر محتوى محفوظ في قاعدة البيانات.",
+      confirmLabel: "استعادة النسخة الأصلية",
+      tone: "danger",
+    })) return;
+    clearStoredDraft(draftOwnerId, definition.table);
+    const existingRow = editingId === null ? null : rows.find((row) => row.id === editingId);
+    const nextForm = existingRow ? normalizeRow(definition, existingRow) : { ...definition.defaults };
+    setForm(nextForm);
+    setInitialForm(nextForm);
+    setRestoredDraft(false);
+    setDraftSavedAt(null);
   };
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!supabase) return;
+    if (!supabase || saving || uploadingField) return;
+    const missingRequiredField = definition.fields.find((field) => {
+      if (!field.required) return false;
+      const value = form[field.key];
+      return value === null
+        || value === undefined
+        || (typeof value === "string" && !value.trim());
+    });
+    if (missingRequiredField) {
+      setError(`أكمل الحقل المطلوب: ${missingRequiredField.label}.`);
+      return;
+    }
     setSaving(true);
     setError(null);
     const payload = buildPayload(definition.fields, form);
     const result = editingId
-      ? await supabase.from(definition.table).update(payload).eq("id", editingId)
-      : await supabase.from(definition.table).insert(payload);
+      ? await supabase.from(definition.table).update(payload).eq("id", editingId).select("id").maybeSingle()
+      : await supabase.from(definition.table).insert(payload).select("id").single();
 
     if (result.error) {
       setError(result.error.message);
+    } else if (!result.data) {
+      setError("لم يتم حفظ التغييرات. ربما تغير العنصر أو لم تعد تملك صلاحية تعديله.");
     } else {
+      clearStoredDraft(draftOwnerId, definition.table);
       setEditorOpen(false);
+      setEditingId(null);
+      setRestoredDraft(false);
+      setDraftSavedAt(null);
       setSaved(true);
-      setTimeout(() => setSaved(false), 1800);
+      window.setTimeout(() => setSaved(false), 1800);
+      if (supportsDrafts && definition.statusKey) {
+        setView(["draft", "archived"].includes(String(payload[definition.statusKey] ?? "")) ? "draft" : "content");
+      }
       await load();
       window.dispatchEvent(new Event("awexen-content-updated"));
     }
     setSaving(false);
   };
 
-  const remove = async (row: AdminRow) => {
-    if (!supabase || !row.id || !window.confirm(`نقل ${definition.singular} «${String(row[definition.titleKey] ?? "") }» إلى Draft؟ سيظل المحتوى محفوظًا ويمكن استرجاعه.`)) return;
-    if (!definition.statusKey) {
-      setError("هذا النوع لا يدعم المسودات، لذلك لم يتم حذف أي بيانات.");
-      return;
-    }
+  const moveToDraft = async (row: AdminRow) => {
+    if (!supabase || !row.id || !definition.statusKey || !supportsDrafts) return;
+    if (!await confirm({
+      title: `نقل ${definition.singular} إلى المسودات؟`,
+      description: `سيختفي «${String(row[definition.titleKey] ?? "") }» من الموقع العام، لكن سيظل المحتوى محفوظًا بالكامل ويمكن تعديله أو نشره مرة أخرى.`,
+      confirmLabel: "نقل إلى المسودات",
+      tone: "danger",
+    })) return;
     const { error: moveError } = await supabase.from(definition.table).update({ [definition.statusKey]: "draft" }).eq("id", row.id);
     if (moveError) setError(moveError.message);
     else {
@@ -172,7 +458,7 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
   };
 
   const uploadImage = async (field: FieldDefinition, file: File) => {
-    if (!field.storageBucket) return;
+    if (!field.storageBucket || uploadingField) return;
     setUploadingField(field.key);
     setError(null);
     try {
@@ -192,7 +478,7 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
     else window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
-  const visibleRows = definition.statusKey
+  const visibleRows = supportsDrafts && definition.statusKey
     ? rows.filter((row) => view === "draft"
       ? ["draft", "archived"].includes(String(row[definition.statusKey!] ?? ""))
       : !["draft", "archived"].includes(String(row[definition.statusKey!] ?? "")))
@@ -206,34 +492,58 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
           <p className="mt-1 max-w-2xl text-[11.5px] leading-5 text-white/45">{definition.description}</p>
         </div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => void load()} className="admin-button-secondary"><RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />تحديث</button>
-          <button type="button" onClick={openNew} className="admin-button-primary"><Plus className="h-3.5 w-3.5" />إضافة {definition.singular}</button>
+          <button type="button" onClick={() => void load()} disabled={loading} className="admin-button-secondary"><RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />تحديث</button>
+          <button type="button" onClick={() => void openNew()} className="admin-button-primary"><Plus className="h-3.5 w-3.5" />إضافة {definition.singular}</button>
         </div>
       </div>
 
-      {definition.statusKey && <div className="flex w-fit rounded-xl border border-white/10 bg-white/[0.025] p-1"><button type="button" onClick={() => setView("content")} className={`rounded-lg px-4 py-2 text-[10px] font-black transition ${view === "content" ? "bg-brand-500 text-white" : "text-white/45"}`}>المحتوى</button><button type="button" onClick={() => setView("draft")} className={`rounded-lg px-4 py-2 text-[10px] font-black transition ${view === "draft" ? "bg-brand-500 text-white" : "text-white/45"}`}>Draft · المسودات</button></div>}
+      {supportsDrafts && <div className="flex w-fit rounded-xl border border-white/10 bg-white/[0.025] p-1"><button type="button" onClick={() => setView("content")} className={`rounded-lg px-4 py-2 text-[10px] font-black transition ${view === "content" ? "bg-brand-500 text-white" : "text-white/45"}`}>المحتوى</button><button type="button" onClick={() => setView("draft")} className={`rounded-lg px-4 py-2 text-[10px] font-black transition ${view === "draft" ? "bg-brand-500 text-white" : "text-white/45"}`}>Draft · المسودات</button></div>}
 
-      {error && <div className="rounded-xl border border-red-500/20 bg-red-500/8 p-3 text-[11.5px] leading-5 text-red-200">{error}</div>}
+      {error && <div role="alert" className="rounded-xl border border-red-500/20 bg-red-500/8 p-3 text-[11.5px] leading-5 text-red-200">{error}</div>}
 
       {editorOpen && (
         <form onSubmit={save} className="rounded-xl border border-brand-500/25 bg-brand-500/[0.04] p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-[13px] font-bold text-white">{editingId ? `تعديل ${definition.singular}` : `إضافة ${definition.singular}`}</h3>
-            <button type="button" onClick={() => setEditorOpen(false)} className="grid h-7 w-7 place-items-center rounded-lg text-white/50 hover:bg-white/5 hover:text-white"><X className="h-4 w-4" /></button>
+          <div className="mb-4 flex flex-col gap-3 border-b border-white/8 pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-[13px] font-bold text-white">{editingId ? `تعديل ${definition.singular}` : `إضافة ${definition.singular}`}</h3>
+              {dirty && draftSavedAt && (
+                <p aria-live="polite" className="mt-1 flex items-center gap-1.5 text-[9.5px] text-emerald-300/80">
+                  <Clock3 className="h-3 w-3" /> محفوظة تلقائيًا داخل هذا التبويب · {new Date(draftSavedAt).toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" })}
+                </p>
+              )}
+            </div>
+            <button type="button" onClick={() => void closeEditor()} className="grid h-10 w-10 place-items-center self-end rounded-lg text-white/50 hover:bg-white/5 hover:text-white sm:self-auto" aria-label="إغلاق المحرر"><X className="h-4 w-4" /></button>
           </div>
+
+          {restoredDraft && (
+            <div className="mb-4 flex flex-col gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.07] px-4 py-3 text-[10.5px] leading-5 text-emerald-100 sm:flex-row sm:items-center sm:justify-between">
+              <span>تم استعادة البيانات التي كتبتها قبل إعادة تحميل الصفحة.</span>
+              <button type="button" onClick={() => void discardRestoredDraft()} className="inline-flex shrink-0 items-center gap-1.5 font-black text-emerald-300 hover:text-white"><RotateCcw className="h-3.5 w-3.5" />استعادة النسخة الأصلية</button>
+            </div>
+          )}
+
           <div className="grid gap-3 md:grid-cols-2">
             {definition.fields.map((field) => (
-              <label key={field.key} className={`text-[11px] font-bold text-white/65 ${field.wide ? "md:col-span-2" : ""}`}>
-                {field.label}
-                <Field field={field} value={form[field.key]} onChange={(value) => setForm((current) => ({ ...current, [field.key]: value }))} onImageUpload={(file) => void uploadImage(field, file)} uploading={uploadingField === field.key} />
-              </label>
+              <div key={field.key} className={`text-[11px] font-bold text-white/65 ${field.wide ? "md:col-span-2" : ""}`}>
+                <span>{field.label}{field.required && <span className="mr-1 text-brand-400" aria-hidden="true">*</span>}</span>
+                <Field
+                  field={field}
+                  value={form[field.key]}
+                  onChange={(value) => {
+                    setError(null);
+                    setForm((current) => ({ ...current, [field.key]: value }));
+                  }}
+                  onImageUpload={(file) => void uploadImage(field, file)}
+                  uploading={uploadingField === field.key}
+                />
+              </div>
             ))}
           </div>
-          <div className="mt-4 flex justify-end gap-2 border-t border-white/8 pt-4">
-            <button type="button" onClick={() => setEditorOpen(false)} className="admin-button-secondary">إلغاء</button>
-            <button disabled={saving} className="admin-button-primary">
-              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              {saving ? "جارٍ الحفظ" : "حفظ"}
+          <div className="mt-4 flex flex-col-reverse gap-2 border-t border-white/8 pt-4 sm:flex-row sm:justify-end">
+            <button type="button" onClick={() => void closeEditor()} disabled={saving || Boolean(uploadingField)} className="admin-button-secondary justify-center">إلغاء</button>
+            <button type="submit" disabled={saving || Boolean(uploadingField) || !dirty} className="admin-button-primary justify-center">
+              {saving || uploadingField ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {uploadingField ? "جارٍ رفع الصورة" : saving ? "جارٍ الحفظ" : editingId ? "حفظ التعديلات" : "إنشاء المسودة"}
             </button>
           </div>
         </form>
@@ -247,8 +557,8 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
         <div className="overflow-hidden rounded-xl border border-white/8">
           {visibleRows.map((row) => {
             const status = definition.statusKey ? String(row[definition.statusKey] ?? "") : "";
-            const slug = typeof row.slug === "string" ? row.slug : null;
-            const publicPath = definition.table === "portfolio_projects" ? "/portfolio" : definition.table === "blog_posts" ? `/blog/${slug}` : definition.table === "jobs" ? `/jobs/${slug}` : definition.table === "courses" ? `/courses/${slug}` : definition.table === "content_pages" ? `/pages/${slug}` : null;
+            const slug = typeof row.slug === "string" && row.slug ? row.slug : null;
+            const publicPath = slug && definition.table === "portfolio_projects" ? `/portfolio/${slug}` : slug && definition.table === "blog_posts" ? `/blog/${slug}` : slug && definition.table === "jobs" ? `/jobs/${slug}` : slug && definition.table === "courses" ? `/courses/${slug}` : slug && definition.table === "content_pages" ? `/pages/${slug}` : null;
             return (
               <div key={String(row.id)} className="flex flex-col gap-3 border-b border-white/8 bg-white/[0.018] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
@@ -262,8 +572,8 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
                 <div className="flex shrink-0 items-center gap-1.5">
                   {publicPath && status === "published" && <a href={publicPath} target="_blank" rel="noreferrer" className="admin-icon-button" aria-label="فتح الصفحة"><ExternalLink className="h-3.5 w-3.5" /></a>}
                   {typeof row.file_path === "string" && row.file_path && <button type="button" onClick={() => void openStoredFile(row.file_path as string)} className="admin-icon-button" aria-label="فتح ملف PDF"><FileDown className="h-3.5 w-3.5" /></button>}
-                  <button type="button" onClick={() => openEdit(row)} className="admin-icon-button" aria-label="تعديل"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button type="button" onClick={() => void remove(row)} className="admin-icon-button text-red-300 hover:bg-red-500/10" aria-label="نقل إلى Draft" title="نقل إلى Draft بدون حذف"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button type="button" onClick={() => void openEdit(row)} className="admin-icon-button" aria-label="تعديل"><Pencil className="h-3.5 w-3.5" /></button>
+                  {supportsDrafts && status !== "draft" && <button type="button" onClick={() => void moveToDraft(row)} className="admin-icon-button text-red-300 hover:bg-red-500/10" aria-label="نقل إلى المسودات" title="نقل إلى المسودات بدون حذف"><Trash2 className="h-3.5 w-3.5" /></button>}
                 </div>
               </div>
             );
@@ -271,7 +581,8 @@ export default function ResourceManager({ definition }: { definition: ResourceDe
         </div>
       )}
 
-      {saved && <div className="fixed bottom-5 left-5 z-[80] inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-[12px] font-bold text-white shadow-xl"><Check className="h-3.5 w-3.5" />تم الحفظ</div>}
+      {saved && <div aria-live="polite" className="fixed bottom-5 left-5 z-[80] inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-[12px] font-bold text-white shadow-xl"><Check className="h-3.5 w-3.5" />تم الحفظ</div>}
+      {confirmDialog}
     </div>
   );
 }

@@ -22,7 +22,7 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
   "nav.services": { ar: "الخدمات", en: "Services" },
   "nav.allServices": { ar: "جميع الخدمات", en: "All Services" },
   "nav.portfolio": { ar: "معرض الأعمال", en: "Portfolio" },
-  "nav.learning": { ar: "التعلم والأسعار", en: "Learning & Pricing" },
+  "nav.learning": { ar: "المعرفة والفرص", en: "Learn & Explore" },
   "nav.courses": { ar: "الكورسات", en: "Courses" },
   "nav.pricing": { ar: "الخطط والأسعار", en: "Plans & Pricing" },
   "nav.company": { ar: "الشركة", en: "Company" },

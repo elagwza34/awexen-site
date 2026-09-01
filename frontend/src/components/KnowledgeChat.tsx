@@ -148,8 +148,8 @@ export default function KnowledgeChat() {
             <details className="border-t border-white/8 px-4 py-2">
               <summary className="cursor-pointer text-[9.5px] font-bold text-white/35 hover:text-white/60">بيانات التواصل — اختيارية</summary>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                <input value={name} onChange={(event) => setName(event.target.value)} placeholder="الاسم" className="rounded-lg border border-white/8 bg-white/[0.04] px-2.5 py-2 text-[10.5px] text-white outline-none focus:border-brand-500" />
-                <input type="email" dir="ltr" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="email@example.com" className="rounded-lg border border-white/8 bg-white/[0.04] px-2.5 py-2 text-left text-[10.5px] text-white outline-none focus:border-brand-500" />
+                <input aria-label="الاسم — اختياري" value={name} onChange={(event) => setName(event.target.value)} placeholder="الاسم" className="rounded-lg border border-white/8 bg-white/[0.04] px-2.5 py-2 text-[12px] text-white outline-none focus:border-brand-500" />
+                <input aria-label="البريد الإلكتروني — اختياري" type="email" dir="ltr" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="email@example.com" className="rounded-lg border border-white/8 bg-white/[0.04] px-2.5 py-2 text-left text-[12px] text-white outline-none focus:border-brand-500" />
               </div>
             </details>
 
@@ -169,7 +169,8 @@ export default function KnowledgeChat() {
                     }
                   }}
                   placeholder={loadingKnowledge ? "جارٍ تجهيز المعرفة..." : "اكتب سؤالك هنا..."}
-                  className="max-h-24 min-h-9 flex-1 resize-none bg-transparent px-1.5 py-2 text-[11.5px] leading-5 text-white outline-none placeholder:text-white/25"
+                  aria-label="اكتب سؤالك"
+                  className="max-h-24 min-h-10 flex-1 resize-none bg-transparent px-1.5 py-2 text-[12.5px] leading-6 text-white outline-none placeholder:text-white/35"
                 />
                 <button disabled={busy || loadingKnowledge || !question.trim()} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-500 text-white transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-40" aria-label="إرسال السؤال"><Send className="h-4 w-4" /></button>
               </div>
@@ -185,6 +186,7 @@ export default function KnowledgeChat() {
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
         aria-controls="ask-awexen"
+        aria-label={open ? "إغلاق مساعد Awexen" : "فتح مساعد Awexen"}
         className="group mr-auto flex items-center gap-2.5 rounded-full bg-ink-950 p-2.5 text-white shadow-xl shadow-black/25 ring-1 ring-white/10 transition hover:-translate-y-0.5 hover:bg-brand-500 sm:px-3.5"
       >
         <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-500 text-white transition group-hover:bg-white group-hover:text-brand-600"><MessageCircleQuestion className="h-4.5 w-4.5" /></span>

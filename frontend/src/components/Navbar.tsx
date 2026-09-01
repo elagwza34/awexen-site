@@ -8,13 +8,24 @@ import { supabase } from "../lib/supabase";
 import { Icon, Logo } from "./ui";
 import { cn } from "../utils/cn";
 
-const links = [
-  { key: "nav.home", to: "/" },
+const mobileLinks = [
   { key: "nav.portfolio", to: "/portfolio" },
   { key: "nav.pricing", to: "/#pricing" },
   { key: "nav.blog", to: "/blog" },
   { key: "nav.courses", to: "/courses" },
   { key: "nav.jobs", to: "/jobs" },
+  { key: "nav.about", to: "/about" },
+  { key: "nav.contact", to: "/contact" },
+];
+
+const knowledgeLinks = [
+  { key: "nav.blog", to: "/blog" },
+  { key: "nav.courses", to: "/courses" },
+  { key: "nav.jobs", to: "/jobs" },
+  { key: "nav.pricing", to: "/#pricing" },
+];
+
+const companyLinks = [
   { key: "nav.about", to: "/about" },
   { key: "nav.contact", to: "/contact" },
 ];
@@ -64,7 +75,10 @@ export default function Navbar() {
     };
   }, []);
 
-  useEffect(() => setMega(false), [pathname]);
+  useEffect(() => {
+    setMega(false);
+    document.querySelectorAll("header details[open]").forEach((details) => details.removeAttribute("open"));
+  }, [pathname]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -96,14 +110,6 @@ export default function Navbar() {
 
   return (
     <>
-      {/* شريط إعلاني */}
-      <div className="hidden bg-ink-950 py-2 text-center text-[12.5px] text-white/60 lg:block">
-        <span className="text-brand-400">●</span> {t("nav.newProjectBanner")}{" "}
-        <Link to="/services" className="link-underline font-semibold text-white">
-          {t("nav.startProject")}
-        </Link>
-      </div>
-
       <header
         className={cn(
           "sticky top-0 z-50 w-full transition-all duration-300",
@@ -203,19 +209,53 @@ export default function Navbar() {
                 </div>
               </li>
 
-              {links.slice(1).map((l) => (
-                <li key={l.key}>
-                  <Link
-                    to={l.to}
-                    className={cn(
-                      "rounded-lg px-3.5 py-2 text-[14.5px] font-semibold transition-colors hover:bg-white/5 hover:text-white",
-                      active(l.to) ? "text-brand-400" : "text-white/75",
-                    )}
-                  >
-                    {t(l.key)}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link
+                  to="/portfolio"
+                  className={cn(
+                    "rounded-lg px-3.5 py-2 text-[14.5px] font-semibold transition-colors hover:bg-white/5 hover:text-white",
+                    active("/portfolio") ? "text-brand-400" : "text-white/75",
+                  )}
+                >
+                  {t("nav.portfolio")}
+                </Link>
+              </li>
+
+              <li className="relative">
+                <details className="group">
+                  <summary className="flex cursor-pointer list-none items-center gap-1 rounded-lg px-3.5 py-2 text-[14.5px] font-semibold text-white/75 transition-colors hover:bg-white/5 hover:text-white">
+                    {t("nav.learning")}
+                    <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="absolute right-0 top-full z-50 pt-3">
+                    <div className="w-56 rounded-2xl border border-white/10 bg-ink-900/98 p-2 shadow-2xl shadow-black/50 backdrop-blur-xl">
+                      {knowledgeLinks.map((item) => (
+                        <Link key={item.key} to={item.to} className="block rounded-xl px-4 py-3 text-[13.5px] font-semibold text-white/70 transition hover:bg-brand-500/10 hover:text-brand-300">
+                          {t(item.key)}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </details>
+              </li>
+
+              <li className="relative">
+                <details className="group">
+                  <summary className="flex cursor-pointer list-none items-center gap-1 rounded-lg px-3.5 py-2 text-[14.5px] font-semibold text-white/75 transition-colors hover:bg-white/5 hover:text-white">
+                    {t("nav.company")}
+                    <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="absolute right-0 top-full z-50 pt-3">
+                    <div className="w-48 rounded-2xl border border-white/10 bg-ink-900/98 p-2 shadow-2xl shadow-black/50 backdrop-blur-xl">
+                      {companyLinks.map((item) => (
+                        <Link key={item.key} to={item.to} className="block rounded-xl px-4 py-3 text-[13.5px] font-semibold text-white/70 transition hover:bg-brand-500/10 hover:text-brand-300">
+                          {t(item.key)}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </details>
+              </li>
             </ul>
 
             <div className="flex items-center gap-2">
@@ -240,7 +280,7 @@ export default function Navbar() {
                 className="hidden items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-[14px] font-bold text-white shadow-lg shadow-brand-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 hover:shadow-[var(--shadow-brand)] sm:inline-flex"
               >
                 <Sparkles className="h-4 w-4" />
-                {t("nav.bookConsult")}
+                {t("nav.startProject")}
               </Link>
 
               <button
@@ -349,7 +389,7 @@ export default function Navbar() {
                 </div>
               </li>
 
-              {links.slice(1).map((l) => (
+              {mobileLinks.map((l) => (
                 <li key={l.key}>
                   <Link
                     to={l.to}
@@ -386,7 +426,7 @@ export default function Navbar() {
               className="flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3.5 font-bold text-white shadow-lg shadow-brand-500/25"
             >
               <Sparkles className="h-4 w-4" />
-              {t("nav.bookConsult")}
+              {t("nav.startProject")}
             </Link>
           </div>
         </div>

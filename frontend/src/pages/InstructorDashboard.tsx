@@ -33,6 +33,7 @@ import { uploadPublicImage } from "../lib/storage";
 import { supabase } from "../lib/supabase";
 import { DashboardThemeToggle, useDashboardTheme } from "../context/DashboardThemeContext";
 import { Logo } from "../components/ui";
+import { useConfirmDialog } from "../components/ConfirmDialog";
 
 type Paged<T> = { count: number; results: T[] };
 type DashboardTab = "overview" | "courses" | "drafts" | "content" | "review" | "profile";
@@ -170,6 +171,7 @@ function CourseCard({ course, thumbnail, selected, onSelect, onArchive, onRestor
 }
 
 export default function InstructorDashboard() {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const { theme } = useDashboardTheme();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -262,8 +264,13 @@ export default function InstructorDashboard() {
       setActiveTab("content");
     }, "تم إنشاء نسخة Draft كاملة قابلة للتعديل، والنسخة المنشورة ما زالت آمنة للطلاب.");
   };
-  const moveCourseToDrafts = (target: Course) => {
-    if (!window.confirm(`نقل كورس «${target.title}» إلى Draft؟ لن يُحذف أي محتوى ويمكن استرجاعه لاحقًا.`)) return;
+  const moveCourseToDrafts = async (target: Course) => {
+    if (!await confirm({
+      title: `نقل كورس «${target.title}» إلى المسودات؟`,
+      description: "لن يُحذف أي محتوى. سيختفي الكورس من القائمة النشطة ويمكن استرجاعه أو متابعة تعديله من تبويب المسودات.",
+      confirmLabel: "نقل إلى المسودات",
+      tone: "danger",
+    })) return;
     void run(async () => {
       await lmsApi(`instructor/courses/${target.id}/`, { method: "DELETE" });
       await queryClient.invalidateQueries({ queryKey: ["instructor", "courses"] });
@@ -300,8 +307,12 @@ export default function InstructorDashboard() {
     event.preventDefault(); if (!editable || !lessonDraft.module) return;
     void run(async () => { const order = lessonsByModule.get(lessonDraft.module)?.length ?? 0; await lmsApi("instructor/lessons/", { method: "POST", body: JSON.stringify({ ...lessonDraft, sort_order: order, status: "published", summary: "", resource_url: "", is_required: true, weight: 1, completion_rule: lessonDraft.content_type === "video" ? "video_threshold" : "manual", completion_threshold: 90 }) }); setLessonDraft((current) => ({ ...current, title: "", content: "", video_url: "", duration_seconds: 0 })); await queryClient.invalidateQueries({ queryKey: ["instructor", "lessons", version?.id] }); }, "تمت إضافة الدرس.");
   };
-  const submitForReview = () => {
-    if (!version || !window.confirm("إرسال الكورس لمراجعة الإدارة؟ لن تتمكن من تعديله حتى انتهاء المراجعة.")) return;
+  const submitForReview = async () => {
+    if (!version || !await confirm({
+      title: "إرسال الكورس للمراجعة؟",
+      description: "سيتوقف تعديل هذه النسخة مؤقتًا حتى تراجعها الإدارة. إذا كانت هناك ملاحظات ستعود إليك النسخة لتعديلها قبل النشر.",
+      confirmLabel: "إرسال للمراجعة",
+    })) return;
     void run(async () => { await lmsApi(`instructor/course-versions/${version.id}/submit/`, { method: "POST" }); await Promise.all([queryClient.invalidateQueries({ queryKey: ["instructor", "versions"] }), queryClient.invalidateQueries({ queryKey: ["instructor", "courses"] })]); }, "تم إرسال الكورس لمراجعة الإدارة بنجاح.");
   };
   const saveProfile = (event: React.FormEvent) => {
@@ -373,6 +384,7 @@ export default function InstructorDashboard() {
           {!loading && membership && activeTab === "profile" && <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]"><form onSubmit={saveProfile} className="rounded-3xl border border-ink-100 bg-white p-6 shadow-sm sm:p-8"><p className="text-[10px] font-black text-brand-600">الحساب الشخصي</p><h2 className="mt-1 text-[24px] font-black">بيانات المدرب</h2><div className="mt-7 grid gap-5 sm:grid-cols-2"><label className={labelClass}>الاسم الكامل<input required value={profileName} onChange={(event) => setProfileName(event.target.value)} placeholder={displayName} className={inputClass} /></label><label className={labelClass}>البريد الإلكتروني<input dir="ltr" disabled value={meQuery.data?.email ?? ""} className={`${inputClass} text-left disabled:cursor-not-allowed disabled:opacity-60`} /></label><label className={labelClass}>المؤسسة<input disabled value={membership.organization_name} className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`} /></label><label className={labelClass}>نوع الحساب<input disabled value="مدرب" className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`} /></label></div><button disabled={busy} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-[12px] font-black text-white disabled:opacity-50"><Save className="h-4 w-4" /> حفظ البيانات</button></form><aside className="rounded-3xl border border-brand-100 bg-brand-50 p-6"><span className="grid h-16 w-16 place-items-center rounded-2xl bg-white text-[18px] font-black text-brand-600 shadow-sm">{initials(displayName, meQuery.data?.email ?? "")}</span><h3 className="mt-4 text-[20px] font-black">{displayName}</h3><p className="mt-1 text-[11px] text-ink-500">مدرب لدى {membership.organization_name}</p><div className="my-5 h-px bg-brand-100" /><Link to="/learn" className="inline-flex items-center gap-2 text-[11px] font-black text-brand-700"><GraduationCap className="h-4 w-4" /> الانتقال للوحة المتدرب</Link></aside></div>}
         </div>
       </div>
+      {confirmDialog}
     </section>
   );
 }

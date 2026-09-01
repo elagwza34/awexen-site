@@ -109,15 +109,13 @@ export default function PortfolioPage() {
                     <p className="mt-1.5 flex-1 text-[14px] leading-7 text-ink-500">
                       {pick(p.desc, p.descEn ?? "")}
                     </p>
-                    {p.site && <a
-                      href={p.site}
-                      target="_blank"
-                      rel="noreferrer"
+                    {p.slug && <Link
+                      to={`/portfolio/${p.slug}`}
                       className="mt-4 inline-flex items-center gap-1.5 border-t border-ink-100 pt-4 text-[13.5px] font-bold text-brand-600"
                     >
                       {t("portfolio.details")}
                       <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-                    </a>}
+                    </Link>}
                   </div>
                 </Spotlight>
               </Reveal>

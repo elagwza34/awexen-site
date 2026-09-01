@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Clock,
   Mail,
@@ -13,10 +14,38 @@ import {
 import PageHero from "../components/PageHero";
 import { Reveal } from "../components/ui";
 import { useContent } from "../context/ContentContext";
+import { useLanguage } from "../context/LanguageContext";
 import { supabase } from "../lib/supabase";
 
 export default function Contact() {
   const { services, settings } = useContent();
+  const { lang } = useLanguage();
+  const isArabic = lang === "ar";
+  const copy = isArabic ? {
+    badge: "تواصل معنا", title: "لنبدأ", highlight: "مشروعك",
+    desc: "أخبرنا عن فكرتك وسيتواصل معك أحد خبرائنا خلال 24 ساعة بخطة تنفيذ وعرض سعر واضح.",
+    home: "الرئيسية", formTitle: "أرسل طلبك", formDesc: "أكمل البيانات التالية لنجهز لك ردًا دقيقًا.",
+    name: "الاسم بالكامل", namePlaceholder: "محمد أحمد", phone: "رقم الهاتف", email: "البريد الإلكتروني",
+    service: "الخدمة المطلوبة", chooseService: "اختر الخدمة", otherService: "خدمة أخرى",
+    budget: "الميزانية التقريبية", chooseBudget: "اختر النطاق", details: "تفاصيل المشروع",
+    detailsPlaceholder: "اكتب نبذة عن مشروعك وأهدافك...", consent: "أوافق على استخدام بياناتي للرد على طلبي وفق",
+    privacy: "سياسة الخصوصية", sending: "جارٍ الإرسال...", submit: "إرسال الطلب",
+    successTitle: "تم استلام طلبك!", successText: "شكرًا لتواصلك مع Awexen. سيتواصل معك فريقنا خلال 24 ساعة على البيانات التي أدخلتها.",
+    another: "إرسال طلب آخر", location: "الموقع", support: "الدعم الفني", hours: "ساعات العمل",
+    whatsapp: "تحدث معنا على واتساب", mapTitle: "موقع Awexen", error: "تعذر إرسال الطلب مؤقتًا. راجع اتصالك ثم حاول مرة أخرى.",
+  } : {
+    badge: "Contact us", title: "Let's start", highlight: "your project",
+    desc: "Tell us about your idea and one of our specialists will reply within 24 hours with a clear plan and quote.",
+    home: "Home", formTitle: "Send your request", formDesc: "Complete the details below so we can prepare an accurate response.",
+    name: "Full name", namePlaceholder: "Your name", phone: "Phone number", email: "Email address",
+    service: "Required service", chooseService: "Choose a service", otherService: "Another service",
+    budget: "Estimated budget", chooseBudget: "Choose a range", details: "Project details",
+    detailsPlaceholder: "Tell us briefly about your project and goals...", consent: "I agree to the use of my data to respond to my request under the",
+    privacy: "Privacy Policy", sending: "Sending...", submit: "Send request",
+    successTitle: "Request received!", successText: "Thank you for contacting Awexen. Our team will reply within 24 hours using the details you provided.",
+    another: "Send another request", location: "Location", support: "Technical support", hours: "Working hours",
+    whatsapp: "Chat with us on WhatsApp", mapTitle: "Awexen location", error: "We could not send your request right now. Check your connection and try again.",
+  };
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,10 +62,10 @@ export default function Contact() {
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const info = [
-    { Icon: MapPin, title: "الموقع", value: settings.address },
-    { Icon: Mail, title: "البريد الإلكتروني", value: settings.email },
-    { Icon: Phone, title: "الدعم الفني", value: settings.phones },
-    { Icon: Clock, title: "ساعات العمل", value: settings.hours },
+    { Icon: MapPin, title: copy.location, value: isArabic ? settings.address : "Tanta, Egypt" },
+    { Icon: Mail, title: copy.email, value: settings.email },
+    { Icon: Phone, title: copy.support, value: settings.phones },
+    { Icon: Clock, title: copy.hours, value: isArabic ? settings.hours : "Sunday–Thursday, 9:00 AM–6:00 PM" },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,7 +75,7 @@ export default function Contact() {
 
     if (!supabase) {
       setBusy(false);
-      setError("لم يتم تهيئة اتصال Supabase بعد. أضف المفتاح الفعلي في ملف .env ثم أعد المحاولة.");
+      setError(copy.error);
       return;
     }
 
@@ -71,23 +100,20 @@ export default function Contact() {
       setSent(true);
       setForm({ name: "", phone: "", email: "", service: "", budget: "", message: "" });
     } catch (submitError) {
+      console.warn("[contact] submission failed", submitError);
       setBusy(false);
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "حدث خطأ أثناء إرسال الرسالة. حاول مرة أخرى.",
-      );
+      setError(copy.error);
     }
   };
 
   return (
     <>
       <PageHero
-        badge="تواصل معنا"
-        title="لنبدأ"
-        highlight="مشروعك"
-        desc="أخبرنا عن فكرتك وسيتواصل معك أحد خبرائنا خلال 24 ساعة بخطة تنفيذ وعرض سعر واضح."
-        crumbs={[{ label: "الرئيسية", to: "/" }, { label: "تواصل معنا" }]}
+        badge={copy.badge}
+        title={copy.title}
+        highlight={copy.highlight}
+        desc={copy.desc}
+        crumbs={[{ label: copy.home, to: "/" }, { label: copy.badge }]}
       />
 
       <section className="bg-white py-20 sm:py-24">
@@ -96,129 +122,151 @@ export default function Contact() {
           <Reveal>
             <div className="rounded-3xl border border-ink-100 bg-white p-7 shadow-sm sm:p-9">
               <h2 className="text-[24px] font-extrabold sm:text-[28px]">
-                أرسل طلبك
+                {copy.formTitle}
               </h2>
               <p className="mt-2 text-[14.5px] text-ink-500">
-                جميع الحقول مطلوبة لنتمكن من تقديم عرض دقيق.
+                {copy.formDesc}
               </p>
 
               {sent ? (
-                <div className="mt-8 flex flex-col items-center gap-4 rounded-2xl bg-brand-500/8 px-6 py-12 text-center">
+                <div role="status" className="mt-8 flex flex-col items-center gap-4 rounded-2xl bg-brand-500/8 px-6 py-12 text-center">
                   <CheckCircle2 className="h-14 w-14 text-brand-500" />
-                  <h3 className="text-[20px] font-extrabold">تم استلام طلبك!</h3>
+                  <h3 className="text-[20px] font-extrabold">{copy.successTitle}</h3>
                   <p className="max-w-sm text-[14.5px] leading-7 text-ink-500">
-                    شكراً لتواصلك مع أوكسين. سيتواصل معك فريقنا خلال 24 ساعة على
-                    البيانات التي أدخلتها.
+                    {copy.successText}
                   </p>
                   <button
                     onClick={() => setSent(false)}
                     className="mt-2 rounded-xl border-2 border-ink-900 px-6 py-2.5 text-[14px] font-bold text-ink-900 transition-colors hover:border-brand-500 hover:bg-brand-500 hover:text-white"
                   >
-                    إرسال طلب آخر
+                    {copy.another}
                   </button>
                 </div>
               ) : (
                 <form className="mt-7 grid gap-4 sm:grid-cols-2" onSubmit={handleSubmit}>
                   <div>
-                    <label className="mb-2 block text-[13.5px] font-bold text-ink-700">
-                      الاسم بالكامل
+                    <label htmlFor="contact-name" className="mb-2 block text-[13.5px] font-bold text-ink-700">
+                      {copy.name}
                     </label>
                     <input
+                      id="contact-name"
+                      name="name"
                       required
                       type="text"
                       value={form.name}
                       onChange={set("name")}
-                      placeholder="محمد أحمد"
+                      autoComplete="name"
+                      placeholder={copy.namePlaceholder}
                       className="w-full rounded-xl border border-ink-200 bg-ink-50/60 px-4 py-3 text-[14.5px] outline-none transition-all placeholder:text-ink-300 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10"
                     />
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-[13.5px] font-bold text-ink-700">
-                      رقم الهاتف
+                    <label htmlFor="contact-phone" className="mb-2 block text-[13.5px] font-bold text-ink-700">
+                      {copy.phone}
                     </label>
                     <input
+                      id="contact-phone"
+                      name="phone"
+                      dir="ltr"
                       required
                       type="tel"
                       value={form.phone}
                       onChange={set("phone")}
+                      autoComplete="tel"
+                      inputMode="tel"
                       placeholder="01xxxxxxxxx"
-                      className="w-full rounded-xl border border-ink-200 bg-ink-50/60 px-4 py-3 text-[14.5px] outline-none transition-all placeholder:text-ink-300 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10"
+                      className="w-full rounded-xl border border-ink-200 bg-ink-50/60 px-4 py-3 text-left text-[14.5px] outline-none transition-all placeholder:text-ink-300 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10"
                     />
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="mb-2 block text-[13.5px] font-bold text-ink-700">
-                      البريد الإلكتروني
+                    <label htmlFor="contact-email" className="mb-2 block text-[13.5px] font-bold text-ink-700">
+                      {copy.email}
                     </label>
                     <input
+                      id="contact-email"
+                      name="email"
                       required
                       type="email"
                       dir="ltr"
                       value={form.email}
                       onChange={set("email")}
+                      autoComplete="email"
                       placeholder="name@company.com"
-                      className="w-full rounded-xl border border-ink-200 bg-ink-50/60 px-4 py-3 text-right text-[14.5px] outline-none transition-all placeholder:text-ink-300 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10"
+                      className="w-full rounded-xl border border-ink-200 bg-ink-50/60 px-4 py-3 text-left text-[14.5px] outline-none transition-all placeholder:text-ink-300 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10"
                     />
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-[13.5px] font-bold text-ink-700">
-                      الخدمة المطلوبة
+                    <label htmlFor="contact-service" className="mb-2 block text-[13.5px] font-bold text-ink-700">
+                      {copy.service}
                     </label>
                     <select
+                      id="contact-service"
+                      name="service"
                       required
                       value={form.service}
                       onChange={set("service")}
                       className="w-full rounded-xl border border-ink-200 bg-ink-50/60 px-4 py-3 text-[14.5px] outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10"
                     >
                       <option value="" disabled>
-                        اختر الخدمة
+                        {copy.chooseService}
                       </option>
                       {services.map((s) => (
                         <option key={s.slug} value={s.title}>
-                          {s.title}
+                          {isArabic ? s.title : s.tagline}
                         </option>
                       ))}
-                      <option value="خدمة أخرى">خدمة أخرى</option>
+                      <option value={copy.otherService}>{copy.otherService}</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-[13.5px] font-bold text-ink-700">
-                      الميزانية التقريبية
+                    <label htmlFor="contact-budget" className="mb-2 block text-[13.5px] font-bold text-ink-700">
+                      {copy.budget}
                     </label>
                     <select
+                      id="contact-budget"
+                      name="budget"
+                      required
                       value={form.budget}
                       onChange={set("budget")}
                       className="w-full rounded-xl border border-ink-200 bg-ink-50/60 px-4 py-3 text-[14.5px] outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10"
                     >
                       <option value="" disabled>
-                        اختر النطاق
+                        {copy.chooseBudget}
                       </option>
-                      <option>أقل من 5,000 جنية</option>
-                      <option>5,000 - 15,000 جنية</option>
-                      <option>15,000 - 40,000 جنية</option>
-                      <option>أكثر من 40,000 جنية</option>
+                      <option>{isArabic ? "أقل من 5,000 جنيه" : "Less than EGP 5,000"}</option>
+                      <option>{isArabic ? "5,000 - 15,000 جنيه" : "EGP 5,000 - 15,000"}</option>
+                      <option>{isArabic ? "15,000 - 40,000 جنيه" : "EGP 15,000 - 40,000"}</option>
+                      <option>{isArabic ? "أكثر من 40,000 جنيه" : "More than EGP 40,000"}</option>
                     </select>
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="mb-2 block text-[13.5px] font-bold text-ink-700">
-                      تفاصيل المشروع
+                    <label htmlFor="contact-message" className="mb-2 block text-[13.5px] font-bold text-ink-700">
+                      {copy.details}
                     </label>
                     <textarea
+                      id="contact-message"
+                      name="message"
                       required
                       rows={5}
                       value={form.message}
                       onChange={set("message")}
-                      placeholder="اكتب نبذة عن مشروعك وأهدافك..."
+                      placeholder={copy.detailsPlaceholder}
                       className="w-full resize-none rounded-xl border border-ink-200 bg-ink-50/60 px-4 py-3 text-[14.5px] leading-7 outline-none transition-all placeholder:text-ink-300 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10"
                     />
                   </div>
 
+                  <label className="flex items-start gap-3 rounded-xl border border-ink-100 bg-ink-50/60 p-4 text-[12.5px] leading-6 text-ink-500 sm:col-span-2">
+                    <input required type="checkbox" name="privacy-consent" className="mt-1 h-4 w-4 shrink-0 accent-orange-500" />
+                    <span>{copy.consent} <Link to="/privacy" className="font-bold text-brand-600 hover:underline">{copy.privacy}</Link>.</span>
+                  </label>
+
                   {error && (
-                    <div className="flex items-start gap-2.5 rounded-xl bg-red-50 p-4 text-[13.5px] leading-7 text-red-700 sm:col-span-2">
+                    <div role="alert" className="flex items-start gap-2.5 rounded-xl bg-red-50 p-4 text-[13.5px] leading-7 text-red-700 sm:col-span-2">
                       <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                       {error}
                     </div>
@@ -234,7 +282,7 @@ export default function Contact() {
                     ) : (
                       <Send className="h-[18px] w-[18px]" />
                     )}
-                    {busy ? "جارٍ الإرسال..." : "إرسال الطلب"}
+                    {busy ? copy.sending : copy.submit}
                   </button>
                 </form>
               )}
@@ -270,12 +318,12 @@ export default function Contact() {
                 className="flex items-center justify-center gap-2.5 rounded-2xl bg-[#25D366] px-6 py-4 text-[15px] font-bold text-white shadow-lg shadow-[#25D366]/25 transition-transform hover:-translate-y-0.5"
               >
                 <MessageCircle className="h-5 w-5" />
-                تحدث معنا على واتساب
+                {copy.whatsapp}
               </a>
 
               <div className="overflow-hidden rounded-2xl border border-ink-100">
                 <iframe
-                  title="موقعنا"
+                  title={copy.mapTitle}
                   src="https://maps.google.com/maps?q=Tanta%20Egypt&t=&z=13&ie=UTF8&iwloc=&output=embed"
                   className="h-64 w-full grayscale transition-all duration-500 hover:grayscale-0"
                   loading="lazy"

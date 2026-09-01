@@ -24,6 +24,12 @@ export type Project = {
   clientEn?: string;
   technologies?: string;
   completedAt?: string;
+  challenge?: string;
+  challengeEn?: string;
+  solution?: string;
+  solutionEn?: string;
+  results?: string;
+  resultsEn?: string;
 };
 export type Plan = (typeof localPlans)[number];
 export type Testimonial = (typeof localTestimonials)[number];

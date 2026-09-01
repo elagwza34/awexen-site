@@ -14,18 +14,21 @@ import PageHero from "../components/PageHero";
 import { Reveal } from "../components/ui";
 import { loadJobs, submitJobApplication, type Job } from "../lib/cms";
 import { useSeoOverride } from "../components/SeoManager";
+import { useLanguage } from "../context/LanguageContext";
 
-const employmentLabels: Record<Job["employment_type"], string> = {
-  "full-time": "دوام كامل",
-  "part-time": "دوام جزئي",
-  contract: "تعاقد",
-  internship: "تدريب",
-  freelance: "عمل حر",
+const employmentLabels: Record<Job["employment_type"], { ar: string; en: string }> = {
+  "full-time": { ar: "دوام كامل", en: "Full-time" },
+  "part-time": { ar: "دوام جزئي", en: "Part-time" },
+  contract: { ar: "تعاقد", en: "Contract" },
+  internship: { ar: "تدريب", en: "Internship" },
+  freelance: { ar: "عمل حر", en: "Freelance" },
 };
 
 type ApplicationFormProps = { job?: Job | null };
 
 function ApplicationForm({ job }: ApplicationFormProps) {
+  const { lang } = useLanguage();
+  const isArabic = lang === "ar";
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,11 +64,8 @@ function ApplicationForm({ job }: ApplicationFormProps) {
       });
       setSent(true);
     } catch (submitError) {
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "تعذر إرسال الطلب. حاول مرة أخرى.",
-      );
+      console.warn("Job application submission failed", submitError);
+      setError(isArabic ? "تعذر إرسال الطلب الآن. راجع اتصالك وحاول مرة أخرى." : "We couldn't send your application. Check your connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -75,9 +75,9 @@ function ApplicationForm({ job }: ApplicationFormProps) {
     return (
       <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-8 text-center">
         <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600" />
-        <h2 className="mt-4 text-[22px] font-extrabold text-ink-900">وصل طلبك</h2>
+        <h2 className="mt-4 text-[22px] font-extrabold text-ink-900">{isArabic ? "وصل طلبك" : "Application received"}</h2>
         <p className="mt-2 text-[14px] leading-7 text-ink-600">
-          سنراجع الخبرة ونماذج الأعمال، ونتواصل معك إذا كان هناك تطابق مع الدور المطلوب.
+          {isArabic ? "سنراجع الخبرة ونماذج الأعمال، ونتواصل معك إذا كان هناك تطابق مع الدور المطلوب." : "We'll review your experience and work samples, then contact you if your profile matches the role."}
         </p>
       </div>
     );
@@ -89,64 +89,66 @@ function ApplicationForm({ job }: ApplicationFormProps) {
   return (
     <form onSubmit={submit} className="grid gap-4 rounded-3xl border border-ink-100 bg-white p-6 shadow-sm sm:grid-cols-2 sm:p-8">
       <div className="sm:col-span-2">
-        <p className="text-[12px] font-bold text-brand-600">نموذج التقديم</p>
+        <p className="text-[12px] font-bold text-brand-600">{isArabic ? "نموذج التقديم" : "Application form"}</p>
         <h2 className="mt-1 text-[22px] font-extrabold text-ink-900">
-          {job ? `التقديم على: ${job.title}` : "أرسل ملفك لفريق التوظيف"}
+          {job ? (isArabic ? `التقديم على: ${job.title}` : `Apply for: ${job.title}`) : (isArabic ? "أرسل ملفك لفريق التوظيف" : "Send your profile to our hiring team")}
         </h2>
       </div>
 
       <label className="text-[13px] font-bold text-ink-700">
-        الاسم بالكامل
-        <input required value={form.full_name} onChange={set("full_name")} className={`${inputClass} mt-2`} />
+        {isArabic ? "الاسم بالكامل" : "Full name"}
+        <input required name="full_name" autoComplete="name" value={form.full_name} onChange={set("full_name")} className={`${inputClass} mt-2`} />
       </label>
       <label className="text-[13px] font-bold text-ink-700">
-        رقم الهاتف
-        <input required type="tel" dir="ltr" value={form.phone} onChange={set("phone")} className={`${inputClass} mt-2 text-right`} />
+        {isArabic ? "رقم الهاتف" : "Phone number"}
+        <input required name="phone" autoComplete="tel" type="tel" dir="ltr" value={form.phone} onChange={set("phone")} className={`${inputClass} mt-2 text-left`} />
       </label>
       <label className="text-[13px] font-bold text-ink-700">
-        البريد الإلكتروني
-        <input required type="email" dir="ltr" value={form.email} onChange={set("email")} className={`${inputClass} mt-2 text-right`} />
+        {isArabic ? "البريد الإلكتروني" : "Email address"}
+        <input required name="email" autoComplete="email" type="email" dir="ltr" value={form.email} onChange={set("email")} className={`${inputClass} mt-2 text-left`} />
       </label>
       <label className="text-[13px] font-bold text-ink-700">
-        المدينة / الدولة
-        <input required value={form.location} onChange={set("location")} className={`${inputClass} mt-2`} />
+        {isArabic ? "المدينة / الدولة" : "City / Country"}
+        <input required name="location" autoComplete="address-level2" value={form.location} onChange={set("location")} className={`${inputClass} mt-2`} />
       </label>
       <label className="text-[13px] font-bold text-ink-700">
-        سنوات الخبرة
-        <input required min="0" step="0.5" type="number" value={form.years_experience} onChange={set("years_experience")} className={`${inputClass} mt-2`} />
+        {isArabic ? "سنوات الخبرة" : "Years of experience"}
+        <input required name="years_experience" min="0" step="0.5" type="number" value={form.years_experience} onChange={set("years_experience")} className={`${inputClass} mt-2`} />
       </label>
       <label className="text-[13px] font-bold text-ink-700">
-        رابط Portfolio أو GitHub
-        <input type="url" dir="ltr" value={form.portfolio_url} onChange={set("portfolio_url")} className={`${inputClass} mt-2 text-left`} />
+        {isArabic ? "رابط Portfolio أو GitHub" : "Portfolio or GitHub URL"}
+        <input name="portfolio_url" autoComplete="url" type="url" dir="ltr" value={form.portfolio_url} onChange={set("portfolio_url")} className={`${inputClass} mt-2 text-left`} />
       </label>
       <label className="text-[13px] font-bold text-ink-700">
-        رابط LinkedIn
-        <input type="url" dir="ltr" value={form.linkedin_url} onChange={set("linkedin_url")} className={`${inputClass} mt-2 text-left`} />
+        {isArabic ? "رابط LinkedIn" : "LinkedIn URL"}
+        <input name="linkedin_url" autoComplete="url" type="url" dir="ltr" value={form.linkedin_url} onChange={set("linkedin_url")} className={`${inputClass} mt-2 text-left`} />
       </label>
       <label className="text-[13px] font-bold text-ink-700">
-        رابط السيرة الذاتية
-        <input type="url" dir="ltr" value={form.cv_url} onChange={set("cv_url")} placeholder="Google Drive / Dropbox" className={`${inputClass} mt-2 text-left`} />
+        {isArabic ? "رابط السيرة الذاتية" : "CV URL"}
+        <input name="cv_url" autoComplete="url" type="url" dir="ltr" value={form.cv_url} onChange={set("cv_url")} placeholder="Google Drive / Dropbox" className={`${inputClass} mt-2 text-left`} />
       </label>
       <label className="text-[13px] font-bold text-ink-700 sm:col-span-2">
-        المهارات والتقنيات
-        <input required value={form.skills} onChange={set("skills")} placeholder="React، TypeScript، Python، Django..." className={`${inputClass} mt-2`} />
+        {isArabic ? "المهارات والتقنيات" : "Skills and technologies"}
+        <input required name="skills" value={form.skills} onChange={set("skills")} placeholder="React, TypeScript, Python..." className={`${inputClass} mt-2`} />
       </label>
       <label className="text-[13px] font-bold text-ink-700 sm:col-span-2">
-        عرّفنا بنفسك وبأفضل مشروع نفذته
-        <textarea required rows={5} value={form.cover_note} onChange={set("cover_note")} className={`${inputClass} mt-2 resize-none leading-7`} />
+        {isArabic ? "عرّفنا بنفسك وبأفضل مشروع نفذته" : "Tell us about yourself and your best project"}
+        <textarea required name="cover_note" rows={5} value={form.cover_note} onChange={set("cover_note")} className={`${inputClass} mt-2 resize-none leading-7`} />
       </label>
 
-      {error && <p className="rounded-xl bg-red-50 p-3 text-[13px] text-red-700 sm:col-span-2">{error}</p>}
+      {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-[13px] text-red-700 sm:col-span-2">{error}</p>}
 
-      <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3.5 text-[14px] font-bold text-white disabled:opacity-60 sm:col-span-2">
+      <button type="submit" disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3.5 text-[14px] font-bold text-white disabled:opacity-60 sm:col-span-2">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-        {busy ? "جارٍ الإرسال..." : "إرسال طلب التوظيف"}
+        {busy ? (isArabic ? "جارٍ الإرسال..." : "Sending...") : (isArabic ? "إرسال طلب التوظيف" : "Send application")}
       </button>
     </form>
   );
 }
 
 export default function Jobs() {
+  const { lang } = useLanguage();
+  const isArabic = lang === "ar";
   const [jobs, setJobs] = useState<Job[]>([]);
 
   useEffect(() => {
@@ -156,11 +158,11 @@ export default function Jobs() {
   return (
     <>
       <PageHero
-        badge="انضم إلى الفريق"
-        title="وظائف تبني"
-        highlight="خبرة حقيقية"
-        desc="نبحث عن أشخاص يهتمون بجودة التنفيذ والتواصل الواضح، ويحبون حل المشكلات أكثر من استعراض الأدوات."
-        crumbs={[{ label: "الرئيسية", to: "/" }, { label: "الوظائف" }]}
+        badge={isArabic ? "انضم إلى الفريق" : "Join the team"}
+        title={isArabic ? "وظائف تبني" : "Careers that build"}
+        highlight={isArabic ? "خبرة حقيقية" : "real experience"}
+        desc={isArabic ? "نبحث عن أشخاص يهتمون بجودة التنفيذ والتواصل الواضح، ويحبون حل المشكلات أكثر من استعراض الأدوات." : "We look for people who care about quality, communicate clearly, and enjoy solving real problems."}
+        crumbs={[{ label: isArabic ? "الرئيسية" : "Home", to: "/" }, { label: isArabic ? "الوظائف" : "Careers" }]}
       />
 
       <section className="bg-white py-20 sm:py-24">
@@ -168,7 +170,7 @@ export default function Jobs() {
           <div>
             <div className="mb-6 flex items-center gap-3">
               <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-500/10 text-brand-600"><BriefcaseBusiness className="h-5 w-5" /></span>
-              <div><p className="text-[12px] font-bold text-brand-600">الفرص الحالية</p><h2 className="text-[24px] font-extrabold">اختر الدور المناسب</h2></div>
+              <div><p className="text-[12px] font-bold text-brand-600">{isArabic ? "الفرص الحالية" : "Open roles"}</p><h2 className="text-[24px] font-extrabold">{isArabic ? "اختر الدور المناسب" : "Find your next role"}</h2></div>
             </div>
 
             {jobs.length ? (
@@ -184,7 +186,7 @@ export default function Jobs() {
                     </div>
                     <div className="mt-4 flex flex-wrap gap-3 text-[12px] text-ink-500">
                       <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" />{job.location}</span>
-                      <span className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5" />{employmentLabels[job.employment_type]}</span>
+                      <span className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5" />{employmentLabels[job.employment_type][lang]}</span>
                     </div>
                   </Link>
                 ))}
@@ -192,8 +194,8 @@ export default function Jobs() {
             ) : (
               <div className="rounded-3xl border border-dashed border-ink-200 bg-ink-50 p-7">
                 <Code2 className="h-8 w-8 text-brand-500" />
-                <h3 className="mt-4 text-[18px] font-extrabold">لا توجد وظيفة منشورة الآن</h3>
-                <p className="mt-2 text-[14px] leading-7 text-ink-500">يمكنك إرسال ملفك، وسنرجع إليه عند فتح دور مناسب لخبرتك.</p>
+                <h3 className="mt-4 text-[18px] font-extrabold">{isArabic ? "لا توجد وظيفة منشورة الآن" : "No open roles right now"}</h3>
+                <p className="mt-2 text-[14px] leading-7 text-ink-500">{isArabic ? "يمكنك إرسال ملفك، وسنرجع إليه عند فتح دور مناسب لخبرتك." : "You can still send your profile and we'll revisit it when a suitable role opens."}</p>
               </div>
             )}
           </div>
@@ -206,6 +208,8 @@ export default function Jobs() {
 }
 
 export function JobDetail() {
+  const { lang } = useLanguage();
+  const isArabic = lang === "ar";
   const { slug } = useParams();
   const [job, setJob] = useState<Job | null>(null);
 
@@ -213,7 +217,7 @@ export function JobDetail() {
     void loadJobs().then((items) => setJob(items.find((item) => item.slug === slug) ?? null));
   }, [slug]);
 
-  useSeoOverride(job ? `${job.title} | وظائف Awexen` : undefined, job?.summary);
+  useSeoOverride(job ? `${job.title} | ${isArabic ? "وظائف" : "Careers"} Awexen` : undefined, job?.summary);
 
   if (!job) {
     return <Jobs />;
@@ -225,22 +229,22 @@ export function JobDetail() {
         badge={job.department}
         title={job.title}
         desc={job.summary}
-        crumbs={[{ label: "الرئيسية", to: "/" }, { label: "الوظائف", to: "/jobs" }, { label: job.title }]}
+        crumbs={[{ label: isArabic ? "الرئيسية" : "Home", to: "/" }, { label: isArabic ? "الوظائف" : "Careers", to: "/jobs" }, { label: job.title }]}
       >
         <div className="mt-6 flex flex-wrap gap-3 text-[13px] text-ink-300">
           <span className="inline-flex items-center gap-2"><MapPin className="h-4 w-4" />{job.location}</span>
-          <span className="inline-flex items-center gap-2"><Clock3 className="h-4 w-4" />{employmentLabels[job.employment_type]}</span>
+          <span className="inline-flex items-center gap-2"><Clock3 className="h-4 w-4" />{employmentLabels[job.employment_type][lang]}</span>
         </div>
       </PageHero>
       <section className="bg-white py-16 sm:py-20">
         <div className="container-x grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
           <div className="space-y-5">
             <div className="rounded-3xl border border-ink-100 p-6">
-              <h2 className="text-[20px] font-extrabold">المهام</h2>
+              <h2 className="text-[20px] font-extrabold">{isArabic ? "المهام" : "Responsibilities"}</h2>
               <p className="mt-3 whitespace-pre-line text-[14px] leading-8 text-ink-600">{job.responsibilities}</p>
             </div>
             <div className="rounded-3xl border border-ink-100 p-6">
-              <h2 className="text-[20px] font-extrabold">المتطلبات</h2>
+              <h2 className="text-[20px] font-extrabold">{isArabic ? "المتطلبات" : "Requirements"}</h2>
               <p className="mt-3 whitespace-pre-line text-[14px] leading-8 text-ink-600">{job.requirements}</p>
             </div>
           </div>

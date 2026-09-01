@@ -301,7 +301,7 @@ export default function StudentDashboard() {
 
         <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-7 sm:py-8 lg:px-10">
           {loading && <div className="grid min-h-[65vh] place-items-center"><div className="text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-brand-500" /><p className="mt-3 text-[11px] text-ink-400">جارٍ تجهيز لوحة التعلّم...</p></div></div>}
-          {pageError && <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-[12px] leading-7 text-red-700">تعذر تحميل بيانات لوحة الطالب. تأكد من تشغيل الـLMS ثم أعد المحاولة.</div>}
+          {pageError && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-[12px] leading-7 text-red-700">تعذر تحميل بيانات لوحة الطالب مؤقتًا. حدّث الصفحة، وإذا استمرت المشكلة سجّل الخروج ثم حاول مرة أخرى.</div>}
 
           {!loading && !pageError && activeTab === "overview" && (
             <div className="space-y-7">
@@ -404,7 +404,7 @@ export default function StudentDashboard() {
                   <div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-600"><UserRound className="h-5 w-5" /></span><div><h3 className="text-[16px] font-black">البيانات الشخصية</h3><p className="mt-1 text-[10px] text-ink-400">الاسم يظهر في لوحة التعلّم وشهاداتك مستقبلًا.</p></div></div>
                   <label className="mt-7 block text-[11px] font-bold text-ink-600">الاسم بالكامل<input required minLength={2} value={profileName} onChange={(event) => setProfileName(event.target.value)} placeholder={user.full_name || "اكتب اسمك بالكامل"} className="mt-2 w-full rounded-xl border border-ink-200 bg-ink-50 px-4 py-3.5 text-[13px] outline-none transition focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10" /></label>
                   <label className="mt-5 block text-[11px] font-bold text-ink-600">البريد الإلكتروني<input readOnly dir="ltr" value={user.email} className="mt-2 w-full rounded-xl border border-ink-100 bg-ink-100 px-4 py-3.5 text-left text-[13px] text-ink-400 outline-none" /></label>
-                  <p className="mt-3 text-[10px] leading-5 text-ink-400">تغيير البريد أو كلمة المرور يتم من خلال إعدادات حساب Supabase الآمنة.</p>
+                  <p className="mt-3 text-[10px] leading-5 text-ink-400">يمكنك تغيير البريد أو كلمة المرور بأمان من إعدادات حسابك.</p>
                   {profileNotice && <p className={`mt-5 rounded-xl p-3 text-[11px] ${profileMutation.isError ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{profileNotice}</p>}
                   <button disabled={profileMutation.isPending} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-ink-950 px-5 py-3 text-[12px] font-black text-white disabled:opacity-50">{profileMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} حفظ التغييرات</button>
                 </form>

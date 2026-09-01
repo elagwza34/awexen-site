@@ -62,14 +62,15 @@ function friendlyError(error: unknown) {
     || normalizedMessage.includes("email address not authorized")
     || normalizedMessage.includes("email_address_not_authorized")
   ) {
-    return "تعذّر إرسال كود التأكيد عبر خدمة البريد. تأكد من إعدادات SMTP ثم أعد المحاولة بعد دقيقة.";
+    return "تعذّر إرسال كود التأكيد حاليًا. انتظر دقيقة ثم أعد المحاولة، أو استخدم تسجيل الدخول إذا كان الحساب موجودًا بالفعل.";
   }
   if (code === "otp_expired" || normalizedMessage.includes("token has expired") || normalizedMessage.includes("invalid token")) return "كود التأكيد غير صحيح أو انتهت صلاحيته. اطلب كودًا جديدًا.";
   if (["over_email_send_rate_limit", "over_request_rate_limit"].includes(code) || normalizedMessage.includes("rate limit")) return "تم طلب أكواد كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.";
   if (normalizedMessage.includes("failed to fetch")) {
     return "تعذّر التحقق من صلاحية الحساب مؤقتًا. حدّث الصفحة أو سجّل الخروج ثم حاول تسجيل الدخول مرة أخرى.";
   }
-  return message;
+  console.warn("[learning] operation failed", error);
+  return "تعذّر إكمال العملية مؤقتًا. حاول مرة أخرى، وإذا استمرت المشكلة تواصل مع الدعم.";
 }
 
 function BrandMark() {
@@ -162,7 +163,7 @@ export function LearningGuard() {
       <section className="grid min-h-screen place-items-center bg-ink-950 px-4 text-center text-white">
         <div>
           <p className="font-black">تعذر التحقق من دور الحساب.</p>
-          <p className="mt-2 text-sm text-white/55">حدّث الصفحة، وإذا استمرت المشكلة تأكد من نشر دالة LMS في Supabase.</p>
+          <p className="mt-2 text-sm text-white/55">حدّث الصفحة، وإذا استمرت المشكلة سجّل الخروج ثم حاول مرة أخرى أو تواصل مع الدعم.</p>
         </div>
       </section>
     );
@@ -242,7 +243,7 @@ export function LearningAuth() {
   const signInWithGoogle = async () => {
     setError(null);
     if (!supabase) {
-      setError("بيانات ربط Supabase غير موجودة في ملف البيئة.");
+      setError("خدمة تسجيل الدخول غير متاحة مؤقتًا. حاول مرة أخرى لاحقًا.");
       return;
     }
     if (accountType === "instructor") {
@@ -267,7 +268,7 @@ export function LearningAuth() {
     setError(null);
     setNotice(null);
     if (!supabase) {
-      setError("بيانات ربط Supabase غير موجودة في ملف البيئة.");
+      setError("خدمة تسجيل الدخول غير متاحة مؤقتًا. حاول مرة أخرى لاحقًا.");
       return;
     }
     if (!email.trim()) {
@@ -306,7 +307,7 @@ export function LearningAuth() {
     setError(null);
     setNotice(null);
     if (!supabase) {
-      setError("بيانات ربط Supabase غير موجودة في ملف البيئة.");
+      setError("خدمة تسجيل الدخول غير متاحة مؤقتًا. حاول مرة أخرى لاحقًا.");
       return;
     }
 
