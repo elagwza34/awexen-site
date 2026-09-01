@@ -48,7 +48,6 @@ export default function AdminLogin({ activeSessionEmail, onAuthenticated }: Admi
         return;
       }
 
-      setPassword("");
       onAuthenticated(data.session.user.id);
     } catch {
       setError("تعذر الاتصال بخدمة تسجيل الدخول. حاول مرة أخرى.");
@@ -96,7 +95,7 @@ export default function AdminLogin({ activeSessionEmail, onAuthenticated }: Admi
 
         <form onSubmit={submit} autoComplete="on" className="mt-6 space-y-4">
           <label className="block space-y-2 text-[13px] font-bold text-white/80">
-            البريد الإلكتروني
+            البريد الإلكتروني (اسم المستخدم)
             <input
               dir="ltr"
               name="username"

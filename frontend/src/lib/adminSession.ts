@@ -1,5 +1,4 @@
 const ADMIN_UNLOCK_KEY = "awexen.admin.unlock.v1";
-const ADMIN_UNLOCK_TTL_MS = 8 * 60 * 60 * 1000;
 const ADMIN_DRAFT_PREFIX = "awexen.admin.resource-draft.v1:";
 
 type AdminUnlockRecord = {
@@ -7,7 +6,16 @@ type AdminUnlockRecord = {
   unlockedAt: number;
 };
 
-function getSessionStorage() {
+function getPersistentStorage() {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function getDraftStorage() {
   if (typeof window === "undefined") return null;
   try {
     return window.sessionStorage;
@@ -17,14 +25,14 @@ function getSessionStorage() {
 }
 
 export function unlockAdminSession(userId: string) {
-  const storage = getSessionStorage();
+  const storage = getPersistentStorage();
   if (!storage) return;
   const record: AdminUnlockRecord = { userId, unlockedAt: Date.now() };
   storage.setItem(ADMIN_UNLOCK_KEY, JSON.stringify(record));
 }
 
 export function isAdminSessionUnlocked(userId: string) {
-  const storage = getSessionStorage();
+  const storage = getPersistentStorage();
   if (!storage) return false;
 
   try {
@@ -32,8 +40,7 @@ export function isAdminSessionUnlocked(userId: string) {
     const valid = Boolean(
       record
       && record.userId === userId
-      && Number.isFinite(record.unlockedAt)
-      && Date.now() - record.unlockedAt < ADMIN_UNLOCK_TTL_MS,
+      && Number.isFinite(record.unlockedAt),
     );
     if (!valid) storage.removeItem(ADMIN_UNLOCK_KEY);
     return valid;
@@ -44,11 +51,11 @@ export function isAdminSessionUnlocked(userId: string) {
 }
 
 export function lockAdminSession() {
-  getSessionStorage()?.removeItem(ADMIN_UNLOCK_KEY);
+  getPersistentStorage()?.removeItem(ADMIN_UNLOCK_KEY);
 }
 
 export function clearAdminSessionDrafts() {
-  const storage = getSessionStorage();
+  const storage = getDraftStorage();
   if (!storage) return;
 
   for (let index = storage.length - 1; index >= 0; index -= 1) {

@@ -137,7 +137,11 @@ export default function AdminDashboard({ userId }: { userId: string }) {
   const logout = async () => {
     lockAdminSession();
     clearAdminSessionDrafts();
-    await supabase?.auth.signOut({ scope: "local" });
+    try {
+      await supabase?.auth.signOut({ scope: "local" });
+    } finally {
+      window.location.replace("/awexen");
+    }
   };
 
   return (
