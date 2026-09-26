@@ -1215,6 +1215,118 @@ async function routeRequest(
   throw new HttpError(404, "مسار منصة التعلّم غير موجود.");
 }
 
+/**
+ * تحديد معدل الطلبات لكل مستخدم — يمنع إغراق الـ API (خصوصًا endpoint التقدّم).
+ *
+ * التنفيذ الصحيح: Deno.Kv كـ counter موزّع بين instances، مع رجوع تلقائي
+ * لخريطة في الذاكرة لو الـ KV غير مُفعّل (يعمل صح في instance واحد).
+ */
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX_REQUESTS = 120;
+
+type RateResult = { allowed: boolean; retryAfterSeconds: number; remaining: number };
+
+let kvPromise: Promise<Deno.Kv | null> | null = null;
+
+/** يفتح Deno.Kv مرة واحدة فقط، ويرجع null لو غير متاح — بدون رمي */
+function getKv(): Promise<Deno.Kv | null> {
+  if (!kvPromise) {
+    kvPromise = (async () => {
+      try {
+        if (!("openKv" in Deno)) return null;
+        return await Deno.openKv();
+      } catch (error) {
+        console.warn("[lms-api] Deno.Kv غير متاح، سيتم استخدام الحد في الذاكرة", error);
+        return null;
+      }
+    })();
+  }
+  return kvPromise;
+}
+
+/** يحدّد نطاق الحد: للتقدّم نسمح بضعف الطلبات لأنه يُرسل باستمرار أثناء المشاهدة */
+function scopeFor(parts: string[]): { key: string; max: number } {
+  const isProgress = parts[0] === "progress";
+  return {
+    key: isProgress ? "progress" : "general",
+    max: isProgress ? RATE_MAX_REQUESTS * 2 : RATE_MAX_REQUESTS,
+  };
+}
+
+async function enforceRateLimitKv(
+  kv: Deno.Kv,
+  userId: string,
+  scope: { key: string; max: number },
+): Promise<RateResult> {
+  const key = ["rate_limit", scope.key, userId];
+  const entry = await kv.get<{ count: number; resetAt: number }>(key);
+  const now = Date.now();
+  const current = entry.value;
+  const fresh = !current || current.resetAt <= now;
+  const next = fresh ? { count: 1, resetAt: now + RATE_WINDOW_MS } : { count: current.count + 1, resetAt: current.resetAt };
+
+  // atomic: نحدّث العدّاد ونقرأ النتيجة في نفس العملية
+  const commit = await kv.atomic()
+    .check(entry)
+    .set(key, next, { expireIn: Math.max(1_000, next.resetAt - now) })
+    .get<{ count: number; resetAt: number }>(key)
+    .commit();
+
+  const stored = commit.ok ? commit.value : next;
+  const count = stored?.count ?? next.count;
+  const resetAt = stored?.resetAt ?? next.resetAt;
+  const allowed = count <= scope.max;
+  return {
+    allowed,
+    retryAfterSeconds: Math.max(1, Math.ceil((resetAt - now) / 1000)),
+    remaining: Math.max(0, scope.max - count),
+  };
+}
+
+/** رجوع للوضع في الذاكرة لو الـ KV مش متاح */
+type MemoryBucket = { count: number; resetAt: number };
+const memoryBuckets = new Map<string, MemoryBucket>();
+
+function enforceRateLimitMemory(
+  userId: string,
+  scope: { key: string; max: number },
+): RateResult {
+  const now = Date.now();
+  const key = `${scope.key}:${userId}`;
+  const bucket = memoryBuckets.get(key);
+  const fresh = !bucket || bucket.resetAt <= now;
+
+  if (memoryBuckets.size > 5_000) {
+    for (const [k, v] of memoryBuckets) if (v.resetAt <= now) memoryBuckets.delete(k);
+  }
+
+  if (fresh) {
+    const next = { count: 1, resetAt: now + RATE_WINDOW_MS };
+    memoryBuckets.set(key, next);
+    return { allowed: true, retryAfterSeconds: RATE_WINDOW_MS / 1000, remaining: scope.max - 1 };
+  }
+  bucket.count += 1;
+  return {
+    allowed: bucket.count <= scope.max,
+    retryAfterSeconds: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)),
+    remaining: Math.max(0, scope.max - bucket.count),
+  };
+}
+
+async function enforceRateLimit(context: LmsContext, parts: string[]): Promise<void> {
+  const scope = scopeFor(parts);
+  const kv = await getKv();
+  const result = kv
+    ? await enforceRateLimitKv(kv, context.auth_user_id, scope)
+    : enforceRateLimitMemory(context.auth_user_id, scope);
+
+  if (!result.allowed) {
+    throw new HttpError(429, "عدد الطلبات كبير جدًا. حاول مرة أخرى بعد قليل.", {
+      retry_after_seconds: result.retryAfterSeconds,
+    });
+  }
+}
+
 Deno.serve(async (request) => {
   const currentRequestId = requestId(request);
   if (request.method === "OPTIONS") {
@@ -1223,7 +1335,9 @@ Deno.serve(async (request) => {
   try {
     const db = databaseClient();
     const context = await authenticate(request, db);
-    return await routeRequest(request, db, context, pathParts(request), currentRequestId);
+    const parts = pathParts(request);
+    await enforceRateLimit(context, parts);
+    return await routeRequest(request, db, context, parts, currentRequestId);
   } catch (error) {
     return errorResponse(request, error, currentRequestId);
   }

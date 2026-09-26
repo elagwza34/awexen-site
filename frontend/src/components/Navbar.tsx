@@ -10,6 +10,7 @@ import { cn } from "../utils/cn";
 
 const mobileLinks = [
   { key: "nav.portfolio", to: "/portfolio" },
+  { key: "nav.pms", to: "/pms" },
   { key: "nav.pricing", to: "/#pricing" },
   { key: "nav.blog", to: "/blog" },
   { key: "nav.courses", to: "/courses" },
@@ -218,6 +219,18 @@ export default function Navbar() {
                   )}
                 >
                   {t("nav.portfolio")}
+                </Link>
+              </li>
+
+              <li>
+                <Link
+                  to="/pms"
+                  className={cn(
+                    "rounded-lg px-3.5 py-2 text-[14.5px] font-semibold transition-colors hover:bg-white/5 hover:text-white",
+                    active("/pms") ? "text-brand-400" : "text-white/75",
+                  )}
+                >
+                  {t("nav.pms")}
                 </Link>
               </li>
 

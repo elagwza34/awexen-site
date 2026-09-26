@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Bot, Loader2, MessageCircleQuestion, Send, ShieldCheck, X } from "lucide-react";
-import { askAwexen } from "../lib/askAwexen";
-import { loadKnowledge, matchKnowledge, rankKnowledge, saveAiInquiry, type KnowledgeEntry } from "../lib/cms";
+import { loadKnowledge, matchKnowledge, saveAiInquiry, type KnowledgeEntry } from "../lib/cms";
 import { OPEN_KNOWLEDGE_CHAT_EVENT } from "../lib/uiEvents";
 import { cn } from "../utils/cn";
 
@@ -68,37 +67,24 @@ export default function KnowledgeChat() {
     setBusy(true);
 
     const matched = matchKnowledge(cleanQuestion, knowledge);
-    let answer = matched
+    const answer = matched
       ? matched.answer
       : knowledge.length === 0
         ? "قاعدة المعرفة لم تُجهّز بعد. سجّلت سؤالك ليظهر للإدارة، ويمكنك التواصل عبر واتساب للحصول على رد مباشر."
         : "لم أجد إجابة معتمدة لهذا السؤال. سجّلته للمراجعة بدل تقديم معلومة غير مؤكدة.";
-    let grounded = Boolean(matched);
-
-    try {
-      const aiResponse = await askAwexen(cleanQuestion, rankKnowledge(cleanQuestion, knowledge));
-      if (aiResponse) {
-        answer = aiResponse.answer;
-        grounded = aiResponse.grounded;
-      }
-    } catch (error) {
-      console.warn("[ask-awexen] AI fallback:", error);
-      grounded = false;
-      answer = "واجهت مشكلة مؤقتة أثناء تجهيز الإجابة. جرّب إرسال السؤال مرة أخرى بصياغة أقصر، أو تواصل معنا مباشرة إذا كان الأمر عاجلًا.";
-    }
 
     await saveAiInquiry({
       name: name || null,
       email: email || null,
       question: cleanQuestion,
       matched_knowledge_id: matched?.id ?? null,
-      answer: grounded ? answer : null,
-      status: grounded ? "answered" : "needs_review",
+      answer: matched?.answer ?? null,
+      status: matched ? "answered" : "needs_review",
     });
 
     setMessages((current) => [
       ...current,
-      { id: Date.now() + 1, role: "assistant", text: answer, source: grounded ? matched?.source_url : null },
+      { id: Date.now() + 1, role: "assistant", text: answer, source: matched?.source_url },
     ]);
     setBusy(false);
   };
@@ -110,7 +96,7 @@ export default function KnowledgeChat() {
           <button type="button" aria-label="إغلاق المحادثة" onClick={() => setOpen(false)} className="fixed inset-0 -z-10 bg-black/35 backdrop-blur-[2px] sm:hidden" />
           <div
             role="dialog"
-            aria-label="محادثة Ask Awexen"
+            aria-label="محادثة اسأل أوكسين"
             className="mb-3 flex h-[min(620px,72vh)] w-[calc(100vw-24px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-950 text-white shadow-2xl shadow-black/40 sm:h-[540px] sm:w-[380px]"
           >
             <header className="flex items-center justify-between border-b border-white/10 bg-white/[0.035] px-4 py-3.5">
@@ -120,11 +106,10 @@ export default function KnowledgeChat() {
                   <span className="absolute -bottom-0.5 -left-0.5 h-2.5 w-2.5 rounded-full border-2 border-ink-950 bg-emerald-400" />
                 </span>
                 <div>
-                  <h2 dir="ltr" className="text-left text-[14px] font-extrabold text-white">Ask Awexen</h2>
-                  <p className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold text-white/70">
+                  <h2 className="text-[13px] font-extrabold ">AI Awexen</h2>
+                  <p className="mt-0.5 flex items-center gap-1 text-[9.5px] text-white/40">
                     <ShieldCheck className="h-3 w-3 text-emerald-400" />
-                    مساعدك الخاص
-                  </p>
+مساعدك الخاص                      </p>
                 </div>
               </div>
               <button type="button" onClick={() => setOpen(false)} aria-label="إغلاق" className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 text-white/55 transition hover:bg-white/5 hover:text-white"><X className="h-4 w-4" /></button>
@@ -140,7 +125,7 @@ export default function KnowledgeChat() {
                 </div>
               ))}
               {busy && (
-                <div className="flex justify-end"><div dir="ltr" className="inline-flex items-center gap-2 rounded-2xl rounded-tl-md border border-white/8 bg-white/[0.055] px-3.5 py-2.5 text-[10.5px] text-white/45"><Loader2 className="h-3.5 w-3.5 animate-spin" />Thinking ...</div></div>
+                <div className="flex justify-end"><div className="inline-flex items-center gap-2 rounded-2xl rounded-tl-md border border-white/8 bg-white/[0.055] px-3.5 py-2.5 text-[10.5px] text-white/45"><Loader2 className="h-3.5 w-3.5 animate-spin" />أراجع قاعدة المعرفة...</div></div>
               )}
               <div ref={endRef} />
             </div>
@@ -148,8 +133,8 @@ export default function KnowledgeChat() {
             <details className="border-t border-white/8 px-4 py-2">
               <summary className="cursor-pointer text-[9.5px] font-bold text-white/35 hover:text-white/60">بيانات التواصل — اختيارية</summary>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                <input aria-label="الاسم — اختياري" value={name} onChange={(event) => setName(event.target.value)} placeholder="الاسم" className="rounded-lg border border-white/8 bg-white/[0.04] px-2.5 py-2 text-[12px] text-white outline-none focus:border-brand-500" />
-                <input aria-label="البريد الإلكتروني — اختياري" type="email" dir="ltr" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="email@example.com" className="rounded-lg border border-white/8 bg-white/[0.04] px-2.5 py-2 text-left text-[12px] text-white outline-none focus:border-brand-500" />
+                <input value={name} onChange={(event) => setName(event.target.value)} placeholder="الاسم" className="rounded-lg border border-white/8 bg-white/[0.04] px-2.5 py-2 text-[10.5px] text-white outline-none focus:border-brand-500" />
+                <input type="email" dir="ltr" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="email@example.com" className="rounded-lg border border-white/8 bg-white/[0.04] px-2.5 py-2 text-left text-[10.5px] text-white outline-none focus:border-brand-500" />
               </div>
             </details>
 
@@ -169,8 +154,7 @@ export default function KnowledgeChat() {
                     }
                   }}
                   placeholder={loadingKnowledge ? "جارٍ تجهيز المعرفة..." : "اكتب سؤالك هنا..."}
-                  aria-label="اكتب سؤالك"
-                  className="max-h-24 min-h-10 flex-1 resize-none bg-transparent px-1.5 py-2 text-[12.5px] leading-6 text-white outline-none placeholder:text-white/35"
+                  className="max-h-24 min-h-9 flex-1 resize-none bg-transparent px-1.5 py-2 text-[11.5px] leading-5 text-white outline-none placeholder:text-white/25"
                 />
                 <button disabled={busy || loadingKnowledge || !question.trim()} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-500 text-white transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-40" aria-label="إرسال السؤال"><Send className="h-4 w-4" /></button>
               </div>
@@ -186,11 +170,10 @@ export default function KnowledgeChat() {
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
         aria-controls="ask-awexen"
-        aria-label={open ? "إغلاق مساعد Awexen" : "فتح مساعد Awexen"}
         className="group mr-auto flex items-center gap-2.5 rounded-full bg-ink-950 p-2.5 text-white shadow-xl shadow-black/25 ring-1 ring-white/10 transition hover:-translate-y-0.5 hover:bg-brand-500 sm:px-3.5"
       >
         <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-500 text-white transition group-hover:bg-white group-hover:text-brand-600"><MessageCircleQuestion className="h-4.5 w-4.5" /></span>
-        <span dir="ltr" className="hidden pl-1 text-[11.5px] font-bold sm:block">Ask Awexen</span>
+        <span className="hidden pl-1 text-[11.5px] font-bold sm:block">اسأل أوكسين</span>
       </button>
     </div>
   );

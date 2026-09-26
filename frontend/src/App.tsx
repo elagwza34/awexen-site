@@ -30,6 +30,7 @@ const ServicesIndex = lazy(() => import("./pages/ServicesIndex"));
 const ServiceDetail = lazy(() => import("./pages/ServiceDetail"));
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
 const PortfolioDetail = lazy(() => import("./pages/PortfolioDetail"));
+const PMS = lazy(() => import("./pages/PMS"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const ExportData = lazy(() => import("./pages/ExportData"));
@@ -50,6 +51,7 @@ const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
 const DynamicPage = lazy(() => import("./pages/DynamicPage"));
 const LearningAuth = lazy(() => import("./pages/Learning").then((module) => ({ default: module.LearningAuth })));
 const LearningGuard = lazy(() => import("./pages/Learning").then((module) => ({ default: module.LearningGuard })));
+const LearningErrorBoundary = lazy(() => import("./pages/Learning").then((module) => ({ default: module.LearningErrorBoundary })));
 const LessonPlayer = lazy(() => import("./pages/Learning").then((module) => ({ default: module.LessonPlayer })));
 
 function RouteLoader({ dark = false }: { dark?: boolean }) {
@@ -250,6 +252,7 @@ function AppShell() {
             <Route path="/services/:slug" element={<ServiceDetail />} />
             <Route path="/portfolio" element={<PortfolioPage />} />
             <Route path="/portfolio/:slug" element={<PortfolioDetail />} />
+            <Route path="/pms" element={<PMS />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/blog" element={<Blog />} />
@@ -260,7 +263,11 @@ function AppShell() {
             <Route path="/courses/:slug" element={<CourseDetail />} />
             <Route path="/login" element={<LearningAuth />} />
             <Route path="/learn/login" element={<LegacyLoginRedirect />} />
-            <Route element={<LearningGuard />}>
+            <Route element={
+              <LearningErrorBoundary>
+                <LearningGuard />
+              </LearningErrorBoundary>
+            }>
               <Route path="/checkout/:slug" element={<CourseCheckout />} />
               <Route path="/learn" element={<DashboardThemeProvider><StudentDashboard /></DashboardThemeProvider>} />
               <Route path="/learn/enrollments/:enrollmentId" element={<LessonPlayer />} />

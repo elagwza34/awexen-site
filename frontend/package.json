@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:setup": "node scripts/check-setup.mjs",
+    "seed:lms": "node scripts/seed-lms.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
@@ -26,6 +28,7 @@
     "@vitejs/plugin-react": "5.1.1",
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",
-    "vite": "^7.3.6"
+    "vite": "^7.3.6",
+    "wrangler": "^4.0.0"
   }
 }

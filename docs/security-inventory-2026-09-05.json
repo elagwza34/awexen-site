@@ -1,0 +1,1475 @@
+{
+  "date": "2026-09-05",
+  "scope": "Read-only Hostinger inventory; incomplete incident investigation",
+  "backup_constraint": "Do not restore backups created after 2026-08-22 per user; earliest detection date not independently verified.",
+  "account_cron": [],
+  "limitations": [
+    "All 13 website file listings returned HTTP 503.",
+    "Theme inventory attempts on misr-edu.com, 3dex.com.sa and arabadu.org returned HTTP 503.",
+    "Database contents, WordPress users, WP-Cron and wp-config.php not inspected.",
+    "No passwords changed; no plugins or themes disabled; no backups restored.",
+    "Local malware scan not performed. Defender reports disabled; Security Center registrations alone do not establish another antivirus is running."
+  ],
+  "sites": [
+    {
+      "domain": "reno-va.com",
+      "plugins": [
+        {
+          "name": "blocksy-companion",
+          "title": "Blocksy Companion",
+          "version": "2.1.55",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "elementor",
+          "title": "Elementor",
+          "version": "4.1.4",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "litespeed-cache",
+          "title": "LiteSpeed Cache",
+          "version": "7.9.1",
+          "status": "inactive",
+          "update": "none",
+          "vulnerabilities": []
+        }
+      ]
+    },
+    {
+      "domain": "elsayehgroup.com",
+      "plugins": [
+        {
+          "name": "all-in-one-wp-migration",
+          "title": "All-in-One WP Migration and Backup",
+          "version": "7.110",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "chaty",
+          "title": "Chaty",
+          "version": "3.5.7",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "elementor",
+          "title": "Elementor",
+          "version": "4.1.4",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "forminator",
+          "title": "Forminator",
+          "version": "1.57.2",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "hostinger-ai-assistant",
+          "title": "Hostinger AI",
+          "version": "3.0.39",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "hostinger-easy-onboarding",
+          "title": "Hostinger Easy Onboarding",
+          "version": "2.1.24",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "hostinger-reach",
+          "title": "Hostinger Reach",
+          "version": "1.5.1",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "hostinger",
+          "title": "Hostinger Tools",
+          "version": "3.0.67",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "king-addons",
+          "title": "King Addons for Elementor",
+          "version": "51.1.76",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "litespeed-cache",
+          "title": "LiteSpeed Cache",
+          "version": "7.9.1",
+          "status": "inactive",
+          "update": "none",
+          "vulnerabilities": []
+        }
+      ]
+    },
+    {
+      "domain": "3dex.com.sa",
+      "plugins": [
+        {
+          "name": "all-in-one-wp-migration",
+          "title": "All-in-One WP Migration and Backup",
+          "version": "7.110",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "contact-form-7",
+          "title": "Contact Form 7",
+          "version": "6.1.7",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "dokan-lite",
+          "title": "Dokan",
+          "version": "5.0.19",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "elementor",
+          "title": "Elementor",
+          "version": "4.2.4",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "filter-everything",
+          "title": "Filter Everything&nbsp;— WordPress & WooCommerce Filters",
+          "version": "1.9.6",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "forminator",
+          "title": "Forminator",
+          "version": "1.57.2",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "saudi-riyal-symbol-for-woocommerce",
+          "title": "Gulf currencies Symbols for WooCommerce - رمز الريال السعودي والدرهم الإماراتي",
+          "version": "2.3",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "hostinger-easy-onboarding",
+          "title": "Hostinger Easy Onboarding",
+          "version": "2.1.37",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "kirki",
+          "title": "Kirki",
+          "version": "6.3.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "litespeed-cache",
+          "title": "LiteSpeed Cache",
+          "version": "7.9.1",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "loco-translate",
+          "title": "Loco Translate",
+          "version": "2.8.8",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "mailchimp-for-wp",
+          "title": "MC4WP: Mailchimp for WordPress",
+          "version": "4.14.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "meta-box",
+          "title": "Meta Box",
+          "version": "5.15.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "my-slider-plugin",
+          "title": "My Custom Slider (Advanced)",
+          "version": "1.3",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "pro-elements",
+          "title": "PRO Elements",
+          "version": "4.2.2",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "unlimited-elements-for-elementor",
+          "title": "Unlimited Elements for Elementor",
+          "version": "2.0.18",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wcboost-products-compare",
+          "title": "WCBoost - Products Compare",
+          "version": "1.1.1",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wcboost-variation-swatches",
+          "title": "WCBoost - Variation Swatches",
+          "version": "1.1.4",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wcboost-wishlist",
+          "title": "WCBoost - Wishlist",
+          "version": "1.3.1",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "woocommerce",
+          "title": "WooCommerce",
+          "version": "11.1.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wordfence",
+          "title": "Wordfence Security",
+          "version": "9.0.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "insert-headers-and-footers",
+          "title": "WPCode Lite",
+          "version": "2.3.9",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        }
+      ]
+    },
+    {
+      "domain": "amoneex.com",
+      "plugins": {
+        "error": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `hostinger-wordpress/hosting_listInstalledWordPressPluginsV1`\n\nCaused by:\n    Mcp error: -32603: API request failed with status 500: Request failed with status code 500"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "vagory.com",
+      "plugins": {
+        "error": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `hostinger-wordpress/hosting_listInstalledWordPressPluginsV1`\n\nCaused by:\n    Mcp error: -32603: API request failed with status 500: Request failed with status code 500"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "arabadu.org",
+      "plugins": [
+        {
+          "name": "eps-301-redirects",
+          "title": "301 Redirects",
+          "version": "2.85",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "all-in-one-wp-migration",
+          "title": "All-in-One WP Migration and Backup",
+          "version": "7.110",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "all-in-one-wp-migration-unlimited-extension",
+          "title": "All-in-One WP Migration Unlimited Extension",
+          "version": "2.86",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "chaty",
+          "title": "Chaty",
+          "version": "3.5.9",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "classic-editor",
+          "title": "Classic Editor",
+          "version": "1.7.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "cmb2",
+          "title": "CMB2",
+          "version": "2.12.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "contact-form-7",
+          "title": "Contact Form 7",
+          "version": "6.1.6",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "cta-boxes",
+          "title": "CTA Boxes Pro",
+          "version": "4.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "elementor",
+          "title": "Elementor",
+          "version": "4.2.1",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "elite-mobile-sidebar",
+          "title": "Elite Mobile Sidebar",
+          "version": "2.1.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "fileorganizer",
+          "title": "FileOrganizer",
+          "version": "1.2.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "flamingo",
+          "title": "Flamingo",
+          "version": "2.6.3",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "forminator",
+          "title": "Forminator",
+          "version": "1.57.2",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "litespeed-cache",
+          "title": "LiteSpeed Cache",
+          "version": "7.9.1",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "loco-translate",
+          "title": "Loco Translate",
+          "version": "2.8.8",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "maintenance",
+          "title": "Maintenance",
+          "version": "4.32",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "mailchimp-for-wp",
+          "title": "MC4WP: Mailchimp for WordPress",
+          "version": "4.13.1",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "one-click-demo-import",
+          "title": "One Click Demo Import",
+          "version": "3.4.1",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "ova-career",
+          "title": "Ovatheme Career",
+          "version": "1.0.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "ova-framework",
+          "title": "OvaTheme Framework",
+          "version": "1.0.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "ova-team",
+          "title": "Ovatheme Team",
+          "version": "1.0.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "pro-elements",
+          "title": "PRO Elements",
+          "version": "4.1.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "redirection",
+          "title": "Redirection",
+          "version": "5.9.0",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "redirect-redirection",
+          "title": "Redirect Redirection",
+          "version": "1.3.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "header-footer-elementor",
+          "title": "Ultimate Addons for Elementor (UAE)",
+          "version": "2.9.2",
+          "status": "inactive",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "woocommerce",
+          "title": "WooCommerce",
+          "version": "11.1.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "insert-headers-and-footers",
+          "title": "WPCode Lite",
+          "version": "2.3.8",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wp-file-manager",
+          "title": "WP File Manager",
+          "version": "8.0.4",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wpforms-lite",
+          "title": "WPForms Lite",
+          "version": "2.0.0.2",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wp-headers-and-footers",
+          "title": "WP Headers And Footers",
+          "version": "3.1.5",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wp-mail-smtp",
+          "title": "WP Mail SMTP",
+          "version": "4.9.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wordpress-seo",
+          "title": "Yoast SEO",
+          "version": "28.1",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        }
+      ]
+    },
+    {
+      "domain": "misr-edu.com",
+      "plugins": [
+        {
+          "name": "td-composer",
+          "title": "tagDiv Composer",
+          "version": "3.4 | built on 12.05.2022 9:11",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": [
+            {
+              "title": "WordPress tagDiv Composer plugin < 3.5 - Unauthenticated Account Takeover vulnerability",
+              "description": "Unauthenticated Account Takeover vulnerability discovered by Truoc Phan (Techlab Corporation) in WordPress Plugin tagDiv Composer (versions < 3.5)",
+              "affected_in": "< 3.5",
+              "fixed_in": "3.5",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-3-5-unauthenticated-account-takeover-vulnerability?_a_id=241"
+            },
+            {
+              "title": "Wordpress tagDiv Composer plugin < 4.0 - Reflected Cross-site Scripting vulnerability",
+              "description": "Reflected Cross-site Scripting vulnerability discovered by Truoc Phan in WordPress Plugin tagDiv Composer (versions < 4.0)",
+              "affected_in": "< 4.0",
+              "fixed_in": "4.0",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-4-0-reflected-cross-site-scripting-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin < 4.4 - CSRF to XSS vulnerability",
+              "description": "CSRF to XSS vulnerability discovered by Truoc Phan (Patchstack Alliance) in WordPress Plugin tagDiv Composer (versions < 4.4)",
+              "affected_in": "< 4.4",
+              "fixed_in": "4.4",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-4-1-csrf-to-xss-vulnerability?_a_id=241"
+            },
+            {
+              "title": "Wordpress tagDiv Composer plugin < 4.2 - Unauthenticated Stored XSS vulnerability",
+              "description": "Unauthenticated Stored XSS vulnerability discovered by Truoc Phan in WordPress Plugin tagDiv Composer (versions < 4.2)",
+              "affected_in": "< 4.2",
+              "fixed_in": "4.2",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-4-2-unauthenticated-stored-xss-vulnerability?_a_id=241"
+            },
+            {
+              "title": "Wordpress tagDiv Composer plugin < 4.2 - Admin+ Stored XSS vulnerability",
+              "description": "Admin+ Stored XSS vulnerability discovered by Truoc Phan in WordPress Plugin tagDiv Composer (versions < 4.2)",
+              "affected_in": "< 4.2",
+              "fixed_in": "4.2",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-4-2-admin-stored-xss-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 4.8 - Authenticated (Contributor+) Stored Cross-Site Scripting via button Shortcode vulnerability",
+              "description": "Authenticated (Contributor+) Stored Cross-Site Scripting via button Shortcode vulnerability discovered by Truoc Phan in WordPress Plugin tagDiv Composer (versions <= 4.8)",
+              "affected_in": "<= 4.8",
+              "fixed_in": "4.9",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-4-8-authenticated-contributor-stored-cross-site-scripting-via-button-shortcode-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 4.8 - Authenticated Local File Inclusion via Shortcode vulnerability",
+              "description": "Authenticated Local File Inclusion via Shortcode vulnerability discovered by István Márton in WordPress Plugin tagDiv Composer (versions <= 4.8)",
+              "affected_in": "<= 4.8",
+              "fixed_in": "4.9",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-4-8-authenticated-local-file-inclusion-via-shortcode-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 4.8 - Authenticated Stored Cross-Site Scripting via Attachment Meta vulnerability",
+              "description": "Authenticated Stored Cross-Site Scripting via Attachment Meta vulnerability discovered by István Márton in WordPress Plugin tagDiv Composer (versions <= 4.8)",
+              "affected_in": "<= 4.8",
+              "fixed_in": "4.9",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-4-8-authenticated-stored-cross-site-scripting-via-attachment-meta-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 5.0 - Reflected Cross-Site Scripting via envato_code[] vulnerability",
+              "description": "Reflected Cross-Site Scripting via envato_code[] vulnerability discovered by Truoc Phan in WordPress Plugin tagDiv Composer (versions <= 5.0)",
+              "affected_in": "<= 5.0",
+              "fixed_in": "5.1",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-5-0-reflected-cross-site-scripting-via-envato-code-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 5.3 - Reflected Cross-Site Scripting via 'account_id' and 'account_username' vulnerability",
+              "description": "Reflected Cross-Site Scripting via 'account_id' and 'account_username' vulnerability discovered by Truoc Phan in WordPress Plugin tagDiv Composer (versions <= 5.3)",
+              "affected_in": "<= 5.3",
+              "fixed_in": "5.4",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-5-3-reflected-cross-site-scripting-via-account-id-and-account-username-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 5.3 - Cross-Site Request Forgery to Stored Cross-Site Scripting vulnerability",
+              "description": "Cross-Site Request Forgery to Stored Cross-Site Scripting vulnerability discovered by Truoc Phan in WordPress Plugin tagDiv Composer (versions <= 5.3)",
+              "affected_in": "<= 5.3",
+              "fixed_in": "5.4",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-5-3-cross-site-request-forgery-to-stored-cross-site-scripting-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress TagDiv Composer plugin <= 5.3 - Unauthenticated Arbitrary PHP Object Instantiation vulnerability",
+              "description": "Unauthenticated Arbitrary PHP Object Instantiation vulnerability discovered by mikemyers in WordPress Plugin tagDiv Composer (versions <= 5.3)",
+              "affected_in": "<= 5.3",
+              "fixed_in": "5.4",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-5-3-unauthenticated-arbitrary-php-object-instantiation-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 5.4 - Authenticated (Contributor+) Stored Cross-Site Scripting via Multiple Shortcodes vulnerability",
+              "description": "Authenticated (Contributor+) Stored Cross-Site Scripting via Multiple Shortcodes vulnerability discovered by stealthcopter in WordPress Plugin tagDiv Composer (versions <= 5.4)",
+              "affected_in": "<= 5.4",
+              "fixed_in": "5.4.1",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-5-4-authenticated-contributor-stored-cross-site-scripting-via-multiple-shortcodes-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 5.4.1 - Cross Site Scripting (XSS) vulnerability",
+              "description": "Cross Site Scripting (XSS) vulnerability discovered by João Pedro S Alcântara (Kinorth) in WordPress Plugin tagDiv Composer (versions <= 5.4.1)",
+              "affected_in": "<= 5.4.1",
+              "fixed_in": "5.4.2",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-5-4-1-cross-site-scripting-xss-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 5.4.1 - Cross Site Scripting (XSS) vulnerability",
+              "description": "Cross Site Scripting (XSS) vulnerability discovered by an unknown individual in WordPress Plugin tagDiv Composer (versions <= 5.4.1)",
+              "affected_in": "<= 5.4.1",
+              "fixed_in": "5.4.2",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-5-4-1-cross-site-scripting-xss-vulnerability-2?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 5.4.2 - Cross Site Scripting (XSS) vulnerability",
+              "description": "Cross Site Scripting (XSS) vulnerability discovered by João Pedro S Alcântara (Kinorth) in WordPress Plugin tagDiv Composer (versions <= 5.4.2)",
+              "affected_in": "<= 5.4.2",
+              "fixed_in": "5.4.3",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-5-4-2-cross-site-scripting-xss-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 5.3 - Reflected Cross-Site Scripting via 'data' vulnerability",
+              "description": "Reflected Cross-Site Scripting via 'data' vulnerability discovered by Truoc Phan - Techlab Corporation in WordPress Plugin tagDiv Composer (versions <= 5.3)",
+              "affected_in": "<= 5.3",
+              "fixed_in": "5.4",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-5-3-reflected-cross-site-scripting-via-data-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 5.0 - Reflected Cross-Site Scripting via envato_code[] vulnerability",
+              "description": "Reflected Cross-Site Scripting via envato_code[] vulnerability discovered by Truoc Phan - Techlab Corporation in WordPress Plugin tagDiv Composer (versions <= 5.0)",
+              "affected_in": "<= 5.0",
+              "fixed_in": "5.1",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-5-0-reflected-cross-site-scripting-via-envato-code-vulnerability-2?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 5.4.2 - Reflected Cross Site Scripting (XSS) vulnerability",
+              "description": "Reflected Cross Site Scripting (XSS) vulnerability discovered by João Pedro S Alcântara (Kinorth) in WordPress Plugin tagDiv Composer (versions <= 5.4.2)",
+              "affected_in": "<= 5.4.2",
+              "fixed_in": "5.4.3",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-5-4-2-reflected-cross-site-scripting-xss-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 5.4.4 - Cross Site Scripting (XSS) vulnerability",
+              "description": "Cross Site Scripting (XSS) vulnerability discovered by João Pedro S Alcântara (Kinorth) in WordPress Plugin tagDiv Composer (versions <= 5.4.4)",
+              "affected_in": "<= 5.4.4",
+              "fixed_in": "5.4.5",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-5-4-3-cross-site-scripting-xss-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 5.4.4 - Content Injection vulnerability",
+              "description": "Content Injection vulnerability discovered by Bonds in WordPress Plugin tagDiv Composer (versions <= 5.4.4)",
+              "affected_in": "<= 5.4.4",
+              "fixed_in": "5.4.5",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-5-4-3-arbitrary-shortcode-execution-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Composer plugin <= 5.4.5 - Cross Site Scripting (XSS) vulnerability",
+              "description": "Cross Site Scripting (XSS) vulnerability discovered by Bonds in WordPress Plugin tagDiv Composer (versions <= 5.4.5)",
+              "affected_in": "<= 5.4.5",
+              "fixed_in": "5.4.6",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-composer/wordpress-tagdiv-composer-plugin-5-4-3-reflected-cross-site-scripting-xss-vulnerability?_a_id=241"
+            }
+          ]
+        },
+        {
+          "name": "gravityforms",
+          "title": "Gravity Forms",
+          "version": "2.2.3",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": [
+            {
+              "title": "WordPress Gravity Forms plugin <= 2.7.3 - Unauthenticated PHP Object Injection vulnerability",
+              "description": "Unauthenticated PHP Object Injection vulnerability discovered by Rafie Muhammad (Patchstack) in WordPress Plugin Gravity Forms (versions <= 2.7.3)",
+              "affected_in": "<= 2.7.3",
+              "fixed_in": "2.7.4",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravity-forms-plugin-2-7-3-unauthenticated-php-object-injection-vulnerability?_a_id=241"
+            },
+            {
+              "title": "Wordpress Gravity Forms plugin < 2.7.5 - Reflected XSS vulnerability",
+              "description": "Reflected XSS vulnerability discovered by Fioravante Souza (WPScan) in WordPress Plugin Gravity Forms (versions < 2.7.5)",
+              "affected_in": "< 2.7.5",
+              "fixed_in": "2.7.5",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravity-forms-plugin-2-7-5-reflected-xss-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress GravityForms plugin <= 2.9.1.3 - Unauthenticated Stored Cross-Site Scripting via 'alt' parameter vulnerability",
+              "description": "Unauthenticated Stored Cross-Site Scripting via 'alt' parameter vulnerability discovered by mikemyers in WordPress Plugin Gravity Forms (versions <= 2.9.1.3)",
+              "affected_in": "<= 2.9.1.3",
+              "fixed_in": "2.9.2",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravityforms-plugin-2-9-1-3-unauthenticated-stored-cross-site-scripting-via-alt-parameter-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress Gravity Forms plugin <= 2.9.20 - Unauthenticated Arbitrary File Upload via 'copy_post_image' vulnerability",
+              "description": "Unauthenticated Arbitrary File Upload via 'copy_post_image' vulnerability discovered by Talal Nasraddeen in WordPress Plugin Gravity Forms (versions <= 2.9.20)",
+              "affected_in": "<= 2.9.20",
+              "fixed_in": "2.9.21",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravity-forms-plugin-2-9-20-unauthenticated-arbitrary-file-upload-via-copy-post-image-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress Gravity Forms plugin <= 2.9.21.1 - Unauthenticated Arbitrary File Upload via Legacy Chunked Upload vulnerability",
+              "description": "Unauthenticated Arbitrary File Upload via Legacy Chunked Upload vulnerability discovered by Talal Nasraddeen in WordPress Plugin Gravity Forms (versions <= 2.9.21.1)",
+              "affected_in": "<= 2.9.21.1",
+              "fixed_in": "2.9.22",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravity-forms-plugin-2-9-21-1-unauthenticated-arbitrary-file-upload-via-legacy-chunked-upload-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress GravityForms plugin < 2.9.23.1 - Unauthenticated Arbitrary File Upload vulnerability",
+              "description": "Unauthenticated Arbitrary File Upload vulnerability discovered by Marc Montpas in WordPress Plugin Gravity Forms (versions < 2.9.23.1)",
+              "affected_in": "< 2.9.23.1",
+              "fixed_in": "2.9.23.1",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravityforms-plugin-2-9-23-1-unauthenticated-arbitrary-file-upload-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress Gravity Forms plugin <= 2.9.28.1 - Authenticated (Subscriber+) Stored Cross-Site Scripting via Form Title vulnerability",
+              "description": "Authenticated (Subscriber+) Stored Cross-Site Scripting via Form Title vulnerability discovered by hoshino in WordPress Plugin Gravity Forms (versions <= 2.9.28)",
+              "affected_in": "<= 2.9.28",
+              "fixed_in": "2.9.29",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravity-forms-plugin-2-9-28-1-authenticated-subscriber-stored-cross-site-scripting-via-form-title-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress Gravity Forms plugin <= 2.9.30 - Reflected Cross-Site Scripting via 'form_ids' Parameter vulnerability",
+              "description": "Reflected Cross-Site Scripting via 'form_ids' Parameter vulnerability discovered by Anthony Cihan (Hann1bl3L3ct3r) - Obviam in WordPress Plugin Gravity Forms (versions <= 2.9.30)",
+              "affected_in": "<= 2.9.30",
+              "fixed_in": "2.9.31",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravity-forms-plugin-2-9-30-reflected-cross-site-scripting-via-form-ids-parameter-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress Gravity Forms plugin <= 2.9.30 - Unauthenticated Stored Cross-Site Scripting via Credit Card 'Card Type' Sub-Field vulnerability",
+              "description": "Unauthenticated Stored Cross-Site Scripting via Credit Card 'Card Type' Sub-Field vulnerability discovered by tadokun in WordPress Plugin Gravity Forms (versions <= 2.9.30)",
+              "affected_in": "<= 2.9.30",
+              "fixed_in": "2.9.31",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravity-forms-plugin-2-9-30-unauthenticated-stored-cross-site-scripting-via-credit-card-card-type-sub-field-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress Gravity Forms plugin <= 2.10.0 - Unauthenticated Stored Cross-Site Scripting vulnerability",
+              "description": "Unauthenticated Stored Cross-Site Scripting vulnerability discovered by tadokun in WordPress Plugin Gravity Forms (versions <= 2.10.0)",
+              "affected_in": "<= 2.10.0",
+              "fixed_in": "2.10.1",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravity-forms-plugin-2-10-0-unauthenticated-stored-cross-site-scripting-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress Gravity Forms plugin <= 2.10.0 - Unauthenticated Stored Cross-Site Scripting vulnerability",
+              "description": "Unauthenticated Stored Cross-Site Scripting vulnerability discovered by tadokun in WordPress Plugin Gravity Forms (versions <= 2.10.0)",
+              "affected_in": "<= 2.10.0",
+              "fixed_in": "2.10.1",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravity-forms-plugin-2-10-0-unauthenticated-stored-cross-site-scripting-vulnerability-2?_a_id=241"
+            },
+            {
+              "title": "WordPress Gravity Forms plugin <= 2.10.0 - Unauthenticated Stored Cross-Site Scripting vulnerability",
+              "description": "Unauthenticated Stored Cross-Site Scripting vulnerability discovered by tadokun in WordPress Plugin Gravity Forms (versions <= 2.10.0)",
+              "affected_in": "<= 2.10.0",
+              "fixed_in": "2.10.1",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravity-forms-plugin-2-10-0-unauthenticated-stored-cross-site-scripting-vulnerability-3?_a_id=241"
+            },
+            {
+              "title": "WordPress Gravity Forms plugin <= 2.10.0 - Unauthenticated Stored Cross-Site Scripting vulnerability",
+              "description": "Unauthenticated Stored Cross-Site Scripting vulnerability discovered by tadokun in WordPress Plugin Gravity Forms (versions <= 2.10.0)",
+              "affected_in": "<= 2.10.0",
+              "fixed_in": "2.10.1",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravity-forms-plugin-2-10-0-unauthenticated-stored-cross-site-scripting-vulnerability-4?_a_id=241"
+            },
+            {
+              "title": "WordPress Gravity Forms plugin <= 2.10.0 - Unauthenticated Stored Cross-Site Scripting vulnerability",
+              "description": "Unauthenticated Stored Cross-Site Scripting vulnerability discovered by tadokun in WordPress Plugin Gravity Forms (versions <= 2.10.0)",
+              "affected_in": "<= 2.10.0",
+              "fixed_in": "2.10.1",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravity-forms-plugin-2-10-0-unauthenticated-stored-cross-site-scripting-vulnerability-5?_a_id=241"
+            },
+            {
+              "title": "WordPress Gravity Forms  plugin <= 2.10.0.1 - Arbitrary File Deletion vulnerability",
+              "description": "Arbitrary File Deletion vulnerability discovered by daroo in WordPress Plugin Gravity Forms (versions <= 2.10.0.1)",
+              "affected_in": "<= 2.10.0.1",
+              "fixed_in": "2.10.1",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravity-forms-plugin-2-10-0-1-arbitrary-file-deletion-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress Gravity Forms plugin <= 3.0.2 - Unauthenticated Arbitrary File Upload via State/Chunk Hash Confusion vulnerability",
+              "description": "Unauthenticated Arbitrary File Upload via State/Chunk Hash Confusion vulnerability discovered by WordFence in WordPress Plugin Gravity Forms (versions <= 3.0.2)",
+              "affected_in": "<= 3.0.2",
+              "fixed_in": "3.0.3",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravity-forms-plugin-3-0-2-unauthenticated-arbitrary-file-upload-via-state-chunk-hash-confusion-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress Gravity Forms plugin <= 2.10.5 - Unauthenticated Stored Cross-Site Scripting via Post Body Field Value vulnerability",
+              "description": "Unauthenticated Stored Cross-Site Scripting via Post Body Field Value vulnerability discovered by daroo in WordPress Plugin Gravity Forms (versions <= 2.10.5)",
+              "affected_in": "<= 2.10.5",
+              "fixed_in": "3.0.0",
+              "direct_url": "https://patchstack.com/database/vulnerability/gravityforms/wordpress-gravity-forms-plugin-2-10-5-unauthenticated-stored-cross-site-scripting-via-post-body-field-value-vulnerability?_a_id=241"
+            }
+          ]
+        },
+        {
+          "name": "td-cloud-library",
+          "title": "tagDiv Cloud Library",
+          "version": "2.3 | built on 12.05.2022 9:11",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": [
+            {
+              "title": "Wordpress tagDiv Cloud Library plugin < 2.7 - Unauthenticated Arbitrary User Metadata Update to Privilege Escalation vulnerability",
+              "description": "Unauthenticated Arbitrary User Metadata Update to Privilege Escalation vulnerability discovered by Truoc Phan in WordPress Plugin tagDiv Cloud Library (versions < 2.7)",
+              "affected_in": "< 2.7",
+              "fixed_in": "2.7",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-cloud-library/wordpress-tagdiv-cloud-library-plugin-2-7-unauthenticated-arbitrary-user-metadata-update-to-privilege-escalation-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Cloud Library plugin < 3.9.2 - Cross Site Scripting (XSS) vulnerability",
+              "description": "Cross Site Scripting (XSS) vulnerability discovered by João Pedro S Alcântara (Kinorth) in WordPress Plugin tagDiv Cloud Library (versions < 3.9.2)",
+              "affected_in": "< 3.9.2",
+              "fixed_in": "3.9.2",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-cloud-library/wordpress-tagdiv-cloud-library-plugin-3-9-cross-site-scripting-xss-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress tagDiv Cloud Library plugin <= 3.9.5 - Cross Site Scripting (XSS) vulnerability",
+              "description": "Cross Site Scripting (XSS) vulnerability discovered by Bonds in WordPress Plugin tagDiv Cloud Library (versions <= 3.9.5)",
+              "affected_in": "<= 3.9.5",
+              "fixed_in": "3.9.6",
+              "direct_url": "https://patchstack.com/database/vulnerability/td-cloud-library/wordpress-tagdiv-cloud-library-plugin-3-9-4-cross-site-scripting-xss-vulnerability?_a_id=241"
+            }
+          ]
+        },
+        {
+          "name": "essential-addons-for-elementor-lite",
+          "title": "Essential Addons for Elementor",
+          "version": "6.7.0",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": [
+            {
+              "title": "WordPress Essential Addons for Elementor plugin < 6.7.2 - Unauthenticated Privilege Escalation via Custom Profile Field Mass Assignment vulnerability",
+              "description": "Unauthenticated Privilege Escalation via Custom Profile Field Mass Assignment vulnerability discovered by Jakub Herman in WordPress Plugin Essential Addons for Elementor (versions < 6.7.2)",
+              "affected_in": "< 6.7.2",
+              "fixed_in": "6.7.2",
+              "direct_url": "https://patchstack.com/database/vulnerability/essential-addons-for-elementor-lite/wordpress-essential-addons-for-elementor-plugin-6-7-2-unauthenticated-privilege-escalation-via-custom-profile-field-mass-assignment-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress Essential Addons for Elementor plugin <= 6.8.0 - Bypass vulnerability vulnerability",
+              "description": "Bypass vulnerability vulnerability discovered by Gaurav popalghat in WordPress Plugin Essential Addons for Elementor (versions <= 6.8.0)",
+              "affected_in": "<= 6.8.0",
+              "fixed_in": "6.8.1",
+              "direct_url": "https://patchstack.com/database/vulnerability/essential-addons-for-elementor-lite/wordpress-essential-addons-for-elementor-plugin-6-7-3-captcha-bypass-vulnerability?_a_id=241"
+            }
+          ]
+        },
+        {
+          "name": "litespeed-cache",
+          "title": "LiteSpeed Cache",
+          "version": "7.8.1",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": [
+            {
+              "title": "WordPress LiteSpeed Cache plugin <= 7.8.1 - Unauthenticated Stored Cross-Site Scripting via Comment Content vulnerability",
+              "description": "Unauthenticated Stored Cross-Site Scripting via Comment Content vulnerability discovered by Jack Taylor in WordPress Plugin LiteSpeed Cache (versions <= 7.8.1)",
+              "affected_in": "<= 7.8.1",
+              "fixed_in": "7.9",
+              "direct_url": "https://patchstack.com/database/vulnerability/litespeed-cache/wordpress-litespeed-cache-plugin-7-8-1-unauthenticated-stored-cross-site-scripting-via-comment-content-vulnerability?_a_id=241"
+            },
+            {
+              "title": "WordPress LiteSpeed Cache plugin <= 7.9 - Server Side Request Forgery (SSRF) vulnerability",
+              "description": "Server Side Request Forgery (SSRF) vulnerability discovered by sicksec in WordPress Plugin LiteSpeed Cache (versions <= 7.9)",
+              "affected_in": "<= 7.9",
+              "fixed_in": "7.9.1",
+              "direct_url": "https://patchstack.com/database/vulnerability/litespeed-cache/wordpress-litespeed-cache-plugin-7-9-server-side-request-forgery-ssrf-vulnerability?_a_id=241"
+            }
+          ]
+        },
+        {
+          "name": "defender-security",
+          "title": "Defender",
+          "version": "5.9.0",
+          "status": "inactive",
+          "update": "available",
+          "vulnerabilities": [
+            {
+              "title": "WordPress Defender Security plugin < 6.2.0 - Admin+ Network-Wide RCE vulnerability",
+              "description": "Admin+ Network-Wide RCE vulnerability discovered by Jakub Herman in WordPress Plugin Defender Security (versions < 6.2.0)",
+              "affected_in": "< 6.2.0",
+              "fixed_in": "6.2.0",
+              "direct_url": "https://patchstack.com/database/vulnerability/defender-security/wordpress-defender-security-plugin-6-2-0-admin-network-wide-rce-vulnerability?_a_id=241"
+            }
+          ]
+        },
+        {
+          "name": "ml-slider",
+          "title": "MetaSlider",
+          "version": "3.108.0",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": [
+            {
+              "title": "WordPress Slider, Gallery, and Carousel by MetaSlider – Image Slider, Video Slider plugin <= 3.111.0 - Authenticated (Author+) Stored Cross-Site Scripting vulnerability",
+              "description": "Authenticated (Author+) Stored Cross-Site Scripting vulnerability discovered by haofanjiukunle in WordPress Plugin Responsive Slider by MetaSlider (versions <= 3.111.0)",
+              "affected_in": "<= 3.111.0",
+              "fixed_in": "3.111.1",
+              "direct_url": "https://patchstack.com/database/vulnerability/ml-slider/wordpress-slider-gallery-and-carousel-by-metaslider-image-slider-video-slider-plugin-3-111-0-authenticated-author-stored-cross-site-scripting-vulnerability?_a_id=241"
+            }
+          ]
+        },
+        {
+          "name": "accordion-toggle",
+          "title": "Accordion Toggle",
+          "version": "1.2.1",
+          "status": "inactive",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "admin-menu-editor-pro",
+          "title": "Admin Menu Editor Pro",
+          "version": "2.4.1",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "akismet",
+          "title": "Akismet Anti-Spam",
+          "version": "4.2.5",
+          "status": "inactive",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "classic-editor",
+          "title": "Classic Editor",
+          "version": "1.6.3",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "classic-widgets",
+          "title": "Classic Widgets",
+          "version": "0.3",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "contact-form-7",
+          "title": "Contact Form 7",
+          "version": "6.1.6",
+          "status": "inactive",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "elementor",
+          "title": "Elementor",
+          "version": "4.1.4",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "gravityview-old",
+          "title": "GravityView",
+          "version": "2.20",
+          "status": "inactive",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "creame-whatsapp-me",
+          "title": "Joinchat",
+          "version": "4.5.20",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "logo-carousel-free",
+          "title": "Logo Carousel",
+          "version": "3.4.12",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "responsive-accordion-and-collapse",
+          "title": "Responsive Accordion And Collapse",
+          "version": "2.3.5",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "scope-extension-ultra",
+          "title": "Scope Extension Ultra",
+          "version": "1.2.4",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "simple-css",
+          "title": "Simple CSS",
+          "version": "1.1.1",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "ssl-insecure-content-fixer",
+          "title": "SSL Insecure Content Fixer",
+          "version": "2.7.2",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "table-of-contents-plus",
+          "title": "Table of Contents Plus",
+          "version": "2411.1",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "td-standard-pack",
+          "title": "tagDiv Standard Pack",
+          "version": "1.5 | built on 29.07.2022 8:01",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wordfence",
+          "title": "Wordfence Security",
+          "version": "7.11.5",
+          "status": "inactive",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wpguaven-old",
+          "title": "WP Guaven FP",
+          "version": "2.4",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wp-rocket-norun",
+          "title": "WP Rocket",
+          "version": "3.10",
+          "status": "inactive",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "WPShapere-1",
+          "title": "WPSHAPERE",
+          "version": "4.7",
+          "status": "inactive",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wordpress-seo",
+          "title": "Yoast SEO",
+          "version": "28.1",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "zoho-mail",
+          "title": "Zoho Mail",
+          "version": "1.4.9",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        }
+      ]
+    },
+    {
+      "domain": "lilydecoration.com",
+      "plugins": [
+        {
+          "name": "my-advanced-discount-engine",
+          "title": "Advanced Discount Engine for WooCommerce",
+          "version": "1.6.6",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "all-in-one-wp-migration",
+          "title": "All-in-One WP Migration and Backup",
+          "version": "7.110",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "woo-checkout-field-editor-pro",
+          "title": "Checkout Field Editor for WooCommerce",
+          "version": "2.2.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "contact-form-7",
+          "title": "Contact Form 7",
+          "version": "6.1.7",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "elementor",
+          "title": "Elementor",
+          "version": "4.2.4",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "glozin-addons",
+          "title": "Glozin Addons",
+          "version": "1.8.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "hostinger",
+          "title": "Hostinger Tools",
+          "version": "3.0.77",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "image-optimization",
+          "title": "Image Optimization - Optimize Images and Convert to WebP or AVIF",
+          "version": "1.7.6",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "litespeed-cache",
+          "title": "LiteSpeed Cache",
+          "version": "7.9.1",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "mailchimp-for-wp",
+          "title": "MC4WP: Mailchimp for WordPress",
+          "version": "4.14.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "mf-max-quantity",
+          "title": "MF Max Quantity",
+          "version": "1.0.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "simple-history",
+          "title": "Simple History",
+          "version": "5.31.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wcboost-variation-swatches",
+          "title": "WCBoost - Variation Swatches",
+          "version": "1.1.4",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wcboost-wishlist",
+          "title": "WCBoost - Wishlist",
+          "version": "1.3.1",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wc-deposit-payment",
+          "title": "WC Deposit Payment",
+          "version": "1.5.4",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "print-invoices-packing-slip-labels-for-woocommerce",
+          "title": "WebToffee WooCommerce PDF Invoices, Packing Slips, Delivery Notes and Shipping Labels",
+          "version": "5.0.1",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "woocommerce",
+          "title": "WooCommerce",
+          "version": "11.1.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wordfence",
+          "title": "Wordfence Security",
+          "version": "9.0.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "insert-headers-and-footers",
+          "title": "WPCode Lite",
+          "version": "2.3.9",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wps-hide-login",
+          "title": "WPS Hide Login",
+          "version": "1.9.19",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        }
+      ]
+    },
+    {
+      "domain": "agozaweb.com",
+      "plugins": {
+        "error": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `hostinger-wordpress/hosting_listInstalledWordPressPluginsV1`\n\nCaused by:\n    Mcp error: -32603: API request failed with status 503: Request failed with status code 503"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "englishforjob.com",
+      "plugins": {
+        "error": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `hostinger-wordpress/hosting_listInstalledWordPressPluginsV1`\n\nCaused by:\n    Mcp error: -32603: API request failed with status 503: Request failed with status code 503"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "elfarouk-store.agozaweb.com",
+      "plugins": {
+        "error": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `hostinger-wordpress/hosting_listInstalledWordPressPluginsV1`\n\nCaused by:\n    Mcp error: -32603: API request failed with status 500: Request failed with status code 500"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "avanco.agozaweb.com",
+      "plugins": [
+        {
+          "name": "chaty",
+          "title": "Chaty",
+          "version": "3.5.9",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "contact-form-7",
+          "title": "Contact Form 7",
+          "version": "6.1.6",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "elementor",
+          "title": "Elementor",
+          "version": "4.2.1",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "forminator",
+          "title": "Forminator",
+          "version": "1.57.2",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "glozin-addons",
+          "title": "Glozin Addons",
+          "version": "1.8.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "litespeed-cache",
+          "title": "LiteSpeed Cache",
+          "version": "7.9.1",
+          "status": "inactive",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "loco-translate",
+          "title": "Loco Translate",
+          "version": "2.8.8",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "mailchimp-for-wp",
+          "title": "MC4WP: Mailchimp for WordPress",
+          "version": "4.13.1",
+          "status": "active",
+          "update": "available",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wcboost-variation-swatches",
+          "title": "WCBoost - Variation Swatches",
+          "version": "1.1.4",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "wcboost-wishlist",
+          "title": "WCBoost - Wishlist",
+          "version": "1.3.1",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        },
+        {
+          "name": "woocommerce",
+          "title": "WooCommerce",
+          "version": "11.1.0",
+          "status": "active",
+          "update": "none",
+          "vulnerabilities": []
+        }
+      ]
+    },
+    {
+      "domain": "fekra.agozaweb.com",
+      "plugins": {
+        "error": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `hostinger-wordpress/hosting_listInstalledWordPressPluginsV1`\n\nCaused by:\n    Mcp error: -32603: API request failed with status 500: Request failed with status code 500"
+          }
+        ]
+      }
+    }
+  ]
+}

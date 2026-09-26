@@ -149,10 +149,17 @@ export const fallbackPosts: BlogPost[] = [
   },
 ];
 
-export const fallbackCourses: Course[] = [
+/**
+ * محتوى احتياطي يُعرض فقط عند تعذّر الوصول لقاعدة البيانات.
+ * مُعلَّم بـ isFallback حتى لا يظهر للزوار كورسات مدفوعة قابلة للحجز فعليًا.
+ */
+export type FallbackCourse = Course & { isFallback: true };
+
+export const fallbackCourses: FallbackCourse[] = [
   {
     id: "local-react-course",
     slug: "frontend-foundations",
+    isFallback: true,
     title: "أساسيات تطوير واجهات الويب",
     short_description: "مسار تطبيقي لبناء واجهة متجاوبة باستخدام HTML وCSS وJavaScript وReact.",
     description:
@@ -173,6 +180,7 @@ export const fallbackCourses: Course[] = [
   {
     id: "local-wordpress-course",
     slug: "wordpress-business-sites",
+    isFallback: true,
     title: "بناء وإدارة مواقع WordPress للشركات",
     short_description: "من إعداد الاستضافة إلى إطلاق موقع شركة سريع وآمن وقابل للتحديث.",
     description:
@@ -272,6 +280,15 @@ export async function saveAiInquiry(payload: Record<string, unknown>) {
   if (!supabase) return;
   const { error } = await supabase.from("ai_inquiries").insert(payload);
   if (error) console.warn("[cms] ai_inquiries:", error.message);
+}
+
+/**
+ * يُرجع true لو البيانات المعروضة من الـ fallback وليست من قاعدة البيانات.
+ * يقبل أي شكل من بيانات الكورس (Course أو CheckoutCourse من الـ API).
+ * يُستخدم في صفحات الحجز لمنع عرض زرار "احجز الآن" على كورس وهمي.
+ */
+export function isFallbackCourse(course: object | null | undefined): boolean {
+  return Boolean(course && (course as { isFallback?: unknown }).isFallback === true);
 }
 
 export function matchKnowledge(question: string, entries: KnowledgeEntry[]) {

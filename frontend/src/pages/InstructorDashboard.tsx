@@ -28,7 +28,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 
 import { loadCurrentLmsUser } from "../lib/lms";
-import { lmsApi } from "../lib/lmsApi";
+import { LMS_STALE_TIME_MS, lmsApi } from "../lib/lmsApi";
 import { uploadPublicImage } from "../lib/storage";
 import { supabase } from "../lib/supabase";
 import { DashboardThemeToggle, useDashboardTheme } from "../context/DashboardThemeContext";
@@ -189,9 +189,9 @@ export default function InstructorDashboard() {
   const [moduleTitle, setModuleTitle] = useState("");
   const [lessonDraft, setLessonDraft] = useState({ module: "", title: "", content: "", content_type: "text", video_url: "", duration_seconds: 0 });
 
-  const meQuery = useQuery({ queryKey: ["auth", "lms-user"], queryFn: loadCurrentLmsUser });
+  const meQuery = useQuery({ queryKey: ["auth", "lms-user"], queryFn: loadCurrentLmsUser, staleTime: LMS_STALE_TIME_MS });
   const membership = meQuery.data?.memberships.find((item) => item.role === "instructor");
-  const coursesQuery = useQuery({ queryKey: ["instructor", "courses"], queryFn: () => lmsApi<Paged<Course>>("instructor/courses/?page_size=100"), enabled: Boolean(membership) });
+  const coursesQuery = useQuery({ queryKey: ["instructor", "courses"], queryFn: () => lmsApi<Paged<Course>>("instructor/courses/?page_size=100"), enabled: Boolean(membership), staleTime: LMS_STALE_TIME_MS });
   const courses = useMemo(() => coursesQuery.data?.results ?? [], [coursesQuery.data]);
   const course = courses.find((item) => item.id === courseId) ?? null;
 
@@ -199,14 +199,14 @@ export default function InstructorDashboard() {
     if (!courseId && courses[0]) setCourseId(courses[0].id);
   }, [courseId, courses]);
 
-  const versionsQuery = useQuery({ queryKey: ["instructor", "versions"], queryFn: () => lmsApi<Paged<Version>>("instructor/course-versions/?page_size=100"), enabled: Boolean(membership) });
+  const versionsQuery = useQuery({ queryKey: ["instructor", "versions"], queryFn: () => lmsApi<Paged<Version>>("instructor/course-versions/?page_size=100"), enabled: Boolean(membership), staleTime: LMS_STALE_TIME_MS });
   const versions = useMemo(() => versionsQuery.data?.results ?? [], [versionsQuery.data]);
   const versionByCourse = useMemo(() => new Map(courses.map((item) => [item.id, versions.find((versionItem) => versionItem.course === item.id)])), [courses, versions]);
   const activeCourses = useMemo(() => courses.filter((item) => item.status !== "archived"), [courses]);
   const draftCourses = useMemo(() => courses.filter((item) => item.status === "archived" || versionByCourse.get(item.id)?.status === "draft"), [courses, versionByCourse]);
   const version = versions.find((item) => item.course === courseId) ?? null;
-  const modulesQuery = useQuery({ queryKey: ["instructor", "modules", version?.id], queryFn: () => lmsApi<Paged<ModuleRow>>(`instructor/modules/?course_version=${version!.id}&page_size=100&ordering=sort_order`), enabled: Boolean(version) });
-  const lessonsQuery = useQuery({ queryKey: ["instructor", "lessons", version?.id], queryFn: () => lmsApi<Paged<LessonRow>>(`instructor/lessons/?course_version=${version!.id}&page_size=100&ordering=sort_order`), enabled: Boolean(version) });
+  const modulesQuery = useQuery({ queryKey: ["instructor", "modules", version?.id], queryFn: () => lmsApi<Paged<ModuleRow>>(`instructor/modules/?course_version=${version!.id}&page_size=100&ordering=sort_order`), enabled: Boolean(version), staleTime: LMS_STALE_TIME_MS });
+  const lessonsQuery = useQuery({ queryKey: ["instructor", "lessons", version?.id], queryFn: () => lmsApi<Paged<LessonRow>>(`instructor/lessons/?course_version=${version!.id}&page_size=100&ordering=sort_order`), enabled: Boolean(version), staleTime: LMS_STALE_TIME_MS });
   const modules = useMemo(() => modulesQuery.data?.results ?? [], [modulesQuery.data]);
   const lessons = useMemo(() => lessonsQuery.data?.results ?? [], [lessonsQuery.data]);
   const lessonsByModule = useMemo(() => new Map(modules.map((module) => [module.id, lessons.filter((lesson) => lesson.module === module.id)])), [modules, lessons]);

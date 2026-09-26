@@ -11,6 +11,8 @@ import {
   submitBookingProof,
   type CourseBooking,
 } from "../lib/lms";
+import { isFallbackCourse } from "../lib/cms";
+import { LMS_STALE_TIME_MS } from "../lib/lmsApi";
 
 
 const statusText: Record<CourseBooking["status"], string> = {
@@ -42,8 +44,8 @@ export default function CourseCheckout() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const courseQuery = useQuery({ queryKey: ["checkout", "course", slug], queryFn: () => loadCheckoutCourse(slug), enabled: Boolean(slug) });
-  const bookingsQuery = useQuery({ queryKey: ["learning", "bookings"], queryFn: loadMyBookings });
+  const courseQuery = useQuery({ queryKey: ["checkout", "course", slug], queryFn: () => loadCheckoutCourse(slug), enabled: Boolean(slug), staleTime: LMS_STALE_TIME_MS });
+  const bookingsQuery = useQuery({ queryKey: ["learning", "bookings"], queryFn: loadMyBookings, staleTime: LMS_STALE_TIME_MS });
   const course = courseQuery.data;
   const existing = useMemo(
     () => bookingsQuery.data?.find((booking) => booking.course.slug === slug) ?? null,
@@ -135,6 +137,18 @@ export default function CourseCheckout() {
 
   if (loading) return <div className="grid min-h-[70vh] place-items-center"><Loader2 className="h-8 w-8 animate-spin text-brand-500" /></div>;
   if (!course || queryError) return <div className="container-x py-24"><p className="rounded-2xl bg-red-50 p-5 text-red-700">{errorMessage(queryError)}</p></div>;
+  // بيانات تجريبية (fallback) — لا نسمح بإنشاء حجز عليها
+  if (isFallbackCourse(course))
+    return (
+      <div className="container-x max-w-2xl py-24 text-center">
+        <p className="rounded-2xl border border-ink-200 bg-white p-8 text-[14px] leading-8 text-ink-500">
+          الحجز غير متاح لهذا البرنامج حاليًا. تواصل معنا للحجز أو للاستفسار.
+        </p>
+        <Link to="/contact" className="mt-6 inline-flex rounded-xl bg-brand-500 px-6 py-3 text-[14px] font-bold text-white">
+          تواصل معنا
+        </Link>
+      </div>
+    );
 
   return (
     <section className="bg-ink-50 py-12 sm:py-16">

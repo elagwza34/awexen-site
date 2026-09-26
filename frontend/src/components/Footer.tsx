@@ -53,6 +53,7 @@ const columns = [
       { label: { ar: "الرئيسية", en: "Home" }, to: "/" },
       { label: { ar: "جميع الخدمات", en: "All Services" }, to: "/services" },
       { label: { ar: "معرض الأعمال", en: "Portfolio" }, to: "/portfolio" },
+      { label: { ar: "نظام إدارة المنتجات", en: "Product Management System" }, to: "/pms" },
       { label: { ar: "من نحن", en: "About Us" }, to: "/about" },
       { label: { ar: "تواصل معنا", en: "Contact Us" }, to: "/contact" },
     ],

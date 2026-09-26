@@ -32,6 +32,7 @@ import {
   type CourseBooking,
   type StudentEnrollment,
 } from "../lib/lms";
+import { LMS_STALE_TIME_MS } from "../lib/lmsApi";
 import { supabase } from "../lib/supabase";
 import { DashboardThemeToggle, useDashboardTheme } from "../context/DashboardThemeContext";
 
@@ -166,9 +167,9 @@ export default function StudentDashboard() {
   const [profileName, setProfileName] = useState("");
   const [profileNotice, setProfileNotice] = useState<string | null>(null);
 
-  const enrollmentsQuery = useQuery({ queryKey: ["learning", "enrollments"], queryFn: loadStudentEnrollments });
-  const bookingsQuery = useQuery({ queryKey: ["learning", "bookings"], queryFn: loadMyBookings });
-  const userQuery = useQuery({ queryKey: ["auth", "lms-user"], queryFn: loadCurrentLmsUser });
+  const enrollmentsQuery = useQuery({ queryKey: ["learning", "enrollments"], queryFn: loadStudentEnrollments, staleTime: LMS_STALE_TIME_MS });
+  const bookingsQuery = useQuery({ queryKey: ["learning", "bookings"], queryFn: loadMyBookings, staleTime: LMS_STALE_TIME_MS });
+  const userQuery = useQuery({ queryKey: ["auth", "lms-user"], queryFn: loadCurrentLmsUser, staleTime: LMS_STALE_TIME_MS });
   const enrollments = useMemo(() => enrollmentsQuery.data ?? [], [enrollmentsQuery.data]);
   const bookings = useMemo(() => bookingsQuery.data ?? [], [bookingsQuery.data]);
   const user = userQuery.data;

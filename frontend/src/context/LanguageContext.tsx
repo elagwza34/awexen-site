@@ -25,6 +25,7 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
   "nav.learning": { ar: "المعرفة والفرص", en: "Learn & Explore" },
   "nav.courses": { ar: "الكورسات", en: "Courses" },
   "nav.pricing": { ar: "الخطط والأسعار", en: "Plans & Pricing" },
+  "nav.pms": { ar: "نظام إدارة المنتجات", en: "PMS — Products" },
   "nav.company": { ar: "الشركة", en: "Company" },
   "nav.blog": { ar: "المدونة", en: "Blog" },
   "nav.jobs": { ar: "الوظائف", en: "Jobs" },

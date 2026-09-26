@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -19,6 +19,7 @@ import {
   LogOut,
   Menu,
   PlayCircle,
+  RefreshCw,
   UserPlus,
   X,
 } from "lucide-react";
@@ -41,11 +42,15 @@ import {
   setLessonCompleted,
   type CourseLesson,
 } from "../lib/lms";
+import { LMS_STALE_TIME_MS } from "../lib/lmsApi";
 import {
   loadDashboardAccess,
   pathMatchesDashboardRole,
   type DashboardAccess,
 } from "../lib/roleRouting";
+
+/** أقل مسافة بالثواني بين إارير تقدم الفيديو — يمنع إغراق الـ API */
+const PROGRESS_REPORT_INTERVAL_SECONDS = 10;
 
 function friendlyError(error: unknown) {
   const message = error instanceof Error ? error.message : "حدث خطأ غير متوقع.";
@@ -108,6 +113,44 @@ function LearningTopbar({ email }: { email?: string }) {
       </div>
     </header>
   );
+}
+
+/** حاجز أخطاء يمنع崩 الصفحة البيضاء لو حصل خطأ غير متوقع أثناء التعلّم */
+export class LearningErrorBoundary extends Component<
+  { children: ReactNode },
+  { error: Error | null }
+> {
+  state = { error: null as Error | null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error("[learning] render error", error);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <section className="grid min-h-screen place-items-center bg-ink-950 px-4 text-center text-white">
+          <div className="max-w-md">
+            <p className="text-[18px] font-black">حدث خطأ غير متوقع في منصة التعلّم.</p>
+            <p className="mt-2 text-[13px] leading-7 text-white/55">حدّث الصفحة للرجوع لآخر نقطة حفظت تلقائيًا، أو سجّل الخروج ثم الدخول مرة أخرى.</p>
+            <button
+              type="button"
+              onClick={() => this.setState({ error: null })}
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-[13px] font-bold text-white"
+            >
+              <RefreshCw className="h-4 w-4" />
+              إعادة المحاولة
+            </button>
+          </div>
+        </section>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 export function LearningGuard() {
@@ -474,9 +517,9 @@ export function LearningAuth() {
 }
 
 export function LearningDashboard() {
-  const enrollmentsQuery = useQuery({ queryKey: ["learning", "enrollments"], queryFn: loadStudentEnrollments });
-  const bookingsQuery = useQuery({ queryKey: ["learning", "bookings"], queryFn: loadMyBookings });
-  const userQuery = useQuery({ queryKey: ["auth", "lms-user"], queryFn: loadCurrentLmsUser });
+  const enrollmentsQuery = useQuery({ queryKey: ["learning", "enrollments"], queryFn: loadStudentEnrollments, staleTime: LMS_STALE_TIME_MS });
+  const bookingsQuery = useQuery({ queryKey: ["learning", "bookings"], queryFn: loadMyBookings, staleTime: LMS_STALE_TIME_MS });
+  const userQuery = useQuery({ queryKey: ["auth", "lms-user"], queryFn: loadCurrentLmsUser, staleTime: LMS_STALE_TIME_MS });
   const enrollments = enrollmentsQuery.data ?? [];
   const pendingBookings = (bookingsQuery.data ?? []).filter((booking) => booking.status !== "approved" && booking.status !== "cancelled");
   const email = userQuery.data?.email ?? "";
@@ -572,7 +615,7 @@ function LessonBody({ lesson, onVideoProgress }: { lesson: CourseLesson; onVideo
       {lesson.content_type === "video" && videoUrl && (
         <div className="aspect-video overflow-hidden rounded-2xl bg-black shadow-2xl shadow-black/20">
           {videoUrl.match(/\.(mp4|webm)(\?.*)?$/i)
-            ? <video src={videoUrl} controls className="h-full w-full" onTimeUpdate={(event) => onVideoProgress(event.currentTarget.currentTime)} onEnded={(event) => onVideoProgress(event.currentTarget.duration)} />
+                  ? <video src={videoUrl} controls preload="metadata" className="h-full w-full" onTimeUpdate={(event) => onVideoProgress(event.currentTarget.currentTime)} onEnded={(event) => onVideoProgress(event.currentTarget.duration)} />
             : <iframe src={videoUrl} title={lesson.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="h-full w-full border-0" />}
         </div>
       )}
@@ -670,12 +713,15 @@ export function LessonPlayer() {
     const position = Math.min(Math.floor(positionSeconds), activeLesson.duration_seconds);
     const previous = lastReportedVideoPositions.current.get(activeLesson.id) ?? 0;
     const thresholdPosition = Math.ceil(activeLesson.duration_seconds * (activeLesson.completion_threshold / 100));
-    if (position < thresholdPosition && position - previous < 10) return;
+    // إما نكون اتخطّينا العتبة دلوقتي (مرة واحدة بس) أو مسافة 10 ثواني على الأقل
+    const crossedThreshold = previous < thresholdPosition && position >= thresholdPosition;
+    if (!crossedThreshold && position - previous < PROGRESS_REPORT_INTERVAL_SECONDS) return;
     if (position <= previous) return;
     lastReportedVideoPositions.current.set(activeLesson.id, position);
     void recordVideoProgress(enrollmentId, activeLesson.id, position)
       .then(async (result) => {
         if (!result.lesson.completed) return;
+        lastReportedVideoPositions.current.set(activeLesson.id, activeLesson.duration_seconds);
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ["learning", "enrollment", enrollmentId] }),
           queryClient.invalidateQueries({ queryKey: ["learning", "enrollments"] }),

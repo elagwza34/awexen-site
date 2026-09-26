@@ -5,6 +5,7 @@ import Portfolio from "../components/Portfolio";
 import Process from "../components/Process";
 import WhyUs from "../components/WhyUs";
 import Pricing from "../components/Pricing";
+import PMSSection from "../components/PMSSection";
 import CTA from "../components/CTA";
 import LatestInsights from "../components/LatestInsights";
 
@@ -19,6 +20,7 @@ export default function Home() {
       <WhyUs />
       <LatestInsights />
       <Pricing />
+      <PMSSection />
       <CTA />
     </>
   );

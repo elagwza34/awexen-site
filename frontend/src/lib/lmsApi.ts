@@ -1,3 +1,6 @@
+/** أقل مدة قبل اعتبار بيانات الـ LMS قديمة — يقلل الطلبات المكررة */
+export const LMS_STALE_TIME_MS = 60_000;
+
 import { supabase, supabasePublishableKey, supabaseUrl } from "./supabase";
 
 const configuredBase = String(import.meta.env.VITE_LMS_EDGE_URL ?? "").trim().replace(/\/+$/, "");

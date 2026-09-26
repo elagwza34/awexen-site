@@ -13,6 +13,7 @@ import PageHero from "../components/PageHero";
 import { Reveal } from "../components/ui";
 import {
   fallbackCourses,
+  isFallbackCourse,
   loadCourses,
   loadPricingSettings,
   type Course,
@@ -44,6 +45,26 @@ function money(value: number, currency: string, isArabic = true) {
 }
 
 function BookingCard({ course, isArabic }: { course: Course; isArabic: boolean }) {
+  // كورس الـ fallback بيانات تجريبية — لا نعرض زرار حجز فعلي
+  if (isFallbackCourse(course)) {
+    return (
+      <div className="rounded-3xl border border-ink-100 bg-ink-50 p-7 sm:p-8">
+        <span className="grid h-12 w-12 place-items-center rounded-2xl bg-ink-200 text-ink-500"><Clock3 className="h-5 w-5" /></span>
+        <p className="mt-5 text-[12px] font-bold text-ink-500">{isArabic ? "قريبًا" : "Coming soon"}</p>
+        <h2 className="mt-1 text-[24px] font-extrabold">
+          {isArabic ? "الحجز متاح قريبًا" : "Booking opens soon"}
+        </h2>
+        <p className="mt-4 text-[14px] leading-8 text-ink-500">
+          {isArabic
+            ? "نعمل على تجهيز هذا البرنامج. تواصل معنا وسيتم إشعارك فور افتتاح الحجز."
+            : "We are preparing this program. Contact us and we will notify you as soon as booking opens."}
+        </p>
+        <Link to="/contact" className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-ink-900 px-6 py-4 text-[14px] font-black text-white">
+          {isArabic ? "أبلغني عند الافتتاح" : "Notify me when it opens"}
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className="rounded-3xl border border-brand-100 bg-brand-50/50 p-7 sm:p-8">
       <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-500 text-white"><ShieldCheck className="h-5 w-5" /></span>
@@ -65,7 +86,13 @@ export default function Courses() {
   const isArabic = lang === "ar";
 
   useEffect(() => {
-    void loadCourses().then(setCourses);
+    let active = true;
+    void loadCourses().then((items) => {
+      if (active) setCourses(items);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (
@@ -113,8 +140,16 @@ export function CourseDetail() {
   const isArabic = lang === "ar";
 
   useEffect(() => {
-    void loadCourses().then((items) => setCourse(items.find((item) => item.slug === slug) ?? null));
-    void loadPricingSettings().then(setPricing);
+    let active = true;
+    void loadCourses().then((items) => {
+      if (active) setCourse(items.find((item) => item.slug === slug) ?? null);
+    });
+    void loadPricingSettings().then((value) => {
+      if (active) setPricing(value);
+    });
+    return () => {
+      active = false;
+    };
   }, [slug]);
 
   useSeoOverride(course ? `${course.title} | كورسات Awexen` : undefined, course?.short_description);
