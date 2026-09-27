@@ -100,6 +100,38 @@ check("اللوحة بتتحقق من قابلية الحجز", /verifyBookable/
 check("التحقق بيستعلم الـ view", /lms_catalog_sync_status/.test(resourceManager));
 check("رسالة الخطأ بتشرح الحل", /202609270002/.test(resourceManager));
 
+/* ---------- 9) النشر التلقائي محمي من الحذف أو التغيير ---------- */
+const deploy = readFileSync(resolve(here, "..", "..", ".github", "workflows", "deploy.yml"), "utf8");
+check("workflow النشر موجود", /name: Deploy/.test(deploy));
+check("بيشتغل على main", /branches: \[main\]/.test(deploy));
+check("بيقبل تشغيل يدوي", /workflow_dispatch/.test(deploy));
+check("بيستخدم environment الإنتاج", /environment: production/.test(deploy));
+check("بيبني الـ frontend", /npm run build/.test(deploy));
+check("بيرفع frontend/dist", /frontend\/dist/.test(deploy));
+check("الهدف public_html", /public_html/.test(deploy));
+check("بيطبق migrations", /supabase db push/.test(deploy));
+check("بيفحص تسريب المفاتيح السرية", /sb_secret_|service_role/.test(deploy));
+check("بيتحقق من الموقع بعد النشر", /awexen\.com/.test(deploy));
+check("concurrency يمنع تعارض النشر", /concurrency:/.test(deploy));
+
+const ciSource = readFileSync(resolve(here, "..", "..", ".github", "workflows", "ci.yml"), "utf8");
+check("CI ما زال شغال", /deno check/.test(ciSource) && /tsc -- --noEmit/.test(ciSource));
+
+const deployDoc = readFileSync(resolve(here, "..", "..", "docs", "deployment-supabase-hostinger.md"), "utf8");
+for (const secret of [
+  "HOSTINGER_SSH_HOST",
+  "HOSTINGER_SSH_PORT",
+  "HOSTINGER_SSH_USER",
+  "HOSTINGER_SSH_PRIVATE_KEY",
+  "SUPABASE_ACCESS_TOKEN",
+  "SUPABASE_DB_PASSWORD",
+  "VITE_SUPABASE_URL",
+  "VITE_SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_PROJECT_REF",
+]) {
+  check(`التوثيق يشرح ${secret}`, deployDoc.includes(secret));
+}
+
 /* ---------- النتيجة ---------- */
 console.log("\nاختبار رفع إثبات الدفع\n");
 for (const r of results) {

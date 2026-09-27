@@ -1,0 +1,108 @@
+# نشر تلقائي: كل push على main يبني الواجهة ويرفعها لـ Hostinger
+# وطبق الـ migrations المعلّقة على Supabase.
+#
+# الإعداد مطلوب مرة واحدة فقط:
+#   Repository → Settings → Environments → production
+#     Secrets:  HOSTINGER_SSH_PRIVATE_KEY, HOSTINGER_SSH_HOST,
+#               HOSTINGER_SSH_PORT, HOSTINGER_SSH_USER,
+#               SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD
+#     Variables: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY,
+#               SUPABASE_PROJECT_REF
+#
+# ملاحظة: VITE_* تُقرأ كـ variables لا secrets لأنهاقيم عامة
+# بتوصل للمتصفح أصلًا (مفتاح publishable فقط، لا service role).
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  frontend:
+    name: Build and upload to Hostinger
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: Build with production env
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Abort if a server key leaked into the browser bundle
+        run: |
+          if grep -rqE "sb_secret_|service_role" dist/assets/; then
+            echo "::error::A server-side key leaked into dist/. Aborting deploy."
+            exit 1
+          fi
+          echo "No secret keys in dist."
+
+      - name: Upload dist to public_html over SFTP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          source: frontend/dist/*
+          target: public_html
+          strip_components: 1
+          rm: true
+
+      - name: Verify the site responds
+        run: |
+          sleep 8
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://awexen.com/ || true)
+          echo "awexen.com HTTP $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::Site is not responding after deploy (HTTP $STATUS)"
+            exit 1
+          fi
+
+  database:
+    name: Apply pending migrations
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link to the Supabase project
+        run: supabase link --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --password "${{ secrets.SUPABASE_DB_PASSWORD }}"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+      - name: Push pending migrations
+        run: supabase db push --linked --include-all
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+      - name: Report the migration state afterwards
+        run: supabase migration list --linked
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
