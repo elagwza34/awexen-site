@@ -204,6 +204,12 @@ npm run dev
 npm run dev          # تشغيل التطوير
 npm run build        # بناء الإنتاج
 npm run preview      # معاينة البناء
-npm run check:setup  # فحص الإعدادات
-npm run seed:lms     # زرع بيانات تجريبية
+npm run check:setup    # فحص الإعدادات
+npm run check:catalog  # تزامن كتالوج الكورسات (موقع ↔ LMS)
+npm run seed:lms       # زرع بيانات تجريبية
+npm run test:upload    # فحص منطق رفع إثبات الدفع
 ```
+
+> **الكورسات والحجز:** الموقع يقرأ `public.courses`، لكن الحجز يحتاج صفًا في
+> `courses_course` مع نسخة منشورة. لو أضفت كورس من لوحة الإدارة ومش باين
+> فاضي على صفحة الحجز، شغّل `npm run check:catalog` — هو بيقولك أنهي كورس ناقص.

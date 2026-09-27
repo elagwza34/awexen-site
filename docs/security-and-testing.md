@@ -40,6 +40,27 @@
   النهائي مش بيقرأ مصطلحات تقنية. النص الأصلي بيفضل في `LmsApiError.detail` والكونسول
   في وضع التطوير بس.
 
+## تزامن الكتالوج (الموقع ↔ LMS)
+
+الموقع العام يقرأ `public.courses`، ولوحة الإدارة (ResourceManager) تكتب فيه مباشرة.
+لكن صفحة الحجز تحل الكورس من `courses_course` + نسخة `courses_courseversion` منشورة
+(انظر `checkoutCourse` في `lms-api`).
+
+`private.lms_course_catalog_sync` يزامن في اتجاه واحد فقط: **من الـ LMS إلى الموقع**.
+لذلك الكورس المُضاف من لوحة CMS كان يظهر في الموقع، و `/checkout/:slug` يرد
+`404 "هذا الكورس غير متاح للحجز"`.
+
+الحل في `supabase/migrations/202609270002_lms_catalog_backfill.sql`:
+
+1. **Backfill**: ينشئ `courses_course` + نسخة منشورة لكل كورس منشور في `public.courses`
+   بلا نظير في الـ LMS.
+2. **Trigger** `lms_catalog_mirror_courses` على `public.courses`: أي إدراج أو نشر جديد
+   ينعكس تلقائيًا على الـ LMS، وأي تعديل على السعر/الموعد/العنوان يتزامن.
+   لو النسخة الحالية فيها تسجيلات أو وحدات، ينشئ **نسخة جديدة** بدل تعديل محتوى
+   منشور يكسر الطلاب المسجّلين.
+3. **View** `lms_catalog_sync_status` للقراءة فقط، يستخدمه `npm run check:catalog`
+   لكشف أي كورس يظهر في الموقع ولا يقبل الحجز.
+
 ## الفحص الحالي
 
 - `deno check` لكل Edge Functions.
