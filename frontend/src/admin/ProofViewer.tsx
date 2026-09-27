@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, Download, ExternalLink, FileText, Loader2, X } from "lucide-react";
-import { loadPaymentProof, type PaymentProofLink } from "../lib/lms";
+import { AlertCircle, Download, ExternalLink, FileText, Loader2, RefreshCw, X } from "lucide-react";
+import { LmsApiError, loadPaymentProof, type PaymentProofLink } from "../lib/lms";
 
 /**
  * عارض إثبات الدفع.
@@ -15,20 +15,23 @@ export default function ProofViewer({
 }) {
   const [proof, setProof] = useState<PaymentProofLink | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [requestId, setRequestId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError(null);
+    setRequestId("");
     loadPaymentProof(bookingId)
       .then((result) => {
         if (active) setProof(result);
       })
       .catch((operationError: unknown) => {
-        if (active) {
-          setError(operationError instanceof Error ? operationError.message : "تعذّر تحميل إثبات الدفع.");
-        }
+        if (!active) return;
+        setError(operationError instanceof Error ? operationError.message : "تعذّر تحميل إثبات الدفع.");
+        setRequestId(operationError instanceof LmsApiError ? operationError.requestId : "");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -36,7 +39,12 @@ export default function ProofViewer({
     return () => {
       active = false;
     };
-  }, [bookingId]);
+  }, [bookingId, attempt]);
+
+  const retry = () => {
+    setProof(null);
+    setAttempt((value) => value + 1);
+  };
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -100,13 +108,23 @@ export default function ProofViewer({
           )}
 
           {error && !loading && (
-            <div className="flex items-start gap-3 rounded-xl border border-red-400/25 bg-red-500/10 p-4">
+            <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-400/25 bg-red-500/10 p-4">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-[12px] font-bold text-red-200">{error}</p>
                 <p className="mt-1 text-[11px] leading-6 text-red-200/70">
-                  تأكد إنك مسجّل دخول بحساب يملك صلاحية مراجعة المدفوعات.
+                  لو ده طلب مدفوع تم قبوله، ارجع للطالب يطلب رفع إثبات الدفع مرة أخرى.
                 </p>
+                {requestId && (
+                  <p className="mt-1 break-all text-[10px] text-red-200/40">رقم التتبع: {requestId}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={retry}
+                  className="mt-3 inline-flex items-center gap-2 rounded-lg border border-red-400/30 px-3 py-1.5 text-[11px] font-bold text-red-100 transition hover:bg-red-400/10"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> إعادة المحاولة
+                </button>
               </div>
             </div>
           )}

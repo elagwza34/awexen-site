@@ -303,21 +303,41 @@ async function paymentProofUrl(
     throw new HttpError(403, "مفيش صلاحية لمشاهدة إثبات الدفع ده.");
   }
 
-  // المسار المتوقع: {user_id}/{booking_id}/{file}
-  // يتحقق منه كمان دالة RPC عند الرفع — هنا تحقق إضافي قبل التوقيع
+  // المسار المتوقع: {auth_user_id}/{booking_id}/{file}
+  // نتحقق من الشكل فقط: الـ user_id في الجدول هو معرّف منصة التعلّم وليس
+  // بالضرورة auth.uid() (قد تختلف لما يكون الحساب مرتبطاً بحساب LMS سابق)،
+  // و dالة RPC عند الرفع هي التي تضمن أن المجلد الأول يخص صاحب الطلب.
   const proofPath = String(row.proof_path);
-  const expectedPrefix = `${ownerId}/${bookingId}/`;
-  if (!proofPath.startsWith(expectedPrefix) || proofPath.includes("..")) {
-    throw new HttpError(400, "مسار إثبات الدفع غير صالح.");
+  const shape = new RegExp(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/${bookingId}/[^/]+$`, "i");
+  if (!shape.test(proofPath) || proofPath.includes("..")) {
+    throw new HttpError(400, "مسار إثبات الدفع غير صالح.", { path: proofPath });
   }
 
   const storage = db.storage;
   if (!storage) throw new HttpError(500, "خدمة التخزين غير متاحة.");
+
+  // نتأكد إن الملف موجود فعلاً قبل التوقيع، لأن createSignedUrl ترجع خطأ
+  // غامض لو الملف اتمسح. نستخدم list بدل download عشان ما نحمّلش الملف كله.
+  const folder = proofPath.split("/").slice(0, 2).join("/");
+  const fileName = proofPath.split("/").pop() ?? "";
+  const { data: listed, error: listError } = await storage
+    .from("payment-proofs")
+    .list(folder, { search: fileName, limit: 1 });
+  if (listError || !listed?.length) {
+    throw new HttpError(404, "ملف إثبات الدفع غير موجود في التخزين. اطلب من الطالب رفع الملف مرة أخرى.", {
+      path: proofPath,
+      storage_error: listError?.message ?? "no matching object",
+    });
+  }
+
   const { data: signed, error: signError } = await storage
     .from("payment-proofs")
     .createSignedUrl(proofPath, 600);
   if (signError || !signed?.signedUrl) {
-    throw new HttpError(500, "تعذّر تجهيز رابط إثبات الدفع.");
+    throw new HttpError(500, "تعذّر تجهيز رابط إثبات الدفع.", {
+      path: proofPath,
+      storage_error: signError?.message ?? "empty signed url",
+    });
   }
 
   return {

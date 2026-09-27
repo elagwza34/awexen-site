@@ -20,6 +20,26 @@
 - CORS يسمح `awexen.com` و`www.awexen.com` وlocalhost للتطوير.
 - كل خطأ API يحمل `request_id`.
 
+## إثبات الدفع:_private bucket ووصول موقّع
+
+- الرفع من المتصفح مباشرة إلى `payment-proofs` بعد تحقق RLS، والقراءة **لا** تتم من المتصفح.
+- العرض عبر `GET /payment-proofs/{bookingId}/`: الـ Edge Function يتحقق أن المتصل هو صاحب الحجز
+  أو يملك صلاحية مراجعة المدفوعات، ثم يتحقق من شكل المسار `{uuid}/{bookingId}/{file}`،
+  ثم يتأكد إن الكائن موجود فعلًا، وبعدين يوقّع رابطًا صالح 10 دقائق.
+- `commerce_coursebooking.user_id` هو معرّف **منصة التعلّم** وقد يختلف عن `auth.uid()`
+  لو الحساب مرتبط بحساب LMS سابق. لذلك التحقق من المسار يقارن الشكل فقط، والضمان
+  الحقيقي لملكية المجلد الأول بيتم في `lms_edge_submit_payment_proof` وقت الرفع.
+- الأنواع المسموحة (JPG/PNG/WebP/PDF) متطابقة بين الـ bucket ودالة الرفع والواجهة.
+  HEIC غير مدعوم عمدًا، والواجهة بتقول للطالب إزاي يحوّله لصيغة مقبولة.
+
+## رسائل الأخطاء
+
+- الـ Edge Function بيرد دائمًا برسالة عربية و`request_id` في `error.request_id`.
+- `humanizeLmsError` في `frontend/src/lib/lmsApi.ts` بتترجم أخطاء Supabase الإنجليزية
+  (مثل `Object not found` أو `Bucket not found`) لرسالة عربية مفهومة، لأن المستخدم
+  النهائي مش بيقرأ مصطلحات تقنية. النص الأصلي بيفضل في `LmsApiError.detail` والكونسول
+  في وضع التطوير بس.
+
 ## الفحص الحالي
 
 - `deno check` لكل Edge Functions.

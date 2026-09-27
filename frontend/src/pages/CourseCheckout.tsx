@@ -29,6 +29,7 @@ function formatMoney(value: string | number, currency: string) {
 
 /** أنواع الملفات المسموح بها لإثبات الدفع — مطابقة لـ bucket "payment-proofs" */
 const ALLOWED_PROOF_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+const ALLOWED_PROOF_LABEL = "صورة JPG أو PNG أو WebP، أو ملف PDF";
 const MAX_PROOF_BYTES = 5 * 1024 * 1024;
 
 function errorMessage(error: unknown) {
@@ -123,9 +124,15 @@ export default function CourseCheckout() {
       setError("اختر ملف إثبات التحويل أولاً.");
       return;
     }
-    if (!ALLOWED_PROOF_TYPES.some((type) => file.type === type)) {
+    if (!ALLOWED_PROOF_TYPES.some((type) => type === file.type)) {
+      // HEIC من الآيفون غير مدعوم: المتصفح بيفرّغ الـ mime type في بعض الأنظمة،
+      // فنتحقق من الامتداد كمان قبل الرفض.
+      const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+      const heic = extension === "heic" || extension === "heif" || file.type === "image/heic";
       setError(
-        `نوع الملف غير مدعوم${file.type ? ` (${file.type})` : ""}. المسموح: صورة JPG أو PNG أو WebP، أو ملف PDF.`,
+        heic
+          ? "صيغة HEIC دي مش مدعومة. صوّر screenshot للإثبات واحفظه PNG، أو حوّله لـ PDF."
+          : `نوع الملف غير مدعوم${file.type ? ` (${file.type})` : ""}. المسموح: ${ALLOWED_PROOF_LABEL}.`,
       );
       return;
     }

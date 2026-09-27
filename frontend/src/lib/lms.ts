@@ -127,6 +127,8 @@ export type LearningCourse = {
   progressPercent: number;
 };
 
+export { LMS_STALE_TIME_MS, LmsApiError, humanizeLmsError } from "./lmsApi";
+
 type ApiEnrollment = {
   id: string;
   status: StudentEnrollment["status"];

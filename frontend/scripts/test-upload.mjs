@@ -4,7 +4,7 @@
  * node scripts/test-upload.mjs
  */
 import { readFileSync } from "node:fs";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -48,6 +48,7 @@ check("كل return بيحط رسالة", guardReturns >= 6, `عدد الرسائ
 
 /* ---------- 4) الفاليديشن بيدي نوع وحجم مفهوم ---------- */
 check("رسالة نوع الملف", /نوع الملف غير مدعوم|نوع الملف مرفوض/.test(uploadFn));
+check("رسالة HEIC مخصصة", /HEIC/.test(uploadFn));
 check("رسالة الحجم بالـ MB", /ميجابايت/.test(uploadFn));
 check("ترجمة خطأ mime", /mime|file type/i.test(uploadFn));
 check("ترجمة خطأ size", /size|too large|exceed/i.test(uploadFn));
@@ -59,6 +60,26 @@ check("الزرار بيطلب file", /disabled=\{!file \|\| uploading\}/.test(s
 
 /* ---------- 6) مفيش memory leak ---------- */
 check("تنظيف object URL", /revokeObjectURL/.test(source));
+
+/* ---------- 7) رسائل الأخطاء مترجمة لعربي (المشكلة اللي شفناها في الإنتاج) ---------- */
+const apiSource = readFileSync(resolve(here, "..", "src", "lib", "lmsApi.ts"), "utf8");
+const table = apiSource.match(/const FRIENDLY_ERRORS[\s\S]*?\n\];/)?.[0] ?? "";
+check("humanizeLmsError موجودة", /export function humanizeLmsError/.test(apiSource));
+check("humanizeLmsError بتقرأ الجدول", /FRIENDLY_ERRORS/.test(apiSource));
+check("بتغطي Object not found", /object not found/i.test(table));
+check("بتغطي Bucket not found", /bucket not found/i.test(table));
+check("بتغطي mime type", /mime type/i.test(table));
+check("بتغطي حجم كبير", /too large|exceed/i.test(table));
+check("بتغطي صلاحيات", /row-level|permission/i.test(table));
+check("بتغطي schema cache", /schema cache/i.test(table));
+check("بترجع الرسالة العربية الأصلية", /isArabic/.test(apiSource));
+check("بترجع رسالة عامة بدل الإنجليزية", /تعذّر تنفيذ العملية على الخادم/.test(apiSource));
+check("بتاخد request_id كـ error", /LmsApiError/.test(apiSource));
+check("بتسجّل الأخطاء في DEV", /import\.meta\.env\.DEV/.test(apiSource));
+const proofViewer = readFileSync(resolve(here, "..", "src", "admin", "ProofViewer.tsx"), "utf8");
+check("ProofViewer بيعرض رقم التتبع", /requestId/.test(proofViewer));
+check("ProofViewer فيه إعادة محاولة", /إعادة المحاولة|RefreshCw/.test(proofViewer));
+check("ProofViewer عنده role=alert", /role="alert"/.test(proofViewer));
 
 /* ---------- النتيجة ---------- */
 console.log("\nاختبار رفع إثبات الدفع\n");
