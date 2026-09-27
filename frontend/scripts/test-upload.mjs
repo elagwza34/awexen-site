@@ -81,6 +81,25 @@ check("ProofViewer بيعرض رقم التتبع", /requestId/.test(proofViewer
 check("ProofViewer فيه إعادة محاولة", /إعادة المحاولة|RefreshCw/.test(proofViewer));
 check("ProofViewer عنده role=alert", /role="alert"/.test(proofViewer));
 
+/* ---------- 8) ضمان قابلية الحجز لكل كورس جديد ---------- */
+const migration = readFileSync(resolve(here, "..", "..", "supabase", "migrations", "202609270002_lms_catalog_backfill.sql"), "utf8");
+check("backfill بيعمل courses_course", /insert into public\.courses_course/i.test(migration));
+check("backfill بيعمل نسخة منشورة", /insert into public\.courses_courseversion/i.test(migration));
+check("backfill بيربط النسخة الحالية", /current_version_id\s*=\s*version_row\.id|set current_version_id = version_id/i.test(migration));
+check("في trigger على public.courses", /create trigger lms_catalog_mirror_courses[\s\S]*?on public\.courses/i.test(migration));
+check("trigger بيغطي INSERT", /after insert or update/i.test(migration));
+check("trigger بينادي دالة المزامنة", /execute function private\.lms_ensure_catalog_course\(new\.slug\)/i.test(migration));
+check("في حماية من الحلقة اللانهائية", /awexen\.catalog_mirror/.test(migration));
+check("الحماية بتتشال في الـ LMS sync", /set_config\('awexen\.catalog_mirror', 'on', true\)/i.test(migration));
+check("المرآة بترجع بدري مع الحارس", /if current_setting\('awexen\.catalog_mirror', true\) = 'on' then\s*\n\s*return;/i.test(migration));
+check("في view للمتابعة", /create or replace view public\.lms_catalog_sync_status/i.test(migration));
+check("view بيحسب bookable", /as bookable/i.test(migration));
+
+const resourceManager = readFileSync(resolve(here, "..", "src", "admin", "ResourceManager.tsx"), "utf8");
+check("اللوحة بتتحقق من قابلية الحجز", /verifyBookable/.test(resourceManager));
+check("التحقق بيستعلم الـ view", /lms_catalog_sync_status/.test(resourceManager));
+check("رسالة الخطأ بتشرح الحل", /202609270002/.test(resourceManager));
+
 /* ---------- النتيجة ---------- */
 console.log("\nاختبار رفع إثبات الدفع\n");
 for (const r of results) {

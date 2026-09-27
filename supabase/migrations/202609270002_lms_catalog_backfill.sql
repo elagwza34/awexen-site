@@ -91,6 +91,99 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
+-- Guard against feedback loops.
+--
+-- lms_course_catalog_sync (LMS -> CMS) writes to public.courses, which fires
+-- the mirror trigger below. Without a guard, publishing from the LMS panel
+-- would echo back into courses_course and keep cloning new versions.
+--
+-- We set a transaction-local flag for the duration of that write. The mirror
+-- function returns early when it sees the flag, so each direction stays
+-- authoritative for its own fields.
+-- ---------------------------------------------------------------------------
+
+create or replace function private.lms_course_catalog_sync(p_course_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  row_data record;
+  duration_label text;
+begin
+  if to_regclass('public.courses') is null then
+    return;
+  end if;
+
+  select c.*, v.title as version_title, v.short_description as version_short_description,
+    v.description as version_description, v.difficulty, v.estimated_minutes,
+    v.thumbnail_url,
+    coalesce((
+      select nullif(trim(u.full_name), '')
+      from public.courses_courseinstructor ci
+      join public.accounts_user u on u.id = ci.instructor_id
+      where ci.course_version_id = v.id
+      order by ci.is_lead desc, ci.created_at
+      limit 1
+    ), 'Awexen Learning Team') as instructor_name
+  into row_data
+  from public.courses_course c
+  join public.courses_courseversion v on v.id = c.current_version_id
+  where c.id = p_course_id;
+
+  if not found then
+    return;
+  end if;
+
+  duration_label := case
+    when row_data.estimated_minutes > 0 and row_data.estimated_minutes % 60 = 0
+      then (row_data.estimated_minutes / 60)::text || ' hours'
+    when row_data.estimated_minutes > 0 then row_data.estimated_minutes::text || ' minutes'
+    else ''
+  end;
+
+  -- الحماية: الكتابة دي جاية من الـ LMS، فالمرآة ما تتحملش تردّها
+  perform set_config('awexen.catalog_mirror', 'on', true);
+
+  execute $catalog$
+    insert into public.courses (
+      id, slug, title, short_description, description, instructor,
+      delivery_mode, level, duration, price, currency, capacity,
+      starts_at, featured_image, status
+    ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+    on conflict (slug) do update set
+      title = excluded.title,
+      short_description = excluded.short_description,
+      description = excluded.description,
+      instructor = excluded.instructor,
+      delivery_mode = excluded.delivery_mode,
+      level = excluded.level,
+      duration = excluded.duration,
+      price = excluded.price,
+      currency = excluded.currency,
+      capacity = excluded.capacity,
+      starts_at = excluded.starts_at,
+      featured_image = excluded.featured_image,
+      status = excluded.status,
+      updated_at = now()
+  $catalog$ using
+    row_data.id, row_data.slug, row_data.version_title,
+    row_data.version_short_description, row_data.version_description,
+    row_data.instructor_name, row_data.delivery_mode,
+    case row_data.difficulty
+      when 'beginner' then 'beginner'
+      when 'intermediate' then 'intermediate'
+      when 'advanced' then 'advanced'
+      else 'all-levels'
+    end,
+    duration_label, row_data.price, row_data.currency, row_data.capacity,
+    row_data.starts_at, nullif(row_data.thumbnail_url, ''),
+    case when row_data.status = 'published' then 'published' else 'closed' end;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
 -- Keep new CMS courses bookable.
 --
 -- Trigger version of the backfill above: whenever a row is inserted or
@@ -118,6 +211,12 @@ begin
      or to_regclass('public.courses_course') is null
      or to_regclass('public.courses_courseversion') is null
      or nullif(trim(p_slug), '') is null then
+    return;
+  end if;
+
+  -- حارس ضد إعادة الدخول: الـ LMS->الموقع sync بيكتب في public.courses نفسه،
+  -- فلولاه الحرف ده كانت الكتابة دي هتعمل نسخة جديدة على طول.
+  if current_setting('awexen.catalog_mirror', true) = 'on' then
     return;
   end if;
 

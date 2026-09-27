@@ -424,6 +424,12 @@ export default function ResourceManager({ definition, draftOwnerId }: { definiti
     } else if (!result.data) {
       setError("لم يتم حفظ التغييرات. ربما تغير العنصر أو لم تعد تملك صلاحية تعديله.");
     } else {
+      // الكورسات بتشتغل من جدولين: الموقع public.courses والحجز courses_course.
+      // لو المزامنة(DB trigger) مش متطبّقة، الكورس هيبان في الموقع بس
+      // صفحة الحجز هترفضه. بنتحقق ونقول للاداري بوضوح.
+      if (definition.table === "courses" && String(payload[definition.statusKey ?? ""] ?? "") === "published") {
+        await verifyBookable(supabase, String(form.slug ?? ""));
+      }
       clearStoredDraft(draftOwnerId, definition.table);
       setEditorOpen(false);
       setEditingId(null);
@@ -438,6 +444,25 @@ export default function ResourceManager({ definition, draftOwnerId }: { definiti
       window.dispatchEvent(new Event("awexen-content-updated"));
     }
     setSaving(false);
+  };
+
+  /**
+   * يتأكد إن الكورس بقى قابل للحجز فعلًا.
+   * لو مش متزامن بيحذّر بدل ما المستخدم يفصل ويكتشف بعدين.
+   */
+  const verifyBookable = async (client: NonNullable<typeof supabase>, slug: string) => {
+    if (!slug.trim()) return;
+    const view = await client
+      .from("lms_catalog_sync_status")
+      .select("bookable, reason")
+      .eq("slug", slug.trim())
+      .maybeSingle();
+    if (view.error || !view.data) return; // الـ view غير متاحة — ما نزعّلش المستخدم
+    if (view.data.bookable) return;
+    setError(
+      `تم حفظ الكورس، لكنه لسه غير قابل للحجز: ${view.data.reason}. ` +
+      "شغّل migration 202609270002 على Supabase عشان يتزامن الكتالوج.",
+    );
   };
 
   const moveToDraft = async (row: AdminRow) => {
