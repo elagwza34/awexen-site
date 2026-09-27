@@ -27,6 +27,10 @@ function formatMoney(value: string | number, currency: string) {
   return `${new Intl.NumberFormat("ar-EG").format(Number(value))} ${currency}`;
 }
 
+/** أنواع الملفات المسموح بها لإثبات الدفع — مطابقة لـ bucket "payment-proofs" */
+const ALLOWED_PROOF_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+const MAX_PROOF_BYTES = 5 * 1024 * 1024;
+
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "تعذّر تنفيذ العملية.";
 }
@@ -119,12 +123,14 @@ export default function CourseCheckout() {
       setError("اختر ملف إثبات التحويل أولاً.");
       return;
     }
-    if (!["image/jpeg", "image/png", "application/pdf"].includes(file.type)) {
-      setError(`نوع الملف غير مدعوم (${file.type || "غير معروف"}). المسموح: JPG أو PNG أو PDF.`);
+    if (!ALLOWED_PROOF_TYPES.some((type) => file.type === type)) {
+      setError(
+        `نوع الملف غير مدعوم${file.type ? ` (${file.type})` : ""}. المسموح: صورة JPG أو PNG أو WebP، أو ملف PDF.`,
+      );
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError(`حجم الملف ${(file.size / 1024 / 1024).toFixed(1)} ميجابايت — الحد الأقصى 5 ميجابايت.`);
+    if (file.size > MAX_PROOF_BYTES) {
+      setError(`حجم الملف ${(file.size / 1024 / 1024).toFixed(1)} ميجابايت — الحد الأقصى 5 ميجابايت. صغّر الصورة أو استخدم PDF.`);
       return;
     }
     setUploading(true);
@@ -237,9 +243,30 @@ export default function CourseCheckout() {
                     <FileUp className="mx-auto h-8 w-8 text-brand-500" />
                   )}
                   <span className="mt-3 block break-all text-[13px] font-bold">{file ? file.name : "اختر صورة أو PDF لإثبات التحويل"}</span>
-                  {file && <span className="mt-1 block text-[11px] text-ink-400">{(file.size / 1024).toFixed(0)} كيلوبايت — اضغط لاختيار ملف آخر</span>}
-                  {!file && <span className="mt-1 block text-[11px] text-ink-400">JPG / PNG / PDF — بحد أقصى 5MB</span>}
-                  <input required type="file" accept="image/jpeg,image/png,application/pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="sr-only" />
+                  {file ? (
+                    <span className="mt-1 block text-[11px] text-ink-400">{(file.size / 1024).toFixed(0)} كيلوبايت — اضغط لاختيار ملف آخر</span>
+                  ) : (
+                    <span className="mt-1 block text-[11px] text-ink-400">صورة أو ملف PDF — بحد أقصى 5 ميجابايت</span>
+                  )}
+                  {/*
+                    accept واسع عمداً: أي صور (بما فيها webp و heic من الآيفون)
+                    حتى لا يمنع المتصفح اختيار الملف قبل ما نقدر نتحقق منه.
+                    الفحص الحقيقي بيتم في uploadProof ويعرض رسالة واضحة.
+                  */}
+                  <input
+                    type="file"
+                    accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif,application/pdf,.pdf"
+                    onChange={(event) => {
+                      const picked = event.target.files?.[0] ?? null;
+                      // تصفير القيمة يسمح باختيار نفس الملف تاني بعد رفضه
+                      event.target.value = "";
+                      if (picked) {
+                        setError(null);
+                        setFile(picked);
+                      }
+                    }}
+                    className="sr-only"
+                  />
                 </label>
                 {error && <p className="rounded-xl bg-red-50 p-3 text-[12px] text-red-700">{error}</p>}
                 <button disabled={!file || uploading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3.5 text-[14px] font-black text-white disabled:opacity-50">{uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />} {uploading ? "جارٍ الرفع..." : "إرسال إثبات الدفع للمراجعة"}</button>

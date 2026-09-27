@@ -217,6 +217,24 @@ export function submitBookingProof(bookingId: string, payload: { proof_path: str
   });
 }
 
+export type PaymentProofLink = {
+  booking_id: string;
+  url: string;
+  content_type: string;
+  size: number;
+  path: string;
+  expires_in: number;
+};
+
+/**
+ * رابط مؤقت لمشاهدة/تحميل إثبات الدفع.
+ * بِكِت الـ storage خاص، فالتوقيع يتم على الخادم بعد التأكد من الصلاحية
+ * (صاحب الحجز أو من يملك صلاحية مراجعة المدفوعات).
+ */
+export function loadPaymentProof(bookingId: string) {
+  return lmsApi<PaymentProofLink>(`payment-proofs/${bookingId}/`);
+}
+
 export async function loadLearningCourse(enrollmentId: string): Promise<LearningCourse> {
   const row = await lmsApi<ApiLearningCourse>(`learning/enrollments/${enrollmentId}/`);
   const progress: LessonProgress[] = [];

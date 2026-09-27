@@ -2,12 +2,14 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  ArrowRight,
   Bell,
   BookOpenCheck,
   CalendarDays,
   Check,
   CheckCircle2,
   Clock3,
+  Eye,
   GraduationCap,
   LayoutDashboard,
   Loader2,
@@ -17,7 +19,6 @@ import {
   ReceiptText,
   RefreshCw,
   Settings2,
-  Sparkles,
   Trophy,
   UserRound,
   WalletCards,
@@ -33,6 +34,7 @@ import {
   type StudentEnrollment,
 } from "../lib/lms";
 import { LMS_STALE_TIME_MS } from "../lib/lmsApi";
+import ProofViewer from "../admin/ProofViewer";
 import { supabase } from "../lib/supabase";
 import { DashboardThemeToggle, useDashboardTheme } from "../context/DashboardThemeContext";
 
@@ -163,6 +165,7 @@ export default function StudentDashboard() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
+  const [proofBookingId, setProofBookingId] = useState<string | null>(null);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [profileName, setProfileName] = useState("");
   const [profileNotice, setProfileNotice] = useState<string | null>(null);
@@ -182,7 +185,7 @@ export default function StudentDashboard() {
     [enrollments, completedCourses],
   );
   const pendingBookings = useMemo(
-    () => bookings.filter((item) => ["awaiting_payment", "payment_submitted", "rejected"].includes(item.status)),
+    () => bookings.filter((item) => ["awaiting_payment", "payment_submitted", "rejected", "approved", "cancelled"].includes(item.status)),
     [bookings],
   );
   const scheduledCourses = useMemo(
@@ -227,6 +230,15 @@ export default function StudentDashboard() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  /**
+   * زر الرجوع: يرجع للصفحة اللي كان فيها قبل الـ dashboard.
+   * لو فتحنا اللوحة مباشرة (من رابط خارجي) نرجع للرئيسية.
+   */
+  const goBack = () => {
+    if (window.history.length > 1) window.history.back();
+    else navigate("/", { replace: true });
+  };
+
   const logout = async () => {
     await supabase?.auth.signOut();
     navigate("/login", { replace: true });
@@ -260,7 +272,6 @@ export default function StudentDashboard() {
           ))}
         </div>
         <div className="my-5 h-px bg-ink-100" />
-        <Link to="/courses" className="flex items-center gap-3 rounded-xl px-3.5 py-3 text-[12px] font-bold text-ink-500 transition hover:bg-ink-50 hover:text-ink-950"><Sparkles className="h-4 w-4" /> استكشف كورسات جديدة</Link>
         {isInstructor && <Link to="/instructor" className="mt-1 flex items-center gap-3 rounded-xl px-3.5 py-3 text-[12px] font-bold text-ink-500 transition hover:bg-ink-50 hover:text-ink-950"><GraduationCap className="h-4 w-4" /> لوحة المدرب</Link>}
       </nav>
       <div className="border-t border-ink-100 p-3">
@@ -288,7 +299,10 @@ export default function StudentDashboard() {
         <header className="sticky top-0 z-40 border-b border-ink-100 bg-white/90 backdrop-blur-xl">
           <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-7 lg:px-10">
             <div className="flex min-w-0 items-center gap-3">
-              <button type="button" onClick={() => setMobileSidebar(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-ink-200 bg-white text-ink-700 lg:hidden"><Menu className="h-4 w-4" /></button>
+              <button type="button" onClick={goBack} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-ink-200 bg-white text-ink-700 transition hover:border-brand-500 hover:text-brand-600" aria-label="رجوع للصفحة السابقة">
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={() => setMobileSidebar(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-ink-200 bg-white text-ink-700 lg:hidden" aria-label="فتح القائمة"><Menu className="h-4 w-4" /></button>
               <div className="min-w-0"><p className="text-[9px] font-bold text-ink-400">لوحة الطالب</p><h1 className="truncate text-[14px] font-black">{dashboardTabs.find((tab) => tab.id === activeTab)?.label}</h1></div>
             </div>
             <div className="flex items-center gap-2">
@@ -314,8 +328,8 @@ export default function StudentDashboard() {
                     <h2 className="mt-2 text-[28px] font-black sm:text-[36px]">{displayName.split(" ")[0]}، مستعد تكمل؟</h2>
                     <p className="mt-3 max-w-xl text-[13px] leading-7 text-ink-500">تابع تقدمك، كمّل الدروس المتبقية، وخليك دايمًا على اطلاع بمواعيد كورساتك وحالة دفعاتك.</p>
                     <div className="mt-6 flex flex-wrap gap-2">
-                      {continueCourse ? <Link to={`/learn/enrollments/${continueCourse.id}`} className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-[12px] font-black">كمّل آخر كورس <PlayCircle className="h-4 w-4" /></Link> : <Link to="/courses" className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-[12px] font-black">استكشف الكورسات <ArrowLeft className="h-4 w-4" /></Link>}
-                      <button type="button" onClick={() => selectTab("courses")} className="rounded-xl border border-ink-200 bg-white px-5 py-3 text-[12px] font-bold text-ink-600">كل كورساتي</button>
+                      {continueCourse ? <Link to={`/learn/enrollments/${continueCourse.id}`} className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-[12px] font-black">كمّل آخر كورس <PlayCircle className="h-4 w-4" /></Link> : <button type="button" onClick={() => selectTab("courses")} className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-[12px] font-black">كورساتي <BookOpenCheck className="h-4 w-4" /></button>}
+                      {continueCourse && <button type="button" onClick={() => selectTab("courses")} className="rounded-xl border border-ink-200 bg-white px-5 py-3 text-[12px] font-bold text-ink-600">كل كورساتي</button>}
                     </div>
                   </div>
                   <div className="relative mx-auto h-36 w-36 shrink-0 lg:mx-0">
@@ -353,8 +367,8 @@ export default function StudentDashboard() {
 
           {!loading && !pageError && activeTab === "courses" && (
             <section>
-              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-[10px] font-black text-brand-600">مكتبتك التعليمية</p><h2 className="mt-1 text-[25px] font-black">كورساتي</h2><p className="mt-2 text-[12px] text-ink-400">كل الكورسات المفعلة على حسابك ونسبة تقدمك فيها.</p></div><Link to="/courses" className="inline-flex w-fit items-center gap-2 rounded-xl bg-ink-950 px-4 py-3 text-[11px] font-black text-white">إضافة كورس جديد <ArrowLeft className="h-4 w-4" /></Link></div>
-              {enrollments.length ? <div className="mt-6 grid gap-5 md:grid-cols-2 2xl:grid-cols-3">{enrollments.map((item) => <CourseCard key={item.id} enrollment={item} />)}</div> : <div className="mt-7"><EmptyState icon={BookOpenCheck} title="مكتبتك فارغة حاليًا" text="احجز أول كورس، وبعد تأكيد الدفع سيظهر تلقائيًا هنا." action={<Link to="/courses" className="inline-flex rounded-xl bg-brand-500 px-5 py-3 text-[12px] font-black text-white">شاهد الكورسات المتاحة</Link>} /></div>}
+              <div><p className="text-[10px] font-black text-brand-600">مكتبتك التعليمية</p><h2 className="mt-1 text-[25px] font-black">كورساتي</h2><p className="mt-2 text-[12px] text-ink-400">كل الكورسات المفعلة على حسابك ونسبة تقدمك فيها.</p></div>
+              {enrollments.length ? <div className="mt-6 grid gap-5 md:grid-cols-2 2xl:grid-cols-3">{enrollments.map((item) => <CourseCard key={item.id} enrollment={item} />)}</div> : <div className="mt-7"><EmptyState icon={BookOpenCheck} title="مكتبتك فارغة حاليًا" text="لم يتم تفعيل أي كورس على حسابك بعد. تواصل معنا لمعرفة الكورسات المتاحة لك." /></div>}
             </section>
           )}
 
@@ -384,6 +398,21 @@ export default function StudentDashboard() {
                       <div className="sm:text-left"><strong className="block text-[18px] font-black">{formatMoney(booking.amount, booking.currency)}</strong><span className="mt-1 block text-[10px] text-ink-400">{booking.payment_method === "instapay" ? "InstaPay" : booking.payment_method === "vodafone_cash" ? "Vodafone Cash" : "لم تُحدد وسيلة الدفع"}</span></div>
                     </div>
                     {booking.review_notes && <p className="mt-4 rounded-xl bg-red-50 p-3 text-[11px] leading-6 text-red-700">ملاحظة الإدارة: {booking.review_notes}</p>}
+                    {booking.status === "approved" && (
+                      <p className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-[11px] font-bold leading-6 text-emerald-700">
+                        <CheckCircle2 className="h-4 w-4 shrink-0" />
+                        تمت الموافقة على الدفع وتفعيل الكورس. الكورس متاح لك في «كورساتي».
+                      </p>
+                    )}
+                    {booking.proof_path && (
+                      <button
+                        type="button"
+                        onClick={() => setProofBookingId(booking.id)}
+                        className="mt-4 mr-2 inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-[11px] font-black text-ink-700 transition hover:border-brand-500 hover:text-brand-600"
+                      >
+                        <Eye className="h-3.5 w-3.5" /> عرض إثبات الدفع المرسل
+                      </button>
+                    )}
                     {["awaiting_payment", "rejected"].includes(booking.status) && <Link to={`/checkout/${booking.course.slug}`} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-[11px] font-black text-white">متابعة الدفع ورفع الإثبات <ArrowLeft className="h-3.5 w-3.5" /></Link>}
                     {booking.status === "payment_submitted" && <p className="mt-4 rounded-xl bg-blue-50 p-3 text-[11px] leading-6 text-blue-700">تم استلام الإثبات، وسيظهر الكورس في «كورساتي» فور موافقة الإدارة.</p>}
                   </article>
@@ -414,6 +443,10 @@ export default function StudentDashboard() {
           )}
         </main>
       </div>
+
+      {proofBookingId && (
+        <ProofViewer bookingId={proofBookingId} onClose={() => setProofBookingId(null)} />
+      )}
     </section>
   );
 }

@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Clock3, Eye, FileCheck2, Loader2, RefreshCw, XCircle } from "lucide-react";
 
 import { lmsApi } from "../lib/lmsApi";
-import { supabase } from "../lib/supabase";
+import ProofViewer from "./ProofViewer";
 import type { AdminRole } from "./types";
 
 type Paged<T> = { count: number; results: T[] };
@@ -17,6 +17,7 @@ type Booking = {
   payment_phone: string;
   phone: string;
   proof_path: string;
+  review_notes?: string;
   created_at: string;
   payment_submitted_at: string | null;
   student_name: string;
@@ -44,6 +45,7 @@ export default function LmsApprovals({ role, view }: { role: AdminRole; view: Ap
   const queryClient = useQueryClient();
   const [busyId, setBusyId] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [proofBookingId, setProofBookingId] = useState<string | null>(null);
   const canReviewPayments = ["owner", "admin", "editor", "support"].includes(role);
   const canReviewCourses = ["owner", "admin", "editor"].includes(role);
   const showPayments = view === "payments" && canReviewPayments;
@@ -56,12 +58,21 @@ export default function LmsApprovals({ role, view }: { role: AdminRole; view: Ap
     ),
     enabled: showPayments,
   });
+  /* السجل المحفوظ: الطلبات المنتهية (موافَق عليها / مرفوضة / ملغاة) */
+  const historyQuery = useQuery({
+    queryKey: ["lms-approvals", "payments-history"],
+    queryFn: () => lmsApi<Paged<Booking>>(
+      "admin/payment-bookings/?statuses=approved,rejected,cancelled&page_size=100&ordering=-created_at",
+    ),
+    enabled: showPayments,
+  });
   const coursesQuery = useQuery({
     queryKey: ["lms-approvals", "courses"],
     queryFn: () => lmsApi<Paged<Version>>("admin/course-versions/?status=in_review&page_size=100&ordering=-created_at"),
     enabled: showCourses,
   });
   const payments = paymentsQuery.data?.results ?? [];
+  const history = historyQuery.data?.results ?? [];
   const versions = coursesQuery.data?.results ?? [];
 
   const refresh = async () => {
@@ -90,12 +101,13 @@ export default function LmsApprovals({ role, view }: { role: AdminRole; view: Ap
     void act(id, path, { reason });
   };
 
-  const openProof = async (booking: Booking) => {
+  const openProof = (booking: Booking) => {
     setError(null);
-    if (!supabase || !booking.proof_path) return;
-    const { data, error: signedError } = await supabase.storage.from("payment-proofs").createSignedUrl(booking.proof_path, 300);
-    if (signedError) setError(message(signedError));
-    else window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    if (!booking.proof_path) {
+      setError("لم يتم رفع إثبات دفع لهذا الطلب بعد.");
+      return;
+    }
+    setProofBookingId(booking.id);
   };
 
   const loading = showPayments ? paymentsQuery.isLoading : coursesQuery.isLoading;
@@ -189,6 +201,84 @@ export default function LmsApprovals({ role, view }: { role: AdminRole; view: Ap
         </section>
       )}
 
+      {/* السجل المحفوظ للطلبات المنتهية */}
+      {showPayments && !loading && (
+        <section className="mt-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[13px] font-black">سجل الطلبات المنتهية</h2>
+            <span className="rounded-full bg-white/5 px-2.5 py-1 text-[9px] font-bold text-white/45">
+              {historyQuery.data?.count ?? history.length} سجل محفوظ
+            </span>
+          </div>
+          <p className="mt-1 text-[9px] text-white/30">
+            كل الطلبات التي تمت الموافقة عليها أو رفضها أو إلغاؤها — تبقى محفوظة للرجوع إليها.
+          </p>
+          <div className="mt-3 space-y-2">
+            {history.map((booking) => (
+              <article
+                key={booking.id}
+                className="grid gap-3 rounded-xl border border-white/[0.06] bg-white/[0.015] p-4 lg:grid-cols-[1.1fr_1fr_auto] lg:items-center"
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[11px] font-black">{booking.course.title}</p>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[8px] font-black ${
+                        booking.status === "approved"
+                          ? "bg-emerald-500/10 text-emerald-300"
+                          : booking.status === "rejected"
+                            ? "bg-red-500/10 text-red-300"
+                            : "bg-white/10 text-white/40"
+                      }`}
+                    >
+                      {booking.status === "approved"
+                        ? "تمت الموافقة"
+                        : booking.status === "rejected"
+                          ? "مرفوض"
+                          : "ملغي"}
+                    </span>
+                  </div>
+                  <p dir="ltr" className="mt-1 text-right text-[9px] text-white/30">
+                    {booking.student_name || "متدرب"} · {booking.student_email}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-white/55">
+                    {Number(booking.amount).toLocaleString("ar-EG")} {booking.currency} ·{" "}
+                    {booking.payment_method === "instapay" ? "InstaPay" : "Vodafone Cash"}
+                  </p>
+                  <p className="mt-1 text-[8.5px] text-white/25">
+                    {booking.review_notes
+                      ? `ملاحظة: ${booking.review_notes}`
+                      : booking.payment_submitted_at
+                        ? `عولج في ${new Date(booking.payment_submitted_at).toLocaleString("ar-EG")}`
+                        : `قُدّم في ${new Date(booking.created_at).toLocaleString("ar-EG")}`}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {booking.proof_path ? (
+                    <button
+                      type="button"
+                      onClick={() => openProof(booking)}
+                      className="admin-button-secondary"
+                    >
+                      <Eye className="h-3.5 w-3.5" /> الإثبات
+                    </button>
+                  ) : (
+                    <span className="px-2 text-[9px] text-white/25">لا يوجد إثبات</span>
+                  )}
+                </div>
+              </article>
+            ))}
+            {!history.length && (
+              <div className="rounded-xl border border-dashed border-white/10 p-8 text-center text-[10px] text-white/30">
+                لا يوجد سجل محفوظ بعد — الطلبات المكتملة تظهر هنا تلقائيًا.
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {showCourses && !loading && (
         <section className="mt-6">
           <div className="flex items-center justify-between">
@@ -225,6 +315,10 @@ export default function LmsApprovals({ role, view }: { role: AdminRole; view: Ap
             )}
           </div>
         </section>
+      )}
+
+      {proofBookingId && (
+        <ProofViewer bookingId={proofBookingId} onClose={() => setProofBookingId(null)} />
       )}
     </div>
   );

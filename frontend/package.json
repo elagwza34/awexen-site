@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "check:setup": "node scripts/check-setup.mjs",
-    "seed:lms": "node scripts/seed-lms.mjs"
+    "seed:lms": "node scripts/seed-lms.mjs",
+    "test:upload": "node scripts/test-upload.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

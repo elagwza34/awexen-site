@@ -270,6 +270,66 @@ async function bookingById(db: DatabaseClient, id: string): Promise<Row> {
   return (await bookingRows(db, [row]))[0];
 }
 
+/** هل يملك المستخدم صلاحية مراجعة المدفوعات؟ */
+async function canReviewPayments(db: DatabaseClient, context: LmsContext): Promise<boolean> {
+  if (context.platform_role === "super_admin") return true;
+  if (ENROLLMENT_ROLES.some((role) => context.memberships.some((m) => m.role === role))) return true;
+  const result = await db.rpc("lms_can_review_payments");
+  return result.data === true;
+}
+
+/**
+ * رابط مؤقت لمشاهدة إثبات الدفع.
+ * المسار محفوظ في bucket خاص، فالتحقق يتم هنا على مستوى الخادم:
+ * صاحب الحجز فقط، أو من يملك صلاحية مراجعة المدفوعات.
+ */
+async function paymentProofUrl(
+  db: DatabaseClient,
+  context: LmsContext,
+  bookingId: string,
+): Promise<Row> {
+  const row = unwrap(
+    await db.from("commerce_coursebooking")
+      .select("id,user_id,proof_path,proof_content_type,proof_size")
+      .eq("id", bookingId)
+      .maybeSingle(),
+  ) as Row | null;
+  if (!row) throw new HttpError(404, "طلب الحجز غير موجود.");
+  if (!row.proof_path) throw new HttpError(404, "لم يتم رفع إثبات دفع لهذا الطلب بعد.");
+
+  const ownerId = String(row.user_id ?? "");
+  const isOwner = ownerId === context.id;
+  if (!isOwner && !(await canReviewPayments(db, context))) {
+    throw new HttpError(403, "مفيش صلاحية لمشاهدة إثبات الدفع ده.");
+  }
+
+  // المسار المتوقع: {user_id}/{booking_id}/{file}
+  // يتحقق منه كمان دالة RPC عند الرفع — هنا تحقق إضافي قبل التوقيع
+  const proofPath = String(row.proof_path);
+  const expectedPrefix = `${ownerId}/${bookingId}/`;
+  if (!proofPath.startsWith(expectedPrefix) || proofPath.includes("..")) {
+    throw new HttpError(400, "مسار إثبات الدفع غير صالح.");
+  }
+
+  const storage = db.storage;
+  if (!storage) throw new HttpError(500, "خدمة التخزين غير متاحة.");
+  const { data: signed, error: signError } = await storage
+    .from("payment-proofs")
+    .createSignedUrl(proofPath, 600);
+  if (signError || !signed?.signedUrl) {
+    throw new HttpError(500, "تعذّر تجهيز رابط إثبات الدفع.");
+  }
+
+  return {
+    booking_id: bookingId,
+    url: signed.signedUrl,
+    content_type: String(row.proof_content_type ?? ""),
+    size: Number(row.proof_size ?? 0),
+    path: proofPath,
+    expires_in: 600,
+  };
+}
+
 async function enrollmentOutputs(db: DatabaseClient, rows: Row[], context?: LmsContext): Promise<Row[]> {
   if (!rows.length) return [];
   const versions = mapById(await rowsByIds(db, "courses_courseversion", rows.map((row) => row.course_version_id)));
@@ -1152,6 +1212,9 @@ async function routeRequest(
   if (parts[0] === "learning" && parts[1] === "enrollments") {
     if (method === "GET" && !parts[2]) return jsonResponse(request, await studentEnrollments(db, context));
     if (method === "GET" && parts[2]) return jsonResponse(request, await learningCourse(db, context, uuid(parts[2], "التسجيل")));
+  }
+  if (parts[0] === "payment-proofs" && method === "GET" && parts[1]) {
+    return jsonResponse(request, await paymentProofUrl(db, context, uuid(parts[1], "طلب الحجز")));
   }
   if (method === "POST" && parts[0] === "progress" && parts[1] === "events") {
     return jsonResponse(request, await rpc<Row>(db, "lms_edge_record_progress", {
