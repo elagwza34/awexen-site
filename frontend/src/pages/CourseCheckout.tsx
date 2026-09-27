@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, CheckCircle2, Clock3, Copy, CreditCard, FileUp, Loader2, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowRight, CheckCircle2, Clock3, Copy, CreditCard, FileUp, Loader2, ShieldCheck } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { supabase } from "../lib/supabase";
@@ -40,6 +40,7 @@ export default function CourseCheckout() {
   const [goal, setGoal] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"instapay" | "vodafone_cash">("instapay");
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -62,6 +63,16 @@ export default function CourseCheckout() {
       if (existing.payment_method) setPaymentMethod(existing.payment_method);
     }
   }, [existing]);
+
+  useEffect(() => {
+    if (!file || !file.type.startsWith("image/")) {
+      setPreviewUrl("");
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
 
   const bookingMutation = useMutation({
     mutationFn: createBooking,
@@ -95,27 +106,47 @@ export default function CourseCheckout() {
 
   const uploadProof = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!booking || !file || !supabase) return;
     setError(null);
+    if (!booking) {
+      setError("لا يوجد حجز نشط. ابدأ الحجز أولاً.");
+      return;
+    }
+    if (!supabase) {
+      setError("خدمة تسجيل الدخول غير متصلة. حدّث الصفحة وحاول مرة أخرى.");
+      return;
+    }
+    if (!file) {
+      setError("اختر ملف إثبات التحويل أولاً.");
+      return;
+    }
     if (!["image/jpeg", "image/png", "application/pdf"].includes(file.type)) {
-      setError("ارفع صورة JPG أو PNG أو ملف PDF فقط.");
+      setError(`نوع الملف غير مدعوم (${file.type || "غير معروف"}). المسموح: JPG أو PNG أو PDF.`);
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setError("حجم إثبات الدفع يجب ألا يتجاوز 5 ميجابايت.");
+      setError(`حجم الملف ${(file.size / 1024 / 1024).toFixed(1)} ميجابايت — الحد الأقصى 5 ميجابايت.`);
       return;
     }
     setUploading(true);
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user) throw userError ?? new Error("جلسة تسجيل الدخول غير صالحة.");
+      if (userError || !userData.user) throw userError ?? new Error("انتهت جلسة تسجيل الدخول. سجّل الدخول مرة أخرى.");
       const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
       const path = `${userData.user.id}/${booking.id}/${crypto.randomUUID()}.${extension}`;
       const { error: uploadError } = await supabase.storage.from("payment-proofs").upload(path, file, {
         contentType: file.type,
         upsert: false,
       });
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        const message = uploadError.message || "";
+        if (/mime|not allowed|file type/i.test(message))
+          throw new Error("نوع الملف مرفوض من الخادم. المسموح: JPG أو PNG أو PDF.");
+        if (/exceed|size|too large/i.test(message))
+          throw new Error("حجم الملف أكبر من 5 ميجابايت. صغّر الصورة وجرّب مرة أخرى.");
+        if (/row-level|not allowed|permission|denied/i.test(message))
+          throw new Error("مفيش صلاحية لرفع الملف على هذا الحجز. سجّل الخروج والدخول مرة أخرى.");
+        throw new Error(`تعذّر رفع الملف: ${message || "خطأ غير معروف من التخزين."}`);
+      }
       const updated = await submitBookingProof(booking.id, {
         proof_path: path,
         content_type: file.type,
@@ -154,16 +185,22 @@ export default function CourseCheckout() {
     <section className="bg-ink-50 py-12 sm:py-16">
       <div className="container-x max-w-5xl">
         <Link to={`/courses/${course.slug}`} className="inline-flex items-center gap-2 text-[13px] font-bold text-ink-500"><ArrowRight className="h-4 w-4" /> العودة لتفاصيل الكورس</Link>
+        {error && (
+          <div role="alert" className="mt-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p className="text-[13px] font-semibold leading-6">{error}</p>
+          </div>
+        )}
         <div className="mt-6 grid gap-6 lg:grid-cols-[0.72fr_1.28fr]">
           <aside className="h-fit rounded-3xl bg-ink-950 p-7 text-white lg:sticky lg:top-24">
             <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-500/15 text-brand-300"><CreditCard className="h-5 w-5" /></span>
             <p className="mt-5 text-[11px] font-black text-brand-300">إتمام الحجز</p>
-            <h1 className="mt-2 text-[24px] font-black leading-9">{course.title}</h1>
-            <p className="mt-3 text-[13px] leading-7 text-white/50">{course.short_description}</p>
+            <h1 className="mt-2 text-[24px] font-black leading-9 text-white">{course.title}</h1>
+            <p className="mt-3 text-[13px] leading-7 text-white/60">{course.short_description}</p>
             <div className="mt-6 border-t border-white/10 pt-5">
-              <p className="text-[11px] text-white/40">قيمة الحجز</p>
-              <p className="mt-1 text-[22px] font-black">{formatMoney(course.price, course.currency)}</p>
-              {course.starts_at && <p className="mt-4 flex items-center gap-2 text-[12px] text-white/60"><Clock3 className="h-4 w-4 text-brand-300" /> يبدأ {new Date(course.starts_at).toLocaleString("ar-EG")}</p>}
+              <p className="text-[11px] text-white/50">قيمة الحجز</p>
+              <p className="mt-1 text-[22px] font-black text-white">{formatMoney(course.price, course.currency)}</p>
+              {course.starts_at && <p className="mt-4 flex items-center gap-2 text-[12px] text-white/70"><Clock3 className="h-4 w-4 text-brand-300" /> يبدأ {new Date(course.starts_at).toLocaleString("ar-EG")}</p>}
             </div>
           </aside>
 
@@ -193,7 +230,17 @@ export default function CourseCheckout() {
                   <div className="mt-3 flex items-center justify-between gap-3"><strong dir="ltr" className="text-[25px] tracking-wider">{booking.payment_phone}</strong><button type="button" onClick={() => { void navigator.clipboard.writeText(booking.payment_phone); setCopied(true); }} className="grid h-10 w-10 place-items-center rounded-xl bg-white text-brand-600"><Copy className="h-4 w-4" /></button></div>
                   {copied && <p className="mt-2 text-[11px] font-bold text-emerald-600">تم نسخ الرقم</p>}
                 </div>
-                <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-ink-200 p-7 text-center transition hover:border-brand-400"><FileUp className="mx-auto h-8 w-8 text-brand-500" /><span className="mt-3 block text-[13px] font-bold">{file ? file.name : "اختر صورة أو PDF لإثبات التحويل"}</span><span className="mt-1 block text-[11px] text-ink-400">JPG / PNG / PDF — بحد أقصى 5MB</span><input required type="file" accept="image/jpeg,image/png,application/pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="sr-only" /></label>
+                <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-ink-200 p-7 text-center transition hover:border-brand-400">
+                  {file && file.type.startsWith("image/") ? (
+                    <img src={previewUrl} alt="معاينة إثبات التحويل" className="mx-auto mb-4 max-h-40 rounded-xl object-contain" />
+                  ) : (
+                    <FileUp className="mx-auto h-8 w-8 text-brand-500" />
+                  )}
+                  <span className="mt-3 block break-all text-[13px] font-bold">{file ? file.name : "اختر صورة أو PDF لإثبات التحويل"}</span>
+                  {file && <span className="mt-1 block text-[11px] text-ink-400">{(file.size / 1024).toFixed(0)} كيلوبايت — اضغط لاختيار ملف آخر</span>}
+                  {!file && <span className="mt-1 block text-[11px] text-ink-400">JPG / PNG / PDF — بحد أقصى 5MB</span>}
+                  <input required type="file" accept="image/jpeg,image/png,application/pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className="sr-only" />
+                </label>
                 {error && <p className="rounded-xl bg-red-50 p-3 text-[12px] text-red-700">{error}</p>}
                 <button disabled={!file || uploading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3.5 text-[14px] font-black text-white disabled:opacity-50">{uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />} {uploading ? "جارٍ الرفع..." : "إرسال إثبات الدفع للمراجعة"}</button>
               </form>

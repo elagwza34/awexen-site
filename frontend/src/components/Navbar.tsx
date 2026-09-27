@@ -42,6 +42,9 @@ export default function Navbar() {
   const { lang, t, toggleLang } = useLanguage();
   const megaRef = useRef<HTMLLIElement>(null);
 
+  /** صفحات بتفتح بخلفية فاتحة — الهيدر لازم يبقى باين من أول لحظة */
+  const forceSolidHeader = pathname.startsWith("/checkout");
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     onScroll();
@@ -114,7 +117,7 @@ export default function Navbar() {
       <header
         className={cn(
           "sticky top-0 z-50 w-full transition-all duration-300",
-          scrolled
+          (scrolled || forceSolidHeader)
             ? "border-b border-white/10 bg-ink-950/88 shadow-lg shadow-black/25 backdrop-blur-xl"
             : "bg-transparent",
         )}

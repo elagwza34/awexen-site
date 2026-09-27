@@ -43,6 +43,7 @@ import {
   type CourseLesson,
 } from "../lib/lms";
 import { LMS_STALE_TIME_MS } from "../lib/lmsApi";
+import { cn } from "../utils/cn";
 import {
   loadDashboardAccess,
   pathMatchesDashboardRole,
@@ -78,15 +79,31 @@ function friendlyError(error: unknown) {
   return "تعذّر إكمال العملية مؤقتًا. حاول مرة أخرى، وإذا استمرت المشكلة تواصل مع الدعم.";
 }
 
-function BrandMark() {
+/** لوجو Awexen الرسمي (نسخة داكنة) + شارة Learning */
+function BrandMark({ centered = false }: { centered?: boolean }) {
   return (
-    <Link to="/" className="inline-flex items-center gap-3 text-white">
-      <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-500 text-[18px] font-black shadow-lg shadow-brand-500/25">A</span>
-      <span className="leading-none">
-        <span className="block text-[17px] font-black">Awexen</span>
-        <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.18em] text-white/40">Learning</span>
+    <div className={cn("flex items-center gap-3", centered ? "flex-col gap-2.5" : "flex-row")}>
+      <Link to="/" aria-label="awexen — الصفحة الرئيسية" className="inline-flex">
+        <img
+          src="/images/awexen%20(1).png"
+          alt="Awexen"
+          width="1240"
+          height="322"
+          className={cn(
+            "w-auto object-contain transition-transform duration-300 hover:scale-[1.03]",
+            centered ? "h-9 max-w-[150px] sm:h-10" : "h-7 max-w-[124px]",
+          )}
+        />
+      </Link>
+      <span
+        className={cn(
+          "rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/55",
+          centered ? "" : "hidden sm:inline-flex",
+        )}
+      >
+        Learning
       </span>
-    </Link>
+    </div>
   );
 }
 
@@ -419,7 +436,7 @@ export function LearningAuth() {
       <div className="absolute inset-0 grid-lines opacity-40" />
       <div className="relative hidden flex-col justify-between overflow-hidden border-l border-white/10 p-12 lg:flex">
         <div className="absolute -right-32 top-16 h-96 w-96 rounded-full bg-brand-500/15 blur-[100px]" />
-        <BrandMark />
+        <BrandMark centered />
         <div className="relative max-w-xl">
           <p className="text-[12px] font-black uppercase tracking-[0.22em] text-brand-400">Awexen Learning</p>
           <h1 className="mt-5 text-[clamp(36px,4vw,64px)] font-black leading-[1.2] text-white">اتعلّم. طبّق.<br /><span className="text-brand-400">وشوف تقدّمك.</span></h1>
@@ -437,7 +454,7 @@ export function LearningAuth() {
 
       <div className="relative flex min-h-screen items-center justify-center px-4 py-12 sm:px-8">
         <div className="w-full max-w-md">
-          <div className="mb-9 lg:hidden"><BrandMark /></div>
+          <div className="mb-9 flex justify-center lg:hidden"><BrandMark centered /></div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-8">
             <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-500/15 text-brand-300">
               {mode === "signup" ? <UserPlus className="h-5 w-5" /> : mode === "otp" ? <CheckCircle2 className="h-5 w-5" /> : <LockKeyhole className="h-5 w-5" />}
