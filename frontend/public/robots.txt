@@ -3,4 +3,30 @@ Allow: /
 Disallow: /awexen
 Disallow: /export
 
+# البوتات اللي بتعمل scrape على المحتوى
+# Cloudflare suggested tightening this while scraper traffic hit the origin
+User-agent: GPTBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: meta-externalagent
+Disallow: /
+
+# ملفات البناء (JS/CSS) — محركات البحث مش محتاجة تفهرستها
+Disallow: /assets/
+
 Sitemap: https://awexen.com/sitemap.xml

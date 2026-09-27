@@ -4,7 +4,18 @@
 
   RewriteRule ^index\.html$ - [L]
 
+  # security.txt: نتعامل مع .well-known كمجلد حقيقي قبل قاعدة SPA
+  # عشان ما يتحوّلش لصفحة React 404
+  RewriteCond %{REQUEST_URI} !^\.well-known/
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule . /index.html [L]
 </IfModule>
+
+# حماية الملفات الحساسة لو اتسابت للـ public_html.
+# .env و .sql و .log هي الأهم — ملفات الـ webmanifest و .well-known
+# مسموحة لأنها من ملفات الموقع الفعلية.
+<FilesMatch "^(\.env|\.env\..*|.*\.sql|.*\.log)$">
+  Require all denied
+</FilesMatch>
+

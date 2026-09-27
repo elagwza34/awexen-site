@@ -1,0 +1,5 @@
+Contact: mailto:info@awexen.com
+Expires: 2027-09-27T00:00:00.000Z
+Preferred-Languages: ar, en
+Canonical: https://awexen.com/.well-known/security.txt
+Policy: https://awexen.com/privacy

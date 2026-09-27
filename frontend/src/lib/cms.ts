@@ -200,6 +200,35 @@ export const fallbackCourses: FallbackCourse[] = [
   },
 ];
 
+/**
+ * Minimal in-memory cache for public content.
+ *
+ * Every page used to refetch everything from Supabase on each mount, which
+ * added up quickly under scraper traffic and pushed the origin into
+ * rate-limit territory. Public content changes rarely, so a short TTL keeps
+ * the numbers down without serving stale pricing.
+ */
+type CacheEntry<T> = { value: T; expiresAt: number };
+const contentCache = new Map<string, CacheEntry<unknown>>();
+const CONTENT_TTL_MS = 60_000;
+
+function cached<T>(key: string, load: () => Promise<T>, ttl = CONTENT_TTL_MS): Promise<T> {
+  const hit = contentCache.get(key);
+  if (hit && hit.expiresAt > Date.now()) return Promise.resolve(hit.value as T);
+  return load().then((value) => {
+    contentCache.set(key, { value, expiresAt: Date.now() + ttl });
+    return value;
+  }).catch((error) => {
+    // A stale value beats an error page when the API is throttled.
+    if (hit) return hit.value as T;
+    throw error;
+  });
+}
+
+export function clearContentCache() {
+  contentCache.clear();
+}
+
 async function listPublished<T>(table: string, orderColumn: string, fallback: T[]): Promise<T[]> {
   if (!supabase) return fallback;
   const { data, error } = await supabase
@@ -214,10 +243,10 @@ async function listPublished<T>(table: string, orderColumn: string, fallback: T[
   return (data ?? []) as T[];
 }
 
-export const loadBlogPosts = () => listPublished<BlogPost>("blog_posts", "published_at", fallbackPosts);
-export const loadJobs = () => listPublished<Job>("jobs", "created_at", []);
+export const loadBlogPosts = () => cached("blog_posts", () => listPublished<BlogPost>("blog_posts", "published_at", fallbackPosts));
+export const loadJobs = () => cached("jobs", () => listPublished<Job>("jobs", "created_at", []));
 export async function loadCourses(): Promise<Course[]> {
-  const courses = await listPublished<Course>("courses", "starts_at", fallbackCourses);
+  const courses = await cached("courses", () => listPublished<Course>("courses", "starts_at", fallbackCourses));
   return courses.filter((course) => course.price > 0);
 }
 

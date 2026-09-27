@@ -132,6 +132,34 @@ for (const secret of [
   check(`التوثيق يشرح ${secret}`, deployDoc.includes(secret));
 }
 
+/* ---------- 10) حماية من البوتات اللي سبّبت 429 ---------- */
+const robots = readFileSync(resolve(here, "..", "public", "robots.txt"), "utf8");
+check("robots موجود", robots.includes("User-agent: *"));
+check("بيمنع لوحة الأداري", /Disallow: \/awexen/.test(robots));
+check("بيمنع صفحة البيانات", /Disallow: \/export/.test(robots));
+for (const bot of ["GPTBot", "CCBot", "ClaudeBot", "Bytespider", "meta-externalagent"]) {
+  check(`بيمنع ${bot}`, new RegExp(`User-agent: ${bot}\\s*\\nDisallow: /`).test(robots));
+}
+check("بيсня sitemap", /Sitemap: https:\/\/awexen\.com\/sitemap\.xml/.test(robots));
+
+const securityTxt = readFileSync(resolve(here, "..", "public", ".well-known", "security.txt"), "utf8");
+check("security.txt موجود", /Contact: mailto:/.test(securityTxt));
+check("security.txt فيه تاريخ انتهاء", /Expires: \d{4}-/.test(securityTxt));
+check("security.txt فيه Canonical", /Canonical: https:\/\/awexen\.com/.test(securityTxt));
+
+const htaccess = readFileSync(resolve(here, "..", "public", ".htaccess"), "utf8");
+check(".htaccess بيستثني .well-known", /\.well-known/.test(htaccess));
+check(".htaccess بيمنع ملفات .env", /FilesMatch/.test(htaccess) && /\\\.env/.test(htaccess));
+check(".htaccess بيمنع SQL", /sql/.test(htaccess));
+check(".htaccess بيرجع للـ SPA", /RewriteRule \. \/index\.html/.test(htaccess));
+
+const cmsSource = readFileSync(resolve(here, "..", "src", "lib", "cms.ts"), "utf8");
+check("في cache للمحتوى العام", /contentCache/.test(cmsSource));
+check("الـ cache بيستخدم TTL", /CONTENT_TTL_MS/.test(cmsSource));
+check("الكورسات بتستفيد من الـ cache", /cached\("courses"/.test(cmsSource));
+check("المقالات بتستفيد من الـ cache", /cached\("blog_posts"/.test(cmsSource));
+check("فيه دالة تفريغ الكاش", /export function clearContentCache/.test(cmsSource));
+
 /* ---------- النتيجة ---------- */
 console.log("\nاختبار رفع إثبات الدفع\n");
 for (const r of results) {
