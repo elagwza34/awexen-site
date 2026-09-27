@@ -131,6 +131,34 @@ npm.cmd run build
 - شغّل `npm run check:catalog` محليًا للتأكد إن الكتالوج متزامن.
 - لو الـ migration فشلش، الـ job بيتوقف وبيطبع السبب — راجع الـ log.
 
+## حماية الموقع من البوتات (429)
+
+رفعت Cloudflare إن الـ origin كان بيرجّع `429` لكل المسارات (حتى `robots.txt`)، بسبب
+بوتات scrape كتير (GPTBot، CCBot، Bytespider) مع `Managed rules` بتعمل Block.
+
+**الحل مُطبّق على أربع مستويات:**
+
+1. **Cloudflare Bot Fight Mode** — مُفعّل من لوحة Cloudflare.
+   المتصفح العادي = `200`، والبوتات المعروفة = `429`.
+2. **`robots.txt`** — `Disallow: /` للبوتات دي (رغم إنها مش من搜索引擎، بتقلل الحمل).
+3. **Cache للمحتوى العام** (`frontend/src/lib/cms.ts`) — 60 ثانية في الذاكرة،
+   وبيقدّم قيمة قديمة بدل صفحة خطأ لو الـ API اتقيّد.
+4. **`security.txt`** و **`.htaccess`** — ملف تعريف أمني للحماية، و `.htaccess` يمنع ملفات `.env`/`.sql`.
+
+### التحقق السريع
+
+```powershell
+# لازم يطلع 200
+curl.exe -s -o NUL -w "%{http_code}" https://awexen.com/
+
+# لازم يطلع 429 (البوت محجوب)
+curl.exe -s -o NUL -w "%{http_code}" -A "GPTBot/1.0" https://awexen.com/
+```
+
+> **ملاحظة:** لو الـ 429 رجع لكل حاجة حتى للمتصفح، راجع Cloudflare
+> **Security → Events** وشوف الـ IP الظاهر — غالبًا هتلاقي عناوين IP مكررة
+> من بلد واحد (زي عناوين Finland و US اللي ظهرت في التنبيهات).
+
 ## 6. التحقق
 
 - افتح `https://YOUR_PROJECT_REF.supabase.co/functions/v1/lms-public/health` مع apikey العام.
