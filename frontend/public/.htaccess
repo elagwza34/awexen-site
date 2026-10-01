@@ -19,3 +19,22 @@
   Require all denied
 </FilesMatch>
 
+# اسم ملف الـ build بيتغيّر مع كل deploy (hash من Vite)، فالملف نفسه
+# بيتغير محتواه لما الاسم يتغير. تخزينه سنة كاملة آمن وبيرفع سرعة فتح الموقع.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|css|woff2|woff|svg|webp|avif|jpg|jpeg|png|ico)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # index.html بيشير للـ chunks اللي كل واحد فيهم hash مختلف،
+  # فلازم يتقرأ كل مرة عشان أي نشر جديد يظهر فورًا من غير كاش قديم.
+  <FilesMatch "^\.html$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+
+  # ملفات الموقع الثابتة (robots/sitemap/manifest) بتتغير نادرًا
+  <FilesMatch "^(robots\.txt|sitemap\.xml|site\.webmanifest)$">
+    Header set Cache-Control "public, max-age=3600"
+  </FilesMatch>
+</IfModule>
+

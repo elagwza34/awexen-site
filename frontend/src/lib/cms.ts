@@ -210,19 +210,38 @@ export const fallbackCourses: FallbackCourse[] = [
  */
 type CacheEntry<T> = { value: T; expiresAt: number };
 const contentCache = new Map<string, CacheEntry<unknown>>();
+/**
+ * الطلبات اللي شغالة دلوقتي لكل مفتاح.
+ * من غير الخريطة دي كان بيبعت طلبين لـ Supabase لو اتنين components mounted
+ * في نفس اللحظة (زي LatestInsights و Blog وهما بيطلبوا المقالات مع بعض)،
+ * لأن الـ cache بيتكتب بعد ما الطلب يخلص مش قبل ما يبدأ.
+ */
+const inFlight = new Map<string, Promise<unknown>>();
 const CONTENT_TTL_MS = 60_000;
 
 function cached<T>(key: string, load: () => Promise<T>, ttl = CONTENT_TTL_MS): Promise<T> {
   const hit = contentCache.get(key);
   if (hit && hit.expiresAt > Date.now()) return Promise.resolve(hit.value as T);
-  return load().then((value) => {
-    contentCache.set(key, { value, expiresAt: Date.now() + ttl });
-    return value;
-  }).catch((error) => {
-    // A stale value beats an error page when the API is throttled.
-    if (hit) return hit.value as T;
-    throw error;
-  });
+
+  const pending = inFlight.get(key) as Promise<T> | undefined;
+  if (pending) return pending;
+
+  const request = load()
+    .then((value) => {
+      contentCache.set(key, { value, expiresAt: Date.now() + ttl });
+      return value;
+    })
+    .catch((error) => {
+      // A stale value beats an error page when the API is throttled.
+      if (hit) return hit.value as T;
+      throw error;
+    })
+    .finally(() => {
+      inFlight.delete(key);
+    });
+
+  inFlight.set(key, request);
+  return request;
 }
 
 export function clearContentCache() {
@@ -251,46 +270,54 @@ export async function loadCourses(): Promise<Course[]> {
 }
 
 export async function loadKnowledge(): Promise<KnowledgeEntry[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("ai_knowledge")
-    .select("id,title,topic,question,answer,source_url,source_type,status,priority")
-    .eq("status", "published")
-    .order("priority", { ascending: false });
-  if (error) return [];
-  return (data ?? []) as KnowledgeEntry[];
+  return cached("ai_knowledge", async () => {
+    if (!supabase) return [];
+    const { data, error } = await supabase
+      .from("ai_knowledge")
+      .select("id,title,topic,question,answer,source_url,source_type,status,priority")
+      .eq("status", "published")
+      .order("priority", { ascending: false });
+    if (error) return [];
+    return (data ?? []) as KnowledgeEntry[];
+  });
 }
 
 export async function loadContentPage(slug: string): Promise<ContentPage | null> {
-  if (!supabase) return null;
-  const { data, error } = await supabase
-    .from("content_pages")
-    .select("*")
-    .eq("slug", slug)
-    .eq("status", "published")
-    .maybeSingle();
-  if (error) return null;
-  return data as ContentPage | null;
+  // المفتاح فيه الـ slug عشان كل صفحة تتخزن لوحدها من غير ما تسرّب للي بعدها.
+  return cached(`content_page:${slug}`, async () => {
+    if (!supabase) return null;
+    const { data, error } = await supabase
+      .from("content_pages")
+      .select("*")
+      .eq("slug", slug)
+      .eq("status", "published")
+      .maybeSingle();
+    if (error) return null;
+    return data as ContentPage | null;
+  });
 }
 
+const FALLBACK_PRICING: PricingSettings = {
+  installments_enabled: true,
+  installment_markup_percent: 30,
+  installment_count: 3,
+};
+
 export async function loadPricingSettings(): Promise<PricingSettings> {
-  const fallback = {
-    installments_enabled: true,
-    installment_markup_percent: 30,
-    installment_count: 3,
-  };
-  if (!supabase) return fallback;
-  const { data, error } = await supabase
-    .from("pricing_settings")
-    .select("installments_enabled,installment_markup_percent,installment_count")
-    .eq("id", 1)
-    .maybeSingle();
-  if (error || !data) return fallback;
-  return {
-    installments_enabled: Boolean(data.installments_enabled),
-    installment_markup_percent: Number(data.installment_markup_percent),
-    installment_count: Number(data.installment_count),
-  };
+  return cached("pricing_settings", async () => {
+    if (!supabase) return FALLBACK_PRICING;
+    const { data, error } = await supabase
+      .from("pricing_settings")
+      .select("installments_enabled,installment_markup_percent,installment_count")
+      .eq("id", 1)
+      .maybeSingle();
+    if (error || !data) return FALLBACK_PRICING;
+    return {
+      installments_enabled: Boolean(data.installments_enabled),
+      installment_markup_percent: Number(data.installment_markup_percent),
+      installment_count: Number(data.installment_count),
+    };
+  });
 }
 
 export async function submitJobApplication(payload: Record<string, unknown>) {

@@ -131,33 +131,109 @@ npm.cmd run build
 - شغّل `npm run check:catalog` محليًا للتأكد إن الكتالوج متزامن.
 - لو الـ migration فشلش، الـ job بيتوقف وبيطبع السبب — راجع الـ log.
 
-## حماية الموقع من البوتات (429)
+## حماية الموقع والتعامل مع 429 (تشخيص مصحَّح)
 
-رفعت Cloudflare إن الـ origin كان بيرجّع `429` لكل المسارات (حتى `robots.txt`)، بسبب
-بوتات scrape كتير (GPTBot، CCBot، Bytespider) مع `Managed rules` بتعمل Block.
+> **تصحيح مهم — التشخيص السابق كان غلط.** القسم ده بيصحّح الكوميت
+> `2aac796` اللي كان فاهلك إن `Cloudflare Bot Fight Mode` هو اللي بيرجّع 429.
+> الفحص الفعلي أثبت العكس، والقرار السليم مختلف تماماً.
 
-**الحل مُطبّق على أربع مستويات:**
+### التشخيص الصحيح: الـ 429 من Hostinger، مش من Cloudflare
 
-1. **Cloudflare Bot Fight Mode** — مُفعّل من لوحة Cloudflare.
-   المتصفح العادي = `200`، والبوتات المعروفة = `429`.
-2. **`robots.txt`** — `Disallow: /` للبوتات دي (رغم إنها مش من搜索引擎، بتقلل الحمل).
-3. **Cache للمحتوى العام** (`frontend/src/lib/cms.ts`) — 60 ثانية في الذاكرة،
-   وبيقدّم قيمة قديمة بدل صفحة خطأ لو الـ API اتقيّد.
-4. **`security.txt`** و **`.htaccess`** — ملف تعريف أمني للحماية، و `.htaccess` يمنع ملفات `.env`/`.sql`.
-
-### التحقق السريع
+الدليل الحاسم — نفس الدومين، طلب واحد عبر Cloudflare وواحد مباشر للاستضافة:
 
 ```powershell
-# لازم يطلع 200
-curl.exe -s -o NUL -w "%{http_code}" https://awexen.com/
+# عبر Cloudflare
+curl.exe -s -o NUL -w "%{http_code}" https://awexen.com/            # => 429
 
-# لازم يطلع 429 (البوت محجوب)
-curl.exe -s -o NUL -w "%{http_code}" -A "GPTBot/1.0" https://awexen.com/
+# مباشرة لـ Hostinger (نفس الدومين ونفس السيرفر، بدون Cloudflare)
+curl.exe -s -o NUL -w "%{http_code}" --resolve awexen.com:443:92.113.16.63 https://awexen.com/   # => 200
 ```
 
-> **ملاحظة:** لو الـ 429 رجع لكل حاجة حتى للمتصفح، راجع Cloudflare
-> **Security → Events** وشوف الـ IP الظاهر — غالبًا هتلاقي عناوين IP مكررة
-> من بلد واحد (زي عناوين Finland و US اللي ظهرت في التنبيهات).
+اختبار 25 طلب متتالي في كل حالة:
+
+| المسار | النتيجة |
+|---|---|
+| مباشر لـ Hostinger | **200** في 25 من 25 |
+| عبر Cloudflare | **429** في 25 من 25 |
+
+**مفيش rate limit بيشتغل خالص** — 25 طلب في ثواني مرّت من غير أي رفض.
+الاستضافة بترفض الطلبات **لأنها جاية من عناوين Cloudflare**، مش لأن فيها طلبات كتير.
+
+### إثبات إن الرد من Hostinger مش Cloudflare
+
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Length: 0          ← رد فاضي
+platform: hostinger       ← هيدر Hostinger
+panel: hpanel             ← هيدر Hostinger
+x-hcdn-request-id: ...-imm-edge6
+Server: cloudflare        ← ده بس البروكسي
+cf-cache-status: DYNAMIC
+```
+
+لو Cloudflare هو اللي محجوب، كان الرد هيبقى صفحة HTML فيها
+هيدر `cf-mitigated: challenge` — وده **مش موجود** خالص.
+
+### ليه بياخد وقت طويل كمان
+
+`TTFB` بين **0.75 و 3.5 ثانية**، مع إن الـ origin بيرد في `x-hcdn-upstream-rt: 0.015s`.
+التأخير سببه إن Cloudflare بتستنى edge بتاع Hostinger اللي بيرد بـ 429.
+يعني البطء والتأخير **نفس المشكلة**، مش مشكلتين منفصلتين.
+
+### النطاق: النطاقات الـ proxied بس على نفس الحساب
+
+| النطاق | الحالة | ملاحظة |
+|---|---|---|
+| `awexen.com` | **429** | proxied |
+| `reno-va.com` | **429** | proxied، نفس التوقيع بالظبط |
+| `arabadu.org` | 200 | مباشر، مش proxied |
+| `3dex.com.sa` | 200 | مباشر، مش proxied |
+| `elsayehgroup.com` | 200 | مباشر، مش proxied |
+| `lilydecoration.com` | 200 | proxied (الاستثناء) |
+
+### الحل (بترتيب الأولوية)
+
+**1. إصلاح فوري — شيل Cloudflare من المسار:**
+
+من لوحة Cloudflare → `DNS` → `Records` → سجل `awexen.com`:
+حوّل من **Proxied** (السحابة البرتقالية) إلى **DNS only** (السحابة الرمادية).
+الموقع بيرجع 200 فورًا. التكلفة: نفقد(edge caching) من Cloudflare
+وحماية WAF/DDoS.
+
+**2. لو محتاج Cloudflare:**
+
+السبب المرجّح إن rate limiter على مستوى الحساب في Hostinger بيتقفل على
+نطاقات Cloudflare المشتركة. مفيش إعداد في Cloudflare نفسه بيغيّر سلوك hcdn.
+الحل هو طلب استثناء من دعم Hostinger (التقرير الجاهز في
+[`docs/hostinger-429-support-ticket.md`](hostinger-429-support-ticket.md)).
+
+**3. تقليل الضغط على الـ origin (تحسينات كود، مُطبَّقة):**
+
+- `cms.ts`: الكاش بقى يغطي `loadKnowledge` و `loadPricingSettings`
+  و `loadContentPage` — التلاتة كانوا بيطلبوا من Supabase مع كل صفحة.
+- `cms.ts`: إضافة `inFlight` dedupe — الطلبات المتزامنة لنفس المفتاح
+  كانت بتتبعت مرتين لأن الـ cache بيتكتب بعد ما الطلب يخلص.
+- `KnowledgeChat`: قاعدة المعرفة بقت تُجلب أول ما المستخدم يفتح المحادثة
+  بدل ما تتجلب مع كل صفحة تحميل.
+- `.htaccess`: cache headers سنة كاملة (`immutable`) لملفات
+  `/assets/*`، و `no-cache` لـ `index.html`.
+
+> **حدود مهم:** التحسينات دي بتقلل الضغط بس **مش هتحل الـ 429 لوحدها**،
+> لأن المشكلة على مستوى الشبكة مش على مستوى التطبيق.
+> لازم تنفذ خطوة 1 أو 2.
+
+### التحقق بعد الإصلاح
+
+```powershell
+# لازم يطلع 200 بعد الرجوع لـ DNS only
+curl.exe -s -o NUL -w "%{http_code}" https://awexen.com/
+
+# مقارنة: لو لسه 429، يبقى Cloudflare لسه في المسار
+curl.exe -s -D - -o NUL https://awexen.com/ | Select-String -Pattern 'platform|x-hcdn'
+```
+
+لو<Response رجع `200` من غير `platform: hostinger` في الـ headers، يبقى Cloudflare بقى
+بيرد بنفسه والحماية شغالة على Cloudflare مش على الاستضافة.
 
 ## 6. التحقق
 

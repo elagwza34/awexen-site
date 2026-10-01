@@ -132,7 +132,7 @@ function LearningTopbar({ email }: { email?: string }) {
   );
 }
 
-/** حاجز أخطاء يمنع崩 الصفحة البيضاء لو حصل خطأ غير متوقع أثناء التعلّم */
+/** حاجز أخطاء يمنع الصفحة البيضاء لو حصل خطأ غير متوقع أثناء التعلّم */
 export class LearningErrorBoundary extends Component<
   { children: ReactNode },
   { error: Error | null }

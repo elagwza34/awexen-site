@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Bot, Loader2, MessageCircleQuestion, Send, ShieldCheck, X } from "lucide-react";
 import { loadKnowledge, matchKnowledge, saveAiInquiry, type KnowledgeEntry } from "../lib/cms";
 import { OPEN_KNOWLEDGE_CHAT_EVENT } from "../lib/uiEvents";
@@ -29,14 +29,24 @@ export default function KnowledgeChat() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  // بنجيب المعرفة أول مرة المستخدم يفتح المحادثة بس.
+  // كانت بتطلب ai_knowledge كاملة مع كل صفحة، ودي كانت أكبر مصدر ضغط على الـ origin.
+  const knowledgeRequested = useRef(false);
+  const loadKnowledgeOnce = useCallback(() => {
+    if (knowledgeRequested.current) return;
+    knowledgeRequested.current = true;
+    setLoadingKnowledge(true);
     void loadKnowledge()
       .then(setKnowledge)
+      .catch(() => setKnowledge([]))
       .finally(() => setLoadingKnowledge(false));
   }, []);
 
   useEffect(() => {
-    const show = () => setOpen(true);
+    const show = () => {
+      loadKnowledgeOnce();
+      setOpen(true);
+    };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
@@ -46,7 +56,12 @@ export default function KnowledgeChat() {
       window.removeEventListener(OPEN_KNOWLEDGE_CHAT_EVENT, show);
       window.removeEventListener("keydown", closeOnEscape);
     };
-  }, []);
+  }, [loadKnowledgeOnce]);
+
+  // لو المستخدم فتحها من زر عادي (مش من الحدث) بنحمّل برضه
+  useEffect(() => {
+    if (open) loadKnowledgeOnce();
+  }, [open, loadKnowledgeOnce]);
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 120);
