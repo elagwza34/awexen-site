@@ -68,24 +68,3 @@ if (missing.length) {
   process.exit(1);
 }
 console.log("\nالكتالوج متزامن ✔\n");
-
-const wanted = process.argv.slice(2);
-const targets = wanted.length ? wanted : Object.keys(spec.definitions ?? {}).filter((d) => /course|cohort|enrollment|booking|organization|account/i.test(d));
-
-for (const name of targets) {
-  const def = spec.definitions?.[name];
-  if (!def) {
-    console.log(`\n${name}: غير موجود/غير متاح بـ anon`);
-    continue;
-  }
-  const required = new Set(def.required ?? []);
-  const props = def.properties ?? {};
-  const columns = Object.keys(props)
-    .map((key_) => {
-      const type = props[key_].type ?? (props[key_].enum ? "enum" : "?");
-      const flags = `${required.has(key_) ? "NOT NULL" : "null"}`;
-      return `  ${key_} ${type} ${flags}${props[key_].enum ? ` (${props[key_].enum.join("|")})` : ""}`;
-    })
-    .join("\n");
-  console.log(`\n== ${name} ==\n${columns}`);
-}

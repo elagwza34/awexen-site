@@ -95,6 +95,14 @@ check("المرآة بترجع بدري مع الحارس", /if current_setting\
 check("في view للمتابعة", /create or replace view public\.lms_catalog_sync_status/i.test(migration));
 check("view بيحسب bookable", /as bookable/i.test(migration));
 
+// Self-heal pass: لازم يصلّح كورس موجود في courses_course بس بلا نسخة سارية.
+// من غيرها الـ migration ممكن تتنفذ والكورس يفضل يرجّع 404 في صفحة الحجز.
+check("فيه self-heal للنسخ الناقصة", /lc\.current_version_id is null[\s\S]*?not exists/i.test(migration));
+check("self-heal بيوجّه على أحدث نسخة منشورة", /order by v\.version_number desc/i.test(migration));
+check("self-heal بيستخدم lateral limit 1", /from lateral/i.test(migration) && /limit 1/i.test(migration));
+check("self-heal بيرفع حالة الكورس لـ published", /lc\.status <> 'published'/i.test(migration));
+check("self-heal idempotent (بيقارن قبل التعديل)", /is distinct from cv\.id/i.test(migration));
+
 const resourceManager = readFileSync(resolve(here, "..", "src", "admin", "ResourceManager.tsx"), "utf8");
 check("اللوحة بتتحقق من قابلية الحجز", /verifyBookable/.test(resourceManager));
 check("التحقق بيستعلم الـ view", /lms_catalog_sync_status/.test(resourceManager));
@@ -159,6 +167,33 @@ check("الـ cache بيستخدم TTL", /CONTENT_TTL_MS/.test(cmsSource));
 check("الكورسات بتستفيد من الـ cache", /cached\("courses"/.test(cmsSource));
 check("المقالات بتستفيد من الـ cache", /cached\("blog_posts"/.test(cmsSource));
 check("فيه دالة تفريغ الكاش", /export function clearContentCache/.test(cmsSource));
+// الطلبات المتزامنة لنفس المفتاح لازم تتدمج في طلب واحد
+check("في dedupe للطلبات المتزامنة", /inFlight/.test(cmsSource));
+// الـ functions دي كانت بتتجاوز الـ cache بالكامل
+check("قاعدة المعرفة بتستفيد من الـ cache", /cached\("ai_knowledge"/.test(cmsSource));
+check("إعدادات الأسعار بتستفيد من الـ cache", /cached\("pricing_settings"/.test(cmsSource));
+check("صفحات المحتوى بتستفيد من الـ cache", /cached\(`content_page:\$\{slug\}`/.test(cmsSource));
+
+/* ---------- 11) المحادثة بتجيب المعرفة بس عند الفتح ---------- */
+const chatSource = readFileSync(resolve(here, "..", "src", "components", "KnowledgeChat.tsx"), "utf8");
+check("المعرفة مش بتتحمّل مع كل صفحة", /knowledgeRequested/.test(chatSource));
+check("في حارس يمنع الطلب المتكرر", /loadKnowledgeOnce/.test(chatSource));
+check("الطلب بيحصل عند الفتح", /if \(open\) loadKnowledgeOnce\(\)/.test(chatSource));
+
+/* ---------- 12) cache headers للملفات الثابتة ---------- */
+check("الأصول الثابتة متخزنة immutable", /max-age=31536000, immutable/.test(htaccess));
+check("الـ assets مغطاة بالـ cache", /js\|css\|woff2/.test(htaccess));
+check("index.html بيتقرأ كل مرة", /no-cache, must-revalidate/.test(htaccess));
+check("الـ cache داخل IfModule", /IfModule mod_headers/.test(htaccess));
+
+/* ---------- 13) سكربت فحص الكتالوج مابيقعش بعد النجاح ---------- */
+const checkCatalog = readFileSync(resolve(here, "check-catalog.mjs"), "utf8");
+// كان فيه كود ميت بيقرأ spec.definitions و spec مش متعرّف في أي مكان،
+// فالسكربت كان بيطبع "الكتالوج متزامن" وبعدين يعمل ReferenceError.
+// مابيخرجش بـ exit code 0 غير لما يخلص نضيف.
+check("فحص الكتالوج مافيهوش متغيّر spec ميت", !/\bspec\.definitions/.test(checkCatalog));
+check("فحص الكتالوج بيخرج بنجاح بعد التزامن", /الكتالوج متزامن/.test(checkCatalog));
+check("فحص الكتالوج بيعمل exit 1 عند عدم التزامن", /process\.exit\(1\)/.test(checkCatalog));
 
 /* ---------- النتيجة ---------- */
 console.log("\nاختبار رفع إثبات الدفع\n");

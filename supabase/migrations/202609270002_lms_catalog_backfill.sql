@@ -377,3 +377,63 @@ left join public.courses_course lc on lc.slug = c.slug
 left join public.courses_courseversion cv on cv.id = lc.current_version_id;
 
 grant select on public.lms_catalog_sync_status to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Self-heal pass (idempotent).
+--
+-- The trigger above only fires on future writes, and the block above only
+-- created courses that were missing entirely. A course can also reach the
+-- public table with a row in `courses_course` but no published version, or
+-- with `current_version_id` pointing at nothing — which still yields
+-- 404 "هذا الكورس غير متاح للحجز" at /checkout/:slug.
+--
+-- This pass repairs those rows so applying the migration is enough, and it is
+-- safe to run more than once.
+-- ---------------------------------------------------------------------------
+
+-- 1) نسخة منشورة لكل كورس بلا نسخة سارية صالحة
+insert into public.courses_courseversion (
+  id, course_id, version_number, title, short_description, description,
+  difficulty, estimated_minutes, status, published_at, created_at, updated_at
+)
+select
+  gen_random_uuid(),
+  lc.id,
+  1,
+  c.title,
+  coalesce(nullif(c.short_description, ''), c.title),
+  coalesce(nullif(c.description, ''), c.short_description, c.title),
+  case coalesce(nullif(c.level, ''), 'beginner')
+    when 'intermediate' then 'intermediate'
+    when 'advanced' then 'advanced'
+    else 'beginner'
+  end,
+  60, 'published', now(), now(), now()
+from public.courses c
+join public.courses_course lc on lc.slug = c.slug
+where c.status = 'published'
+  and (
+    lc.current_version_id is null
+    or not exists (
+      select 1 from public.courses_courseversion cv
+      where cv.id = lc.current_version_id
+    )
+  );
+
+-- 2) توجيه كل كورس على أحدث نسخة منشورة
+--    الترتيب تنازلي للإصدار والتاريخ عشان لو فيه أكتر من نسخة
+--    مفيش تراب، وأكبر رقم هو الأحدث.
+update public.courses_course lc
+set current_version_id = cv.id,
+    status = 'published',
+    updated_at = now()
+from lateral (
+  select v.id
+  from public.courses_courseversion v
+  where v.course_id = lc.id
+    and v.status = 'published'
+  order by v.version_number desc, v.published_at desc nulls last, v.created_at desc
+  limit 1
+) cv
+where cv.id is not null
+  and (lc.current_version_id is distinct from cv.id or lc.status <> 'published');
