@@ -52,6 +52,63 @@ const EMPTY: FormState = {
   reference: "", notes: "", consent: "",
 };
 
+/* -------------------------------------------------------------------------- */
+/*  Field و Section مكوّنات خارج Quote (مش جوّهها):                             */
+/*  لو كانت جوّه المكوّن، React بيعمل نوع جديد كل رندر فيفكّ الـ DOM           */
+/*  ويعيد بناءه، فالتركيز في الكيبورد بيضيع بعد أول حرف.                      */
+/* -------------------------------------------------------------------------- */
+
+const INPUT_CLASS =
+  "w-full rounded-xl border border-ink-200 bg-ink-50/60 px-4 py-3 text-[14.5px] text-ink-900 outline-none transition-all placeholder:text-ink-300 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10";
+
+/** تُستخدم من Field لأنها معرّفة خارج المكوّن فلا تصل إليها `copy` */
+const OPTIONAL_LABEL = "اختياري";
+function Field({
+  id, label, wide, optional, optionalLabel, children,
+}: {
+  id: string;
+  label: string;
+  wide?: boolean;
+  optional?: boolean;
+  optionalLabel?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={wide ? "sm:col-span-2" : undefined}>
+      <label htmlFor={id} className="mb-2 block text-[13.5px] font-bold text-ink-700">
+        {label}
+        {(optional || optionalLabel) && (
+          <span className="ms-1.5 text-[11px] font-medium text-ink-400">
+            ({optionalLabel ?? OPTIONAL_LABEL})
+          </span>
+        )}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function Section({
+  id, Icon, title, children,
+}: {
+  id: string;
+  Icon: typeof Target;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <fieldset id={id} className="sm:col-span-2">
+      <legend className="mb-4 flex items-center gap-2.5 text-[15px] font-extrabold text-ink-900">
+        <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500/10 text-brand-500">
+          <Icon className="h-4 w-4" />
+        </span>
+        {title}
+      </legend>
+      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
+    </fieldset>
+  );
+}
+
 export default function Quote() {
   const { lang } = useLanguage();
   const ar = lang === "ar";
@@ -317,48 +374,7 @@ export default function Quote() {
   };
 
   /* ------------------------------ عناصر مشتركة ----------------------------- */
-  const inputClass =
-    "w-full rounded-xl border border-ink-200 bg-ink-50/60 px-4 py-3 text-[14.5px] text-ink-900 outline-none transition-all placeholder:text-ink-300 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10";
-  const labelClass = "mb-2 block text-[13.5px] font-bold text-ink-700";
-
-  const Field = ({
-    id, label, children, wide, optional,
-  }: {
-    id: string;
-    label: string;
-    children: ReactNode;
-    wide?: boolean;
-    optional?: boolean;
-  }) => (
-    <div className={wide ? "sm:col-span-2" : undefined}>
-      <label htmlFor={id} className={labelClass}>
-        {label}
-        {optional && (
-          <span className="ms-1.5 text-[11px] font-medium text-ink-400">({copy.optional})</span>
-        )}
-      </label>
-      {children}
-    </div>
-  );
-
-  const Section = ({
-    id, Icon, title, children,
-  }: {
-    id: string;
-    Icon: typeof Target;
-    title: string;
-    children: ReactNode;
-  }) => (
-    <fieldset id={id} className="sm:col-span-2">
-      <legend className="mb-4 flex items-center gap-2.5 text-[15px] font-extrabold text-ink-900">
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500/10 text-brand-500">
-          <Icon className="h-4 w-4" />
-        </span>
-        {title}
-      </legend>
-      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
-    </fieldset>
-  );
+  const inputClass = INPUT_CLASS;
 
   /** قائمة نعم/لا */
   const yesNo = (

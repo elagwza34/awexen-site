@@ -290,6 +290,20 @@ check("بيعرض رسالة نجاح", /successTitle/.test(quoteSrc));
 check("بيعرض حالة خطأ", /role="alert"/.test(quoteSrc));
 check("عربي وإنجليزي", quoteSrc.includes("? {") && quoteSrc.includes(": {"));
 
+// Regression guard: Field and Section were defined INSIDE the Quote component.
+// React treats a component declared in a render as a brand new type, so every
+// keystroke rebuilt the subtree and the input lost focus after one character.
+// Both must live at module scope.
+const quoteBody = quoteSrc.slice(quoteSrc.indexOf("export default function Quote"));
+check("مفيش Field جوّه المكوّن", !/^\s+const Field\b/m.test(quoteBody));
+check("مفيش Section جوّه المكوّن", !/^\s+const Section\b/m.test(quoteBody));
+check("مفيش أي Component جوّه المكوّن",
+  !/^\s+const [A-Z][A-Za-z]*\s*=/m.test(quoteBody),
+  (quoteBody.match(/^\s+const [A-Z][A-Za-z]*\s*=/gm) ?? []).join(", "));
+check("Field معرّفة خارج المكوّن", /^function Field\(/m.test(quoteSrc) || /^const Field =/m.test(quoteSrc));
+check("Section معرّفة خارج المكوّن", /^function Section\(/m.test(quoteSrc) || /^const Section =/m.test(quoteSrc));
+check("INPUT_CLASS مشترك", /^const INPUT_CLASS =/m.test(quoteSrc));
+
 const appSrc = readFileSync(resolve(here, "..", "src", "App.tsx"), "utf8");
 check("الصفحة مسجلة في الراوت", /path="\/quote"/.test(appSrc));
 check("الصفحة lazy loaded", /import\("\.\/pages\/Quote"\)/.test(appSrc));
