@@ -1,4 +1,5 @@
 import { lmsApi } from "./lmsApi";
+import { supabase } from "./supabase";
 
 export type LmsCourse = {
   id: string;
@@ -232,9 +233,54 @@ export type PaymentProofLink = {
  * رابط مؤقت لمشاهدة/تحميل إثبات الدفع.
  * بِكِت الـ storage خاص، فالتوقيع يتم على الخادم بعد التأكد من الصلاحية
  * (صاحب الحجز أو من يملك صلاحية مراجعة المدفوعات).
+ *
+ * لو الـ Edge Function قديمة ومرفوضة، بنجرب التوقيع المباشر من المتصفح:
+ * سياسة القراءة في storage.objects تسمح لصاحب المجلد (auth.uid) أو لمن
+ * يملك صلاحية مراجعة المدفوعات، فالنتيجة نفس رابط الـ function.
  */
-export function loadPaymentProof(bookingId: string) {
-  return lmsApi<PaymentProofLink>(`payment-proofs/${bookingId}/`);
+export async function loadPaymentProof(bookingId: string): Promise<PaymentProofLink> {
+  try {
+    return await lmsApi<PaymentProofLink>(`payment-proofs/${bookingId}/`);
+  } catch (error) {
+    const direct = await signProofDirectly(bookingId);
+    if (direct) return direct;
+    throw error;
+  }
+}
+
+/** يحاول يوقّع رابط الإثبات مباشرة من المتصفح كـ plan بديل عند فشل الـ function */
+async function signProofDirectly(bookingId: string): Promise<PaymentProofLink | null> {
+  if (!supabase) return null;
+  try {
+    const { data, error: userError } = await supabase.auth.getUser();
+    if (userError || !data.user) return null;
+
+    // نقرأ المسار من قائمة الحجوزات بدل الاعتماد على مَعلم في الواجهة.
+    const bookings = await lmsApi<CourseBooking[]>("bookings/?page_size=100");
+    const booking = bookings.find((row) => row.id === bookingId);
+    const proofPath = booking?.proof_path?.trim();
+    if (!booking || !proofPath) return null;
+
+    // نفس الشكل اللي بيتحقق منه الخادم: {auth.uid}/{bookingId}/{file}
+    const shape = new RegExp(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/${bookingId}/[^/]+$`, "i");
+    if (!shape.test(proofPath) || proofPath.includes("..")) return null;
+
+    const { data: signed, error: signError } = await supabase.storage
+      .from("payment-proofs")
+      .createSignedUrl(proofPath, 600);
+    if (signError || !signed?.signedUrl) return null;
+
+    return {
+      booking_id: bookingId,
+      url: signed.signedUrl,
+      content_type: booking.proof_content_type ?? "",
+      size: booking.proof_size ?? 0,
+      path: proofPath,
+      expires_in: 600,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function loadLearningCourse(enrollmentId: string): Promise<LearningCourse> {

@@ -318,6 +318,25 @@ check("RPC بيقفل مجلد الحجز", /p_booking_id::text \|\| '\/\[\^\/\]
 check("RPC بيتشيل ..", /position\('\.\.' in p_proof_path\) > 0/.test(proofMigration));
 check("RPC بيتأكد إن الملف موجود", /bucket_id = 'payment-proofs' and name = p_proof_path/.test(proofMigration));
 
+// Fallback: if the deployed lms-api is still the pre-3f2a89d build it rejects
+// every proof, so the browser signs the URL itself under the storage SELECT
+// policy (own folder, or lms_can_review_payments). The shape check must stay.
+const lmsLib = readFileSync(resolve(here, "..", "src", "lib", "lms.ts"), "utf8");
+check("loadPaymentProof بيلجأ للتوقيع المباشر", /signProofDirectly/.test(lmsLib));
+check("الـ fallback بيوقّع من المتصفح", /createSignedUrl\(proofPath, 600\)/.test(lmsLib));
+check("الـ fallback بيتحقق من الشكل", /new RegExp\(`\^/.test(lmsLib));
+check("الـ fallback بيرفض ..", /proofPath\.includes\("\.\."\)/.test(lmsLib));
+check("الـ fallback بيبعت الخطأ الأصلي لو فشل", /throw error/.test(lmsLib));
+check("lms.ts بيستورد supabase", /import \{ supabase \} from "\.\/supabase"/.test(lmsLib));
+
+// The storage SELECT policy is what makes the browser-side signing legal.
+const storageMigration = readFileSync(resolve(here, "..", "..", "supabase", "migrations", "202608280001_lms_identity_security.sql"), "utf8");
+const selectPolicy = storageMigration.match(/create policy "Learners and admins read payment proofs"[\s\S]*?\);/)?.[0] ?? "";
+check("سياسة قراءة الاثبات موجودة", selectPolicy.length > 0);
+check("السياسة تسمح لمالك المجلد", selectPolicy.includes("auth.uid()::text"));
+check("السياسة تسمح لمراجع المدفوعات", selectPolicy.includes("lms_can_review_payments()"));
+check("السياسة مقصورة على البِكِت", selectPolicy.includes("bucket_id = 'payment-proofs'"));
+
 // The RPC uses p_auth_user_id (auth uid), NOT commerce_coursebooking.user_id.
 const rpcPattern = new RegExp(`^${authUid}/${bookingId}/[^/]+$`);
 check("RPC بيقبل المسار المطابق للـ auth uid", rpcPattern.test(build(authUid, bookingId, "r.jpg")));

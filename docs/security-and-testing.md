@@ -73,6 +73,25 @@ npx.cmd supabase functions list --project-ref $env:SUPABASE_PROJECT_REF
 - **مفيش `details` مع `error.request_id`:** دالة قديمة، بعت `HttpError` من غير تفاصيل.
 - **لإجبار النشر فورًا:** `npx.cmd supabase functions deploy lms-api --project-ref $env:SUPABASE_PROJECT_REF`.
 
+**العلامة القاطعة إن المشكلة عامة مش صلاحيات:** لو الخطأ بيظهر **للطالب كمان**
+على نفس الحجز، يبقى الغلط في مقارنة المسار لا في الصلاحيات — لأن الطالب
+يمرّ على نفس الفحص بالظبط. لو كانت الصلاحيات هي السبب، ماكانش الطالب هيشوف الخطأ.
+
+### خطة بديلة: التوقيع من المتصفح
+
+لما تكون الـ function قديمة ومش able تنشر في نفس اللحظة، `loadPaymentProof`
+بيحاول يوقّع الرابط **من المتصفح مباشرة** كـ fallback:
+
+1. يجرّب `GET /payment-proofs/{id}/` على الـ function أولًا.
+2. لو فشل، يقرأ `proof_path` من `GET /bookings/`.
+3. بيتحقق من نفس الشكل `{auth.uid}/{bookingId}/{file}` ويرفض `..`.
+4. يعمل `createSignedUrl` على `payment-proofs` لمدة 10 دقائق.
+
+الخطوة 4 مش كسر للأمان: سياسة `Learners and admins read payment proofs`
+في `202608280001` بتسمح بالقراءة لـ `foldername(name)[1] = auth.uid()` أو
+`public.lms_can_review_payments()` — أي نفس صلاحيات الـ function بالظبط.
+لو الخطوة 4 رجعت 403، الـ fallback بيرجّع الخطأ الأصلي للأداري.
+
 ## رسائل الأخطاء
 
 - الـ Edge Function بيرد دائمًا برسالة عربية و`request_id` في `error.request_id`.
