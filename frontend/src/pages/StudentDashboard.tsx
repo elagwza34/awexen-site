@@ -165,7 +165,7 @@ export default function StudentDashboard() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
-  const [proofBookingId, setProofBookingId] = useState<string | null>(null);
+  const [proofBooking, setProofBooking] = useState<CourseBooking | null>(null);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [profileName, setProfileName] = useState("");
   const [profileNotice, setProfileNotice] = useState<string | null>(null);
@@ -407,7 +407,7 @@ export default function StudentDashboard() {
                     {booking.proof_path && (
                       <button
                         type="button"
-                        onClick={() => setProofBookingId(booking.id)}
+                        onClick={() => setProofBooking(booking)}
                         className="mt-4 mr-2 inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-[11px] font-black text-ink-700 transition hover:border-brand-500 hover:text-brand-600"
                       >
                         <Eye className="h-3.5 w-3.5" /> عرض إثبات الدفع المرسل
@@ -444,8 +444,14 @@ export default function StudentDashboard() {
         </main>
       </div>
 
-      {proofBookingId && (
-        <ProofViewer bookingId={proofBookingId} onClose={() => setProofBookingId(null)} />
+      {proofBooking && (
+        <ProofViewer
+          bookingId={proofBooking.id}
+          proofPath={proofBooking.proof_path}
+          contentType={proofBooking.proof_content_type}
+          proofSize={proofBooking.proof_size}
+          onClose={() => setProofBooking(null)}
+        />
       )}
     </section>
   );

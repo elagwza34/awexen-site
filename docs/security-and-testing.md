@@ -83,9 +83,15 @@ npx.cmd supabase functions list --project-ref $env:SUPABASE_PROJECT_REF
 بيحاول يوقّع الرابط **من المتصفح مباشرة** كـ fallback:
 
 1. يجرّب `GET /payment-proofs/{id}/` على الـ function أولًا.
-2. لو فشل، يقرأ `proof_path` من `GET /bookings/`.
+2. لو فشل، يستخدم `proofPath` اللي اللوحة بتبعته (لازم للأداري)، ولو مالوش
+   Fallback على `GET /bookings/` — وهي بترجّع **حجوزات المتصل نفسه بس**،
+   فالأداري مش بيلاقي حجز الطالب فيها.
 3. بيتحقق من نفس الشكل `{auth.uid}/{bookingId}/{file}` ويرفض `..`.
 4. يعمل `createSignedUrl` على `payment-proofs` لمدة 10 دقائق.
+
+> **الدرس:** `GET /bookings/` هي حجوزات المتصل، مش كل الحجوزات. أي شاشة بتعرض
+> حجز حد تاني لازم تمرر `proof_path` بتاعه مع الطلب. أول نسخة من الـ fallback
+> اشتغلت مع الطالب وفشلت مع الأداري لأن كانت معتمدة على `/bookings/` لوحدها.
 
 الخطوة 4 مش كسر للأمان: سياسة `Learners and admins read payment proofs`
 في `202608280001` بتسمح بالقراءة لـ `foldername(name)[1] = auth.uid()` أو

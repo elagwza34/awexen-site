@@ -238,28 +238,42 @@ export type PaymentProofLink = {
  * سياسة القراءة في storage.objects تسمح لصاحب المجلد (auth.uid) أو لمن
  * يملك صلاحية مراجعة المدفوعات، فالنتيجة نفس رابط الـ function.
  */
-export async function loadPaymentProof(bookingId: string): Promise<PaymentProofLink> {
+export async function loadPaymentProof(bookingId: string, knownPath?: string): Promise<PaymentProofLink> {
   try {
     return await lmsApi<PaymentProofLink>(`payment-proofs/${bookingId}/`);
   } catch (error) {
-    const direct = await signProofDirectly(bookingId);
+    const direct = await signProofDirectly(bookingId, knownPath);
     if (direct) return direct;
     throw error;
   }
 }
 
-/** يحاول يوقّع رابط الإثبات مباشرة من المتصفح كـ plan بديل عند فشل الـ function */
-async function signProofDirectly(bookingId: string): Promise<PaymentProofLink | null> {
+/**
+ * يحاول يوقّع رابط الإثبات مباشرة من المتصفح كـ plan بديل عند فشل الـ function.
+ *
+ * `knownPath` مطلوب للأداري: `GET /bookings/` بترجّع حجوزات المتصل نفسه بس،
+ * فالأداري مش هيلاقي حجز الطالب فيها. اللوحة الأدارية عندها المسار أصلًا من
+ * `admin/payment-bookings/` فتبعتّه مع الطلب.
+ */
+async function signProofDirectly(bookingId: string, knownPath?: string): Promise<PaymentProofLink | null> {
   if (!supabase) return null;
   try {
-    const { data, error: userError } = await supabase.auth.getUser();
-    if (userError || !data.user) return null;
+    const { error: userError } = await supabase.auth.getUser();
+    if (userError) return null;
 
-    // نقرأ المسار من قائمة الحجوزات بدل الاعتماد على مَعلم في الواجهة.
-    const bookings = await lmsApi<CourseBooking[]>("bookings/?page_size=100");
-    const booking = bookings.find((row) => row.id === bookingId);
-    const proofPath = booking?.proof_path?.trim();
-    if (!booking || !proofPath) return null;
+    let proofPath = knownPath?.trim() ?? "";
+    let contentType = "";
+    let size = 0;
+
+    if (!proofPath) {
+      // مفيش مسار جاهز — نجيبه من حجوزات المتصل (مفيد للطالب صاحب الحجز).
+      const bookings = await lmsApi<CourseBooking[]>("bookings/?page_size=100");
+      const booking = bookings.find((row) => row.id === bookingId);
+      proofPath = booking?.proof_path?.trim() ?? "";
+      contentType = booking?.proof_content_type ?? "";
+      size = booking?.proof_size ?? 0;
+    }
+    if (!proofPath) return null;
 
     // نفس الشكل اللي بيتحقق منه الخادم: {auth.uid}/{bookingId}/{file}
     const shape = new RegExp(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/${bookingId}/[^/]+$`, "i");
@@ -273,8 +287,8 @@ async function signProofDirectly(bookingId: string): Promise<PaymentProofLink | 
     return {
       booking_id: bookingId,
       url: signed.signedUrl,
-      content_type: booking.proof_content_type ?? "",
-      size: booking.proof_size ?? 0,
+      content_type: contentType,
+      size,
       path: proofPath,
       expires_in: 600,
     };

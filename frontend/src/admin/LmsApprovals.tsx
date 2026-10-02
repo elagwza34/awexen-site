@@ -17,6 +17,8 @@ type Booking = {
   payment_phone: string;
   phone: string;
   proof_path: string;
+  proof_content_type: string;
+  proof_size: number | null;
   review_notes?: string;
   created_at: string;
   payment_submitted_at: string | null;
@@ -45,7 +47,7 @@ export default function LmsApprovals({ role, view }: { role: AdminRole; view: Ap
   const queryClient = useQueryClient();
   const [busyId, setBusyId] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [proofBookingId, setProofBookingId] = useState<string | null>(null);
+  const [proofBooking, setProofBooking] = useState<Booking | null>(null);
   const canReviewPayments = ["owner", "admin", "editor", "support"].includes(role);
   const canReviewCourses = ["owner", "admin", "editor"].includes(role);
   const showPayments = view === "payments" && canReviewPayments;
@@ -107,7 +109,7 @@ export default function LmsApprovals({ role, view }: { role: AdminRole; view: Ap
       setError("لم يتم رفع إثبات دفع لهذا الطلب بعد.");
       return;
     }
-    setProofBookingId(booking.id);
+    setProofBooking(booking);
   };
 
   const loading = showPayments ? paymentsQuery.isLoading : coursesQuery.isLoading;
@@ -317,8 +319,14 @@ export default function LmsApprovals({ role, view }: { role: AdminRole; view: Ap
         </section>
       )}
 
-      {proofBookingId && (
-        <ProofViewer bookingId={proofBookingId} onClose={() => setProofBookingId(null)} />
+      {proofBooking && (
+        <ProofViewer
+          bookingId={proofBooking.id}
+          proofPath={proofBooking.proof_path}
+          contentType={proofBooking.proof_content_type}
+          proofSize={proofBooking.proof_size}
+          onClose={() => setProofBooking(null)}
+        />
       )}
     </div>
   );

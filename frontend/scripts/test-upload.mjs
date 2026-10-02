@@ -329,6 +329,37 @@ check("الـ fallback بيرفض ..", /proofPath\.includes\("\.\."\)/.test(lmsL
 check("الـ fallback بيبعت الخطأ الأصلي لو فشل", /throw error/.test(lmsLib));
 check("lms.ts بيستورد supabase", /import \{ supabase \} from "\.\/supabase"/.test(lmsLib));
 
+// Regression guard: the fallback used to look the booking up in
+// `GET /bookings/`, which returns only the CALLER's own bookings. That worked
+// for the student (their own booking) but silently failed for the admin, who
+// never has the student's booking in that list, so the modal kept erroring.
+// The dashboards now pass the path they already have.
+check("الـ fallback بيقبل مسار جاهز", /knownPath\?\.trim\(\)/.test(lmsLib));
+check("loadPaymentProof بياخد knownPath", /loadPaymentProof\(bookingId: string, knownPath\?: string\)/.test(lmsLib));
+check("signProofDirectly بياخد knownPath", /signProofDirectly\(bookingId: string, knownPath\?: string\)/.test(lmsLib));
+const signFnSrc = lmsLib.slice(lmsLib.indexOf("async function signProofDirectly"));
+const knownIdx = signFnSrc.indexOf("let proofPath = knownPath");
+const bookingsIdx = signFnSrc.indexOf("bookings/?page_size=100");
+check("المسار الجاهز بيتخدم قبل طلب الحجوزات",
+  knownIdx > -1 && bookingsIdx > -1 && knownIdx < bookingsIdx, `known=${knownIdx} bookings=${bookingsIdx}`);
+
+check("ProofViewer بياخد proofPath", /proofPath\?: string/.test(proofViewer));
+check("ProofViewer بيستخدم proofPath", /loadPaymentProof\(bookingId, proofPath\)/.test(proofViewer));
+// The fallback can return an empty content_type, so the viewer must still
+// recognise an image from the prop or the file extension.
+check("ProofViewer بيعرف الصورة من النوع", /resolvedType\.startsWith\("image\/"\)/.test(proofViewer));
+check("ProofViewer بيعرف الصورة من الامتداد", /jpeg\|png\|webp\|gif/.test(proofViewer));
+
+const approvalsSrc = readFileSync(resolve(here, "..", "src", "admin", "LmsApprovals.tsx"), "utf8");
+check("لوحة الأداري بتحفظ الحجز كامل", /useState<Booking \| null>\(null\)/.test(approvalsSrc));
+check("لوحة الأداري بتبعت proof_path", /proofPath=\{proofBooking\.proof_path\}/.test(approvalsSrc));
+check("لوحة الأداري بتبعت نوع الملف", /contentType=\{proofBooking\.proof_content_type\}/.test(approvalsSrc));
+check("لوحة الأداري مفيش فيها proofBookingId", !/proofBookingId/.test(approvalsSrc));
+
+const studentSrc = readFileSync(resolve(here, "..", "src", "pages", "StudentDashboard.tsx"), "utf8");
+check("لوحة الطالب بتبعت proof_path", /proofPath=\{proofBooking\.proof_path\}/.test(studentSrc));
+check("لوحة الطالب مفيش فيها proofBookingId", !/proofBookingId/.test(studentSrc));
+
 // The storage SELECT policy is what makes the browser-side signing legal.
 const storageMigration = readFileSync(resolve(here, "..", "..", "supabase", "migrations", "202608280001_lms_identity_security.sql"), "utf8");
 const selectPolicy = storageMigration.match(/create policy "Learners and admins read payment proofs"[\s\S]*?\);/)?.[0] ?? "";

@@ -8,9 +8,16 @@ import { LmsApiError, loadPaymentProof, type PaymentProofLink } from "../lib/lms
  */
 export default function ProofViewer({
   bookingId,
+  proofPath,
+  contentType,
+  proofSize,
   onClose,
 }: {
   bookingId: string;
+  /** المسار معروف مسبقًا من اللوحة — ضروري للأداري لأنFallback بيشد الحجز من /bookings/ */
+  proofPath?: string;
+  contentType?: string;
+  proofSize?: number | null;
   onClose: () => void;
 }) {
   const [proof, setProof] = useState<PaymentProofLink | null>(null);
@@ -24,7 +31,7 @@ export default function ProofViewer({
     setLoading(true);
     setError(null);
     setRequestId("");
-    loadPaymentProof(bookingId)
+    loadPaymentProof(bookingId, proofPath)
       .then((result) => {
         if (active) setProof(result);
       })
@@ -54,7 +61,10 @@ export default function ProofViewer({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const isImage = (proof?.content_type ?? "").startsWith("image/");
+  // In the browser-signing fallback content_type may be empty, so fall back to
+  // the prop the dashboard already has, then to the file extension.
+  const resolvedType = proof?.content_type || contentType || "";
+  const isImage = resolvedType.startsWith("image/") || (!resolvedType && /\.(jpg|jpeg|png|webp|gif)$/i.test(proof?.path ?? ""));
 
   return (
     <div
@@ -71,9 +81,9 @@ export default function ProofViewer({
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
           <div>
             <h2 className="text-[15px] font-black text-white">إثبات الدفع</h2>
-            {proof && proof.size > 0 && (
+            {proof && (proof.size > 0 || (proofSize ?? 0) > 0) && (
               <p className="mt-0.5 text-[11px] text-white/45">
-                {(proof.size / 1024).toFixed(0)} كيلوبايت · الرابط صالح 10 دقائق
+                {((proof.size || proofSize || 0) / 1024).toFixed(0)} كيلوبايت · الرابط صالح 10 دقائق
               </p>
             )}
           </div>
@@ -142,7 +152,7 @@ export default function ProofViewer({
               <div>
                 <FileText className="mx-auto h-10 w-10 text-white/25" />
                 <p className="mt-3 text-[12px] text-white/50">
-                  الملف ده من نوع {proof.content_type || "غير معروف"} — افتحه أو نزّله.
+                  الملف ده من نوع {resolvedType || "غير معروف"} — افتحه أو نزّله.
                 </p>
                 <a
                   href={proof.url}
