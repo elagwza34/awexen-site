@@ -1342,26 +1342,32 @@ async function enforceRateLimitKv(
   scope: { key: string; max: number },
 ): Promise<RateResult> {
   const key = ["rate_limit", scope.key, userId];
-  const entry = await kv.get<{ count: number; resetAt: number }>(key);
-  const now = Date.now();
-  const current = entry.value;
-  const fresh = !current || current.resetAt <= now;
-  const next = fresh ? { count: 1, resetAt: now + RATE_WINDOW_MS } : { count: current.count + 1, resetAt: current.resetAt };
 
-  // atomic: نحدّث العدّاد ونقرأ النتيجة في نفس العملية
-  const commit = await kv.atomic()
-    .check(entry)
-    .set(key, next, { expireIn: Math.max(1_000, next.resetAt - now) })
-    .get<{ count: number; resetAt: number }>(key)
-    .commit();
+  // عدّاد النافذة: المفتاح بينتهي تلقائيًا بعد RATE_WINDOW_MS، فمش محتاجين
+  // نخزّن resetAt. الزيادة بتفصل بمقارنة versionstamp، فالنسخ المتوازية
+  // المتزاحمة متحسبش نفس الطلب مرتين، و commit بيعمل رجوع للمحاولة لو فشل.
+  let base = 0n;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const entry = await kv.get<bigint>(key);
+    const current = typeof entry.value === "bigint" ? entry.value : 0n;
+    const next = current + 1n;
+    const commit = await kv.atomic()
+      .check(entry)
+      .set(key, next, { expireIn: RATE_WINDOW_MS })
+      .commit();
+    if (commit.ok) {
+      base = next;
+      break;
+    }
+  }
 
-  const stored = commit.ok ? commit.value : next;
-  const count = stored?.count ?? next.count;
-  const resetAt = stored?.resetAt ?? next.resetAt;
-  const allowed = count <= scope.max;
+  // لو زاحمتنا النسخ في كل المحاولات، نسمح بدل ما نحجب المستخدم على خطأ تقني.
+  if (base === 0n) return { allowed: true, retryAfterSeconds: 1, remaining: scope.max };
+
+  const count = Number(base);
   return {
-    allowed,
-    retryAfterSeconds: Math.max(1, Math.ceil((resetAt - now) / 1000)),
+    allowed: count <= scope.max,
+    retryAfterSeconds: Math.max(1, Math.ceil(RATE_WINDOW_MS / 1000)),
     remaining: Math.max(0, scope.max - count),
   };
 }

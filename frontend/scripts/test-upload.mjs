@@ -152,6 +152,13 @@ check("بيطبق migrations", /supabase db push/.test(deploy));
 check("بيفحص تسريب المفاتيح السرية", /sb_secret_|service_role/.test(deploy));
 check("بيتحقق من الموقع بعد النشر", /awexen\.com/.test(deploy));
 check("concurrency يمنع تعارض النشر", /concurrency:/.test(deploy));
+// Regression guard: the old check was `grep -rqE "sb_secret_|service_role"`.
+// Both words occur legitimately in the bundle (Arabic help text and the
+// supabase-js key-prefix check), so every deploy aborted at this step and the
+// site kept serving an old build. It must match the key VALUE, not the word.
+check("فحص التسريب بيطابق قيمة المفتاح", /sb_secret_\[A-Za-z0-9_-\]\{16,\}/.test(deploy));
+check("فحص التسريب بيكشف JWT قديم", /eyJ\[A-Za-z0-9_-\]\{16,\}\\?./.test(deploy));
+check("فحص التسريب مش على الكلمة", !/grep -rqE "sb_secret_\|service_role"/.test(deploy));
 // Regression guard: the workflow shipped the frontend but never deployed
 // supabase/functions, so every edge-function fix stayed local while the site
 // kept running the stale payment-proof path check (user_id vs auth.uid()).
@@ -171,6 +178,16 @@ check("التحقق بيدي على شكل المسار", /new RegExp\(/.test(pr
 check("التحقق مش بيقارن بـ user_id", !/expectedPrefix = `\$\{ownerId\}/.test(proofFn));
 check("بيتحقق إن الملف موجود قبل التوقيع", /storage\s*\n?\s*\.from\("payment-proofs"\)\s*\n?\s*\.list\(/.test(proofFn));
 check("بيوقّع رابط مؤقت", /createSignedUrl\(proofPath, \d+\)/.test(proofFn));
+
+// Regression guard: the rate limiter chained `.check().set().get()` on a
+// Deno.Kv AtomicOperation, but that type has no .get(), so `deno check`
+// failed and blocked every CI run. The counter is now read with a separate
+// kv.get() and guarded by a versionstamp compare before the atomic set.
+const rateFn = lmsApiSource.match(/async function enforceRateLimitKv\([\s\S]*?\n\}/)?.[0] ?? "";
+check("في دالة حد المعدل", rateFn.length > 0);
+check("الـ AtomicOperation مافيهاش .get", !/\.atomic\(\)[\s\S]{0,200}?\.get</.test(rateFn));
+check("بيستخدم versionstamp للمقارنة", /\.check\(entry\)/.test(rateFn));
+check("بيخزن العدّاد بـ expireIn", /expireIn: RATE_WINDOW_MS/.test(rateFn));
 
 // Regression guard: lmsApi preferred the technical `details` over the server
 // message, which replaced the Arabic "مسار إثبات الدفع غير صالح." with the

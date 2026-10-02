@@ -50,8 +50,14 @@ jobs:
 
       - name: Abort if a server key leaked into the browser bundle
         run: |
-          if grep -rqE "sb_secret_|service_role" dist/assets/; then
+          # Match the VALUE shape, never the bare word. The bundle legitimately
+          # contains "service_role" and "sb_secret_" inside Arabic help text
+          # and inside supabase-js itself, so grepping for those words aborted
+          # every deploy without ever catching a real key.
+          LEAK=$(grep -rhoE 'sb_secret_[A-Za-z0-9_-]{16,}|eyJ[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}' dist/assets/ | sort -u || true)
+          if [ -n "$LEAK" ]; then
             echo "::error::A server-side key leaked into dist/. Aborting deploy."
+            echo "$LEAK" | cut -c1-12
             exit 1
           fi
           echo "No secret keys in dist."
