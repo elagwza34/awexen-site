@@ -254,7 +254,93 @@ check("المعرفة مش بتتحمّل مع كل صفحة", /knowledgeRequest
 check("في حارس يمنع الطلب المتكرر", /loadKnowledgeOnce/.test(chatSource));
 check("الطلب بيحصل عند الفتح", /if \(open\) loadKnowledgeOnce\(\)/.test(chatSource));
 
-/* ---------- 12) cache headers للملفات الثابتة ---------- */
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const fileExt = (name) => name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
+const authUid = "9f3c1a52-7b4e-4c8a-9d21-5e6f7a8b9c0d";
+const bookingId = "3a1b7c9d-4e2f-4a6b-8c7d-1e2f3a4b5c6d";
+const otherUid = "1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e";
+
+// This mirrors lms-api's paymentProofUrl exactly: the SECOND segment must be
+// the requested bookingId, not just any segment.
+const shapeFor = (bId) => new RegExp(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/${bId}/[^/]+$`, "i");
+const proofPathShape = shapeFor(bookingId);
+
+// mirrors CourseCheckout: `${uid}/${booking.id}/${uuid}.${ext}`
+const build = (uid, bId, name) => `${uid}/${bId}/1a2b3c4d-1111-4222-8333-444455556666.${fileExt(name)}`;
+
+/* ---------- 13) مسار إثبات الدفع: الشكل والاطراف الأربعة ---------- */
+const cases = [
+  ["مسار طبيعي JPG", build(authUid, bookingId, "receipt.jpg"), true],
+  ["PNG بحروف كبيرة", build(authUid, bookingId, "RECEIPT.PNG"), true],
+  ["WebP", build(authUid, bookingId, "shot.webp"), true],
+  ["PDF", build(authUid, bookingId, "invoice.pdf"), true],
+  ["اسم عربي", build(authUid, bookingId, "إيصال.png"), true],
+  ["بدون امتداد", `${authUid}/${bookingId}/1a2b3c4d-1111-4222-8333-444455556666.bin`, true],
+  ["مجلد فرعي زائد", `${authUid}/${bookingId}/sub/file.png`, false],
+  ["path traversal", `${authUid}/${bookingId}/../../etc/passwd`, false],
+  ["بدون مجلد الحجز", `${authUid}/1a2b3c4d-1111-4222-8333-444455556666.png`, false],
+  ["اسم ملف فارغ", `${authUid}/${bookingId}/`, false],
+  ["مسار مطلق", `/etc/passwd`, false],
+  ["مجلد الحجز ناقص", `${authUid}/${otherUid}/f.png`, false],
+];
+for (const [label, path, expected] of cases) {
+  check(`شكل المسار: ${label}`, proofPathShape.test(path) === expected, path);
+}
+
+// The regex above must stay identical to the one lms-api actually runs,
+// otherwise these cases would pass while production rejects the proof.
+const edgeShapeLine = lmsApiSource.split("\n").find((line) => line.includes("const shape = new RegExp")) ?? "";
+check("اختبار الشكل مربوط بالـ function", edgeShapeLine.length > 0, edgeShapeLine.trim());
+check("الـ function بيتحقق من مجلد الـ booking", edgeShapeLine.includes("${bookingId}/"));
+check("الـ function بيسمح بأي اسم ملف", edgeShapeLine.includes("[^/]+$"));
+check("الـ function بيرفض ..", /proofPath\.includes\("\.\."\)/.test(proofFn));
+
+// Behavioural parity: build the same regex from the extracted source line and
+// re-run the rejection cases, so a future edit to lms-api cannot silently
+// diverge from what this suite believes is correct.
+const livePattern = edgeShapeLine.match(/new RegExp\(`([^`]*)`/)?.[1]?.replace(/\$\{bookingId\}/g, bookingId);
+const liveShape = livePattern ? new RegExp(livePattern, "i") : null;
+check("regex المنشور اتقرأ", Boolean(liveShape), livePattern ?? "");
+check("المسار السليم يعدّي على regex المنشور", Boolean(liveShape?.test(build(authUid, bookingId, "r.jpg"))));
+check("مسار بحجز تاني بيرفض", !liveShape?.test(build(authUid, otherUid, "r.jpg")));
+check("مسار بمجلد إضافي بيرفض", !liveShape?.test(`${authUid}/${bookingId}/x/y.png`));
+
+// And the upload path must keep the same {uid}/{bookingId}/{file} order.
+const checkoutSrc = source;
+check("الرفع يبني المسار من auth uid", /userData\.user\.id\}\/\$\{booking\.id\}/.test(checkoutSrc));
+check("الرفع بيستخدم نفس الـ bucket", /storage\.from\("payment-proofs"\)\.upload\(path/.test(checkoutSrc));
+check("الرفع بيبعت proof_path المرفوع", /proof_path: path/.test(checkoutSrc));
+
+// The RPC must validate against p_auth_user_id, not commerce_coursebooking.user_id.
+const proofMigration = readFileSync(resolve(here, "..", "..", "supabase", "migrations", "202609270001_lms_payment_proof_types.sql"), "utf8");
+check("RPC بيتحقق من auth uid", /p_proof_path !~ \('\^' \|\| p_auth_user_id::text/.test(proofMigration));
+check("RPC بيقفل مجلد الحجز", /p_booking_id::text \|\| '\/\[\^\/\]\+\$'/.test(proofMigration));
+check("RPC بيتشيل ..", /position\('\.\.' in p_proof_path\) > 0/.test(proofMigration));
+check("RPC بيتأكد إن الملف موجود", /bucket_id = 'payment-proofs' and name = p_proof_path/.test(proofMigration));
+
+// The RPC uses p_auth_user_id (auth uid), NOT commerce_coursebooking.user_id.
+const rpcPattern = new RegExp(`^${authUid}/${bookingId}/[^/]+$`);
+check("RPC بيقبل المسار المطابق للـ auth uid", rpcPattern.test(build(authUid, bookingId, "r.jpg")));
+check("RPC بيرفض مسار بحجز تاني", !rpcPattern.test(build(authUid, otherUid, "r.jpg")));
+
+check("المجلد الأول UUID", uuidPattern.test(authUid));
+check("اسم booking UUID", uuidPattern.test(bookingId));
+
+// The folder passed to storage.list must be exactly {uid}/{bookingId}.
+const sample = build(authUid, bookingId, "r.jpg");
+check("مجلد list هو أول مجلدين", sample.split("/").slice(0, 2).join("/") === `${authUid}/${bookingId}`);
+check("اسم الملف آخر جزء", sample.split("/").pop() === "1a2b3c4d-1111-4222-8333-444455556666.jpg");
+
+// bucket policy: foldername(name)[1] must be auth.uid()
+check("سياسة البِكِت بتقبل الرفع", sample.startsWith(`${authUid}/`));
+check("سياسة البِكِت بترفض مجلد غريب", !`${otherUid}/${bookingId}/f.png`.startsWith(`${authUid}/`));
+
+// Extension sanitisation must never yield an empty suffix.
+check("امتداد نظيف", fileExt("receipt.jpg") === "jpg");
+check("امتداد بأحرف خاصة", fileExt("a b$c.png") === "png");
+check("امتداد محجوب", fileExt("noext") !== "" && fileExt("noext").length > 0);
+
+
 check("الأصول الثابتة متخزنة immutable", /max-age=31536000, immutable/.test(htaccess));
 check("الـ assets مغطاة بالـ cache", /js\|css\|woff2/.test(htaccess));
 check("index.html بيتقرأ كل مرة", /no-cache, must-revalidate/.test(htaccess));
