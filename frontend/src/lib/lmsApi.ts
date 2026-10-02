@@ -95,9 +95,14 @@ export async function lmsApi<T>(path: string, init: RequestInit = {}): Promise<T
   if (!response.ok) {
     const detail = firstDetail(payload.error?.details);
     const requestIdValue = payload.error?.request_id ?? "";
-    const raw = detail ?? payload.error?.message ?? `HTTP ${response.status}`;
+    // الرسالة العربية من الخادم هي اللي المستخدم محتاج يشوفها. الـ details
+    // تقنية (ZOOM path أو نص Supabase إنجليزي) وبتستخدم فقط للبحث في جدول
+    // الترجمة وللتسجيل. أولوية الـ details كانت بتخفي الرسالة وتخلي
+    // "مسار إثبات الدفع غير صالح." تظهر كـ "تعذّر تنفيذ العملية على الخادم".
+    const serverMessage = String(payload.error?.message ?? "").trim();
+    const raw = serverMessage || detail || `HTTP ${response.status}`;
     if (import.meta.env.DEV) console.error(`[lms-api ${requestIdValue}]`, response.status, raw, detail ?? "");
-    throw new LmsApiError(humanizeLmsError(raw, detail), response.status, requestIdValue, raw);
+    throw new LmsApiError(humanizeLmsError(serverMessage, detail), response.status, requestIdValue, raw);
   }
   return payload as T;
 }

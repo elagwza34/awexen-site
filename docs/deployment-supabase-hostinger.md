@@ -88,9 +88,18 @@ npm.cmd run build
 2. **يتحقق إن مفيش مفتاح سري** تسرّب في الـ bundle (وإلا بيلغي النشر).
 3. **يرفع `frontend/dist` إلى `public_html`** على Hostinger عبر SFTP.
 4. **يطبق الـ migrations المعلّقة** على Supabase بـ `supabase db push`.
-5. **يتأكد إن الموقع بيرد 200** بعد النشر.
+5. **ينشر الـ Edge Functions** (`lms-public` و `lms-api` و `ask-awexen` و
+   `extract-knowledge-pdf`) بـ `supabase functions deploy`.
+6. **يتأكد إن الموقع و `lms-public` بيردوا 200** بعد النشر.
 
 يعني بعد إعداده مرة واحدة، مفيش أي حاجة تتعمل يدوي.
+
+> **ليه الـ Edge Functions جزء من الـ workflow؟** قبل كده كان الـ workflow بيبني
+> الواجهة وبيطبّق الـ migrations بس، من غير `supabase functions deploy`. النتيجة إن
+> أي إصلاح داخل `supabase/functions/` يفضل محلي والواجهة الجديدة تنشر فوقاه — وده
+> اللي خلّى الإنتاج يشغّل النسخة القديمة من فحص مسار إثبات الدفع، فيحصل
+> `400 "مسار إثبات الدفع غير صالح."` لكل حساب مرتبط. لو شفت رسالة من الـ Edge
+> Function مش موجودة في الكود المحلي، اعرف إن النشر لسه ما حصلش.
 
 ### الإعداد (مرة واحدة)
 

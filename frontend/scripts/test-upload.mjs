@@ -108,6 +108,15 @@ check("view مش بيستخدم security_invoker", !/with\s*\([^)]*security_invo
 // dropped first to be safe across environments.
 check("الـ view بينزل قبل ما يتعمل", /drop view if exists public\.lms_catalog_sync_status/i.test(migration));
 
+// The split SQL blocks are what a human actually pastes into the SQL Editor,
+// so they must not drift away from the migration. block4-view.sql still
+// carried `with (security_invoker = true)`, which makes the view unreadable
+// through PostgREST for anon (42501) and breaks npm run check:catalog.
+const block4 = readFileSync(resolve(here, "..", "..", "docs", "block4-view.sql"), "utf8");
+check("block4 موجود", block4.includes("lms_catalog_sync_status"));
+check("block4 مش بيستخدم security_invoker", !/with\s*\([^)]*security_invoker/i.test(block4));
+check("block4 بينزل الـ view الأول", /drop view if exists public\.lms_catalog_sync_status/i.test(block4));
+
 // Guard against the column bugs that made this migration fail with 42703 /
 // 23502: `courses_course` has no `description`/`level`, and
 // `courses_courseversion.created_by_id` is NOT NULL.
@@ -143,6 +152,32 @@ check("بيطبق migrations", /supabase db push/.test(deploy));
 check("بيفحص تسريب المفاتيح السرية", /sb_secret_|service_role/.test(deploy));
 check("بيتحقق من الموقع بعد النشر", /awexen\.com/.test(deploy));
 check("concurrency يمنع تعارض النشر", /concurrency:/.test(deploy));
+// Regression guard: the workflow shipped the frontend but never deployed
+// supabase/functions, so every edge-function fix stayed local while the site
+// kept running the stale payment-proof path check (user_id vs auth.uid()).
+check("بينشر الـ Edge Functions", /supabase functions deploy/.test(deploy));
+check("بينشر lms-api", /supabase functions deploy lms-api/.test(deploy));
+check("بينشر lms-public", /supabase functions deploy lms-public/.test(deploy));
+check("job الـ Edge Functions موجود", /edge-functions:/.test(deploy));
+check("بينشر باستخدام التوكن", /SUPABASE_ACCESS_TOKEN/.test(deploy));
+
+// Regression guard: the proof path check used to compare against
+// commerce_coursebooking.user_id (an LMS id) instead of the auth uid that the
+// browser actually uploads under, so every linked account got HTTP 400.
+const lmsApiSource = readFileSync(resolve(here, "..", "..", "supabase", "functions", "lms-api", "index.ts"), "utf8");
+const proofFn = lmsApiSource.match(/async function paymentProofUrl\([\s\S]*?\n\}/)?.[0] ?? "";
+check("في دالة paymentProofUrl", proofFn.length > 0);
+check("التحقق بيدي على شكل المسار", /new RegExp\(/.test(proofFn));
+check("التحقق مش بيقارن بـ user_id", !/expectedPrefix = `\$\{ownerId\}/.test(proofFn));
+check("بيتحقق إن الملف موجود قبل التوقيع", /storage\s*\n?\s*\.from\("payment-proofs"\)\s*\n?\s*\.list\(/.test(proofFn));
+check("بيوقّع رابط مؤقت", /createSignedUrl\(proofPath, \d+\)/.test(proofFn));
+
+// Regression guard: lmsApi preferred the technical `details` over the server
+// message, which replaced the Arabic "مسار إثبات الدفع غير صالح." with the
+// generic fallback and hid the real cause from the reviewer.
+check("الرسالة العربية ليها أولوية", /const serverMessage = String\(payload\.error\?\.message/.test(apiSource));
+check("التفاصيل التقنية ما تاخدش الأولوية", !/const raw = detail \?\? payload\.error\?\.message/.test(apiSource));
+check("humanizeLmsError بياخد الرسالة من الخادم", /humanizeLmsError\(serverMessage, detail\)/.test(apiSource));
 
 const ciSource = readFileSync(resolve(here, "..", "..", ".github", "workflows", "ci.yml"), "utf8");
 check("CI ما زال شغال", /deno check/.test(ciSource) && /tsc -- --noEmit/.test(ciSource));

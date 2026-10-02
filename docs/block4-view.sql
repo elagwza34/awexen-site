@@ -5,10 +5,21 @@
 -- ============================================================
 
 -- Read-only view used by scripts/check-catalog.mjs to spot courses that show
--- on the site but cannot be booked. Requires security_invoker so it applies
--- the caller's permissions instead of the view owner's.
+-- on the site but cannot be booked.
+--
+-- NOTE: deliberately NOT `security_invoker = true`. The underlying LMS tables
+-- are RLS-protected and the anon role has no SELECT on them, so an
+-- invoker-security view is unreadable through PostgREST (42501) even though
+-- the grant below is in place. The default (definer) security runs the view
+-- as its owner, which is what lets check:catalog read it with the anon key.
+-- That is acceptable here: the view exposes only catalog fields -- the same
+-- public data `public.courses` already serves.
+--
+-- The DROP is required when an older build of this view exists: Postgres
+-- refuses to reorder view columns on CREATE OR REPLACE (42P16).
+drop view if exists public.lms_catalog_sync_status;
+
 create or replace view public.lms_catalog_sync_status
-with (security_invoker = true)
 as
 select
   c.slug,

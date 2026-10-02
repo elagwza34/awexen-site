@@ -32,6 +32,27 @@
 - الأنواع المسموحة (JPG/PNG/WebP/PDF) متطابقة بين الـ bucket ودالة الرفع والواجهة.
   HEIC غير مدعوم عمدًا، والواجهة بتقول للطالب إزاي يحوّله لصيغة مقبولة.
 
+### خطأ "مسار إثبات الدفع غير صالح" (2026-09-27)
+
+العرض كان بيرجع `400` لكل حساب مرتبط بحساب LMS سابق. السبب كان **نسخة قديمة من
+`lms-api` لسه منشورة على Supabase**: الفحص القديم كان يقارن المسار بـ
+`commerce_coursebooking.user_id` (معرّف منصة التعلّم) بينما المتصفح يرفع تحت
+`auth.uid()`، فأي حساب مرتبط عبر `private.lms_auth_identity` بيحصل فشل.
+
+الإصلاح موجود في الكود من commit `3f2a89d` (فحص الشكل بـ regex بدل المقارنة)، لكن
+`deploy.yml` كان ما فيهوش `supabase functions deploy` خالص، فالواجهة اتنشرت
+والـ function لأ. الـ workflow دلوقتي فيه job `edge-functions` بينشر الأربعة.
+
+**العلامة إن الـ function لسه قديمة:** رسالة من الـ Edge Function غير موجودة في
+`supabase/functions/lms-api/index.ts` المحلي. أكّدها بـ:
+
+```powershell
+npx.cmd supabase functions list --project-ref $env:SUPABASE_PROJECT_REF
+```
+
+- **مفيش `details` مع `error.request_id`:** دالة قديمة، بعت `HttpError` من غير تفاصيل.
+- **لإجبار النشر فورًا:** `npx.cmd supabase functions deploy lms-api --project-ref $env:SUPABASE_PROJECT_REF`.
+
 ## رسائل الأخطاء
 
 - الـ Edge Function بيرد دائمًا برسالة عربية و`request_id` في `error.request_id`.
