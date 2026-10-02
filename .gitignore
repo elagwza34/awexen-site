@@ -23,3 +23,7 @@ test.sqlite3
 .idea/
 *.local
 supabase/.temp/
+
+# Local run logs (never commit)
+*.log
+dev-server.log

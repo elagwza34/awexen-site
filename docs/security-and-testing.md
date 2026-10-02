@@ -58,6 +58,28 @@
 2. **Trigger** `lms_catalog_mirror_courses` على `public.courses`: أي إدراج أو نشر جديد
    ينعكس تلقائيًا على الـ LMS، وأي تعديل على السعر/الموعد/العنوان يتزامن.
    لو النسخة الحالية فيها تسجيلات أو وحدات، ينشئ **نسخة جديدة** بدل تعديل محتوى
+
+### تطبيق الـ migration يدويًا (لو مفيش `DATABASE_URL` أو service-role key)
+
+`npx supabase db push` محتاج اتصال مباشر بقاعدة البيانات. لو غير متاح، الـ migration
+نفسه متقطّع في `docs/fix-course-booking.sql` لأربعة blocks جاهزة للصق:
+
+1. **Block 1** — ينشئ `private.lms_ensure_catalog_course` (دالة الـ mirror).
+2. **Block 2** — ينشئ الـ trigger على `public.courses`.
+3. **Block 3** — الـ backfill: يستدعي الدالة على كل كورس منشور (idempotent).
+4. **Block 4** — ينشئ view `lms_catalog_sync_status` + استعلام تحقق نهائي.
+
+شغّلهم بالترتيب من **Supabase → SQL Editor**، واحد واحد. الـ Block 4 بيرجّع
+`bookable = true` لكل صف، وده معناه إن الحجز شغال. بعد كده:
+
+```bash
+npm run check:catalog      # لازم يطبع "الكتالوج متزامن ✔"
+```
+
+> **ملاحظة:** الـ migration `202609270002` بتستخدم أسماء أعمدة مطابقة تمامًا لـ
+> `backend/apps/courses/models.py`. `courses_course` **مش فيها** عمود `description`
+> ولا `level` (دي بس في جدول CMS)، و `courses_courseversion.created_by_id` إجباري.
+> لو ظهر خطأ `42703` أو `23502` فالسبب غالبًا إدراج أعمدة غلط.
    منشور يكسر الطلاب المسجّلين.
 3. **حارس ضد الحلقة**: `lms_course_catalog_sync` (من الـ LMS للموقع) يشغّل
    `awexen.catalog_mirror`، والمرآة بترجع بدري لما تشوفه. من غير ده كان النشر من

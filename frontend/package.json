@@ -10,7 +10,9 @@
     "check:setup": "node scripts/check-setup.mjs",
     "check:catalog": "node scripts/check-catalog.mjs",
     "seed:lms": "node scripts/seed-lms.mjs",
-    "test:upload": "node scripts/test-upload.mjs"
+    "test:upload": "node scripts/test-upload.mjs",
+    "setup:lms": "powershell -ExecutionPolicy Bypass -File scripts/setup-lms.ps1",
+    "fix:checkout": "node scripts/fix-checkout.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
@@ -28,6 +30,7 @@
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.1.1",
+    "supabase": "^2.119.0",
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",
     "vite": "^7.3.6",

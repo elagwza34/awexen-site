@@ -1,145 +1,9 @@
-﻿-- ---------------------------------------------------------------------------
--- Backfill the LMS catalog from the public CMS table.
---
--- The public site reads `public.courses`, which the admin panel writes to
--- directly. Booking, however, resolves a course through `courses_course`
--- plus a published `courses_courseversion` (see create_course_booking in
--- commerce/services.py). `private.lms_course_catalog_sync` only flows the
--- other way (LMS -> CMS), so a course created from the CMS panel appears on
--- the website but returns 404 "هذا الكورس غير متاح للحجز" at
--- /checkout/:slug.
---
--- This creates the missing LMS rows for every CMS course that has no LMS
--- counterpart, and installs a trigger so future CMS courses stay bookable.
--- The first module/lesson are intentionally empty: the booking path only
--- requires a published version, and the instructor fills the curriculum
--- from the LMS panel.
---
--- Column lists below mirror backend/apps/courses/models.py exactly. Note
--- that `courses_course` has **no** `description` and **no** `level` column
--- (those live on the CMS table only), and `courses_courseversion.created_by_id`
--- is NOT NULL.
--- ---------------------------------------------------------------------------
-
--- ---------------------------------------------------------------------------
--- Direction A (already existed, kept idempotent): LMS -> CMS.
---
--- Whenever a course version is published or a course is updated through the
--- LMS API, project the published course into `public.courses` so the website
--- stays up to date.
--- ---------------------------------------------------------------------------
-
--- The legacy standalone backfill loop used to live here. It was removed
--- because it referenced columns that do not exist on `courses_course`
--- (`description`, `level`) and omitted the NOT NULL `created_by_id` on
--- `courses_courseversion`, so it failed with 42703 / 23502 and rolled back.
--- All CMS -> LMS work now goes through `private.lms_ensure_catalog_course`,
--- which is column-correct and idempotent.
-
--- ---------------------------------------------------------------------------
--- Guard against feedback loops.
---
--- lms_course_catalog_sync (LMS -> CMS) writes to public.courses, which fires
--- the mirror trigger below. Without a guard, publishing from the LMS panel
--- would echo back into courses_course and keep cloning new versions.
---
--- We set a transaction-local flag for the duration of that write. The mirror
--- function returns early when it sees the flag, so each direction stays
--- authoritative for its own fields.
--- ---------------------------------------------------------------------------
-
-create or replace function private.lms_course_catalog_sync(p_course_id uuid)
-returns void
-language plpgsql
-security definer
-set search_path = pg_catalog, public
-as $$
-declare
-  row_data record;
-  duration_label text;
-begin
-  if to_regclass('public.courses') is null then
-    return;
-  end if;
-
-  select c.*, v.title as version_title, v.short_description as version_short_description,
-    v.description as version_description, v.difficulty, v.estimated_minutes,
-    v.thumbnail_url,
-    coalesce((
-      select nullif(trim(u.full_name), '')
-      from public.courses_courseinstructor ci
-      join public.accounts_user u on u.id = ci.instructor_id
-      where ci.course_version_id = v.id
-      order by ci.is_lead desc, ci.created_at
-      limit 1
-    ), 'Awexen Learning Team') as instructor_name
-  into row_data
-  from public.courses_course c
-  join public.courses_courseversion v on v.id = c.current_version_id
-  where c.id = p_course_id;
-
-  if not found then
-    return;
-  end if;
-
-  duration_label := case
-    when row_data.estimated_minutes > 0 and row_data.estimated_minutes % 60 = 0
-      then (row_data.estimated_minutes / 60)::text || ' hours'
-    when row_data.estimated_minutes > 0 then row_data.estimated_minutes::text || ' minutes'
-    else ''
-  end;
-
-  -- الحماية: الكتابة دي جاية من الـ LMS، فالمرآة ما تتحملش تردّها
-  perform set_config('awexen.catalog_mirror', 'on', true);
-
-  execute $catalog$
-    insert into public.courses (
-      id, slug, title, short_description, description, instructor,
-      delivery_mode, level, duration, price, currency, capacity,
-      starts_at, featured_image, status
-    ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
-    on conflict (slug) do update set
-      title = excluded.title,
-      short_description = excluded.short_description,
-      description = excluded.description,
-      instructor = excluded.instructor,
-      delivery_mode = excluded.delivery_mode,
-      level = excluded.level,
-      duration = excluded.duration,
-      price = excluded.price,
-      currency = excluded.currency,
-      capacity = excluded.capacity,
-      starts_at = excluded.starts_at,
-      featured_image = excluded.featured_image,
-      status = excluded.status,
-      updated_at = now()
-  $catalog$ using
-    row_data.id, row_data.slug, row_data.version_title,
-    row_data.version_short_description, row_data.version_description,
-    row_data.instructor_name, row_data.delivery_mode,
-    case row_data.difficulty
-      when 'beginner' then 'beginner'
-      when 'intermediate' then 'intermediate'
-      when 'advanced' then 'advanced'
-      else 'all-levels'
-    end,
-    duration_label, row_data.price, row_data.currency, row_data.capacity,
-    row_data.starts_at, nullif(row_data.thumbnail_url, ''),
-    case when row_data.status = 'published' then 'published' else 'closed' end;
-end;
-$$;
-
--- ---------------------------------------------------------------------------
--- Direction B: CMS -> LMS.
---
--- Makes sure a published `public.courses` row has a matching
--- `courses_course` row plus a published `courses_courseversion`, which is
--- exactly what create_course_booking() looks up. Safe to call repeatedly.
---
--- Column lists mirror backend/apps/courses/models.py:
---   courses_course        -> has NO `description` and NO `level` column
---   courses_courseversion -> `created_by_id` is NOT NULL
--- ---------------------------------------------------------------------------
+﻿-- ============================================================
+--  BLOCK 1 of 4 - paste and Run
+--  Creates private.lms_ensure_catalog_course (CMS -> LMS mirror).
+--  Column lists match backend/apps/courses/models.py:
+--  courses_course has NO description/level; created_by_id is NOT NULL.
+-- ============================================================
 
 create or replace function private.lms_ensure_catalog_course(p_slug text)
 returns void
@@ -292,15 +156,16 @@ begin
 end;
 $$;
 
--- ---------------------------------------------------------------------------
--- Trigger wrapper.
---
+-- ============================================================
+--  BLOCK 2 of 4 - paste and Run
+--  Trigger so every new/updated CMS course stays bookable.
+-- ============================================================
+
 -- PostgreSQL does not allow NEW/OLD inside the EXECUTE FUNCTION argument list:
 -- they are only visible inside the trigger function body. The trigger therefore
 -- calls a no-argument wrapper that reads NEW.slug itself and forwards it to
 -- lms_ensure_catalog_course (which returns void and so cannot be a trigger
 -- function itself).
--- ---------------------------------------------------------------------------
 
 create or replace function private.lms_mirror_courses_to_lms()
 returns trigger
@@ -321,8 +186,26 @@ after insert or update of slug, title, short_description, description, delivery_
 for each row
 execute function private.lms_mirror_courses_to_lms();
 
--- Read-only view used by scripts/check-catalog.mjs to spot courses that
--- show on the site but cannot be booked.
+
+-- ============================================================
+--  BLOCK 3 of 4 - paste and Run
+--  Backfill: mirror every published CMS course (idempotent).
+--  Expect one row per slug, e.g. mahmoud / test / wordpress-foundations.
+-- ============================================================
+
+select private.lms_ensure_catalog_course(c.slug) as synced, c.slug
+from public.courses c
+where c.status = 'published'
+order by c.slug;
+
+-- ============================================================
+--  BLOCK 4 of 4 - paste and Run
+--  Sync-status view + final verification.
+--  The grant lets scripts/check-catalog.mjs read it with the anon key.
+-- ============================================================
+
+-- Read-only view used by scripts/check-catalog.mjs to spot courses that show
+-- on the site but cannot be booked.
 --
 -- NOTE: deliberately NOT `security_invoker = true`. The underlying LMS tables
 -- are RLS-protected and the anon role has no SELECT on them, so an
@@ -331,9 +214,6 @@ execute function private.lms_mirror_courses_to_lms();
 -- as its owner, which is what lets check:catalog read it with the anon key.
 -- That is acceptable here: the view exposes only catalog fields -- the same
 -- public data `public.courses` already serves.
---
--- The DROP is required when an older build of this view exists: Postgres
--- refuses to reorder view columns on CREATE OR REPLACE (42P16).
 drop view if exists public.lms_catalog_sync_status;
 
 create or replace view public.lms_catalog_sync_status
@@ -362,18 +242,8 @@ left join public.courses_courseversion cv on cv.id = lc.current_version_id;
 
 grant select on public.lms_catalog_sync_status to anon, authenticated;
 
--- ---------------------------------------------------------------------------
--- Self-heal pass (idempotent).
---
--- The trigger above only fires on future writes, so applying the migration
--- to an existing database would leave already-published CMS courses
--- unbookable. lms_ensure_catalog_course already handles every failure mode
--- (missing courses_course row, missing/draft current version, dangling
--- current_version_id) without duplicating anything, so re-running it over
--- the whole published catalog is all that is needed.
--- ---------------------------------------------------------------------------
+-- Final check: every row must show bookable = true.
+select slug, title, bookable, reason
+from public.lms_catalog_sync_status
+order by slug;
 
-select private.lms_ensure_catalog_course(c.slug) as synced, c.slug
-from public.courses c
-where c.status = 'published'
-order by c.slug;

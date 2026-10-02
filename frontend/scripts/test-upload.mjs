@@ -88,20 +88,42 @@ check("backfill بيعمل نسخة منشورة", /insert into public\.courses_
 check("backfill بيربط النسخة الحالية", /current_version_id\s*=\s*version_row\.id|set current_version_id = version_id/i.test(migration));
 check("في trigger على public.courses", /create trigger lms_catalog_mirror_courses[\s\S]*?on public\.courses/i.test(migration));
 check("trigger بيغطي INSERT", /after insert or update/i.test(migration));
-check("trigger بينادي دالة المزامنة", /execute function private\.lms_ensure_catalog_course\(new\.slug\)/i.test(migration));
+// Postgres forbids NEW/OLD in the EXECUTE FUNCTION argument list, so the
+// trigger must call a no-argument wrapper that reads new.slug itself.
+// Regression guard: it used to assert `execute function
+// private.lms_ensure_catalog_course(new.slug)`, which can never run.
+check("trigger بينادي دالة المزامنة", /perform private\.lms_ensure_catalog_course\(new\.slug\)/i.test(migration));
+check("trigger بيستخدم غلاف trigger صحيح", /execute function private\.lms_mirror_courses_to_lms\(\)/i.test(migration));
 check("في حماية من الحلقة اللانهائية", /awexen\.catalog_mirror/.test(migration));
 check("الحماية بتتشال في الـ LMS sync", /set_config\('awexen\.catalog_mirror', 'on', true\)/i.test(migration));
 check("المرآة بترجع بدري مع الحارس", /if current_setting\('awexen\.catalog_mirror', true\) = 'on' then\s*\n\s*return;/i.test(migration));
 check("في view للمتابعة", /create or replace view public\.lms_catalog_sync_status/i.test(migration));
 check("view بيحسب bookable", /as bookable/i.test(migration));
+// Regression guard: `with (security_invoker = true)` made the view unreadable
+// through PostgREST (42501) because anon has no SELECT on the RLS-protected LMS
+// tables, so check:catalog could never pass even after a successful backfill.
+// Matched on the SQL clause only, so the explanatory comments can name it.
+check("view مش بيستخدم security_invoker", !/with\s*\([^)]*security_invoker/i.test(migration));
+// CREATE OR REPLACE cannot reorder view columns (42P16), so the view must be
+// dropped first to be safe across environments.
+check("الـ view بينزل قبل ما يتعمل", /drop view if exists public\.lms_catalog_sync_status/i.test(migration));
 
-// Self-heal pass: لازم يصلّح كورس موجود في courses_course بس بلا نسخة سارية.
-// من غيرها الـ migration ممكن تتنفذ والكورس يفضل يرجّع 404 في صفحة الحجز.
-check("فيه self-heal للنسخ الناقصة", /lc\.current_version_id is null[\s\S]*?not exists/i.test(migration));
-check("self-heal بيوجّه على أحدث نسخة منشورة", /order by v\.version_number desc/i.test(migration));
-check("self-heal بيستخدم lateral limit 1", /from lateral/i.test(migration) && /limit 1/i.test(migration));
-check("self-heal بيرفع حالة الكورس لـ published", /lc\.status <> 'published'/i.test(migration));
-check("self-heal idempotent (بيقارن قبل التعديل)", /is distinct from cv\.id/i.test(migration));
+// Guard against the column bugs that made this migration fail with 42703 /
+// 23502: `courses_course` has no `description`/`level`, and
+// `courses_courseversion.created_by_id` is NOT NULL.
+const courseInsert = migration.match(/insert into public\.courses_course \(([\s\S]*?)\n\s*\) values/i)?.[1] ?? "";
+check("إدراج courses_course من غير description/level", !/\bdescription\b|\blevel\b/i.test(courseInsert));
+check("إدراج courses_course فيه owner_id", /\bowner_id\b/i.test(courseInsert));
+const versionInsert = migration.match(/insert into public\.courses_courseversion \(([\s\S]*?)\n\s*\) values/i)?.[1] ?? "";
+check("إدراج نسخة فيه created_by_id", /\bcreated_by_id\b/i.test(versionInsert));
+
+// Self-heal: a course can exist in courses_course yet still 404 at checkout
+// when its current_version_id is null or dangling. Re-running the idempotent
+// mirror over every published course covers that plus the missing-row case.
+check("فيه self-heal لكل كورس منشور", /select private\.lms_ensure_catalog_course\(c\.slug\)[\s\S]*?from public\.courses c\s*\nwhere c\.status = 'published'/i.test(migration));
+check("الـ self-heal بيختار أحدث نسخة منشورة", /order by v\.version_number desc/i.test(migration));
+check("الـ self-heal بيربط current_version_id", /set current_version_id = new_version_id/i.test(migration));
+check("الـ self-heal idempotent (guard على السطر الحالي)", /current_version_id is distinct from version_row\.id/i.test(migration));
 
 const resourceManager = readFileSync(resolve(here, "..", "src", "admin", "ResourceManager.tsx"), "utf8");
 check("اللوحة بتتحقق من قابلية الحجز", /verifyBookable/.test(resourceManager));
