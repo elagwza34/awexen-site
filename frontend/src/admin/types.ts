@@ -6,6 +6,7 @@ export type SectionKey =
   | "portfolio"
   | "blog"
   | "messages"
+  | "quotes"
   | "newsletter"
   | "clients"
   | "jobs"

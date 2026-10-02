@@ -254,6 +254,7 @@ check("المعرفة مش بتتحمّل مع كل صفحة", /knowledgeRequest
 check("في حارس يمنع الطلب المتكرر", /loadKnowledgeOnce/.test(chatSource));
 check("الطلب بيحصل عند الفتح", /if \(open\) loadKnowledgeOnce\(\)/.test(chatSource));
 
+/* ---------- 13) مسار إثبات الدفع: الشكل والأطراف الأربعة ---------- */
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const fileExt = (name) => name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
 const authUid = "9f3c1a52-7b4e-4c8a-9d21-5e6f7a8b9c0d";
@@ -268,7 +269,53 @@ const proofPathShape = shapeFor(bookingId);
 // mirrors CourseCheckout: `${uid}/${booking.id}/${uuid}.${ext}`
 const build = (uid, bId, name) => `${uid}/${bId}/1a2b3c4d-1111-4222-8333-444455556666.${fileExt(name)}`;
 
-/* ---------- 13) مسار إثبات الدفع: الشكل والاطراف الأربعة ---------- */
+/* ---------- 14) صفحة طلب عرض السعر (/quote) ---------- */
+const quoteSrc = readFileSync(resolve(here, "..", "src", "pages", "Quote.tsx"), "utf8");
+check("صفحة الطلب موجودة", quoteSrc.includes("export default function Quote"));
+check("بتكتب في quote_requests", /from\("quote_requests"\)\.insert/.test(quoteSrc));
+check("بترسل اسم وإيميل", /name: form\.name/.test(quoteSrc) && /email: form\.email/.test(quoteSrc));
+// The whole point of the page is capturing the full project brief, so the
+// form must keep covering scope, design, features, technical and commercial
+// answers rather than a couple of generic fields.
+for (const field of [
+  "project_type", "industry", "current_site", "goals", "pages", "languages",
+  "design_style", "colors", "logo", "content_ready", "products", "payments",
+  "features", "hosting", "domain", "seo", "analytics", "maintenance",
+  "timeline", "budget", "reference", "notes",
+]) {
+  check(`الفورم فيه ${field}`, new RegExp(`\\b${field}:`).test(quoteSrc));
+}
+check("بيتحقق من الموافقة على الخصوصية", /privacy-consent/.test(quoteSrc));
+check("بيعرض رسالة نجاح", /successTitle/.test(quoteSrc));
+check("بيعرض حالة خطأ", /role="alert"/.test(quoteSrc));
+check("عربي وإنجليزي", quoteSrc.includes("? {") && quoteSrc.includes(": {"));
+
+const appSrc = readFileSync(resolve(here, "..", "src", "App.tsx"), "utf8");
+check("الصفحة مسجلة في الراوت", /path="\/quote"/.test(appSrc));
+check("الصفحة lazy loaded", /import\("\.\/pages\/Quote"\)/.test(appSrc));
+
+// Visitors may only insert; only admins may read.
+const quoteSql = readFileSync(resolve(here, "..", "..", "backend", "sql", "contact_messages_table.sql"), "utf8");
+check("جدول الطلبات موجود", /create table if not exists public\.quote_requests/.test(quoteSql));
+check("الجدول مفعّل عليه RLS", /alter table public\.quote_requests enable row level security/.test(quoteSql));
+check("سياسة إدراج للزوار", /Allow public insert to quote_requests/.test(quoteSql));
+check("سياسة قراءة للأداري بس", /Allow admins to read quote_requests/.test(quoteSql));
+check("ما فيش سياسة قراءة عامة", !/for select[\s\S]{0,120}to anon/.test(quoteSql));
+check("القراءة بـ lms_can_review_payments", /using \(public\.lms_can_review_payments\(\)\)/.test(quoteSql));
+check("الزوار ما يقرأوش", /revoke all on table public\.quote_requests from anon/.test(quoteSql));
+
+const adminSrc = readFileSync(resolve(here, "..", "src", "pages", "AdminDashboard.tsx"), "utf8");
+check("اللوحة بتعرض الطلبات", /active === "quotes"/.test(adminSrc));
+check("اللوحة بتقرأ الجدول الصح", /table="quote_requests"/.test(adminSrc));
+check("قائمة الأقسام فيها quotes", /key: "quotes"/.test(adminSrc));
+
+// The primary calls to action must lead to the quote page, not the old
+// generic contact form, otherwise the new page gets no traffic.
+check("الهيرو بيودّي للطلب", /to="\/quote"/.test(readFileSync(resolve(here, "..", "src", "components", "Hero.tsx"), "utf8")));
+check("الـ CTA بيودّي للطلب", /to="\/quote"/.test(readFileSync(resolve(here, "..", "src", "components", "CTA.tsx"), "utf8")));
+check("الفوتر فيه رابط الطلب", /to: "\/quote"/.test(readFileSync(resolve(here, "..", "src", "components", "Footer.tsx"), "utf8")));
+
+
 const cases = [
   ["مسار طبيعي JPG", build(authUid, bookingId, "receipt.jpg"), true],
   ["PNG بحروف كبيرة", build(authUid, bookingId, "RECEIPT.PNG"), true],

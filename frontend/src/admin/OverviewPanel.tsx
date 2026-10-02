@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { BookOpenText, BriefcaseBusiness, Mail, Send, Sparkles, UsersRound } from "lucide-react";
+import { BookOpenText, BriefcaseBusiness, FileText, Mail, Send, Sparkles, UsersRound } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import type { AdminRole, SectionKey } from "./types";
 
-type Counts = { messages: number; newsletter: number; clients: number; applications: number; posts: number; inquiries: number };
+type Counts = { messages: number; quotes: number; newsletter: number; clients: number; applications: number; posts: number; inquiries: number };
 
 export default function OverviewPanel({ role, goTo }: { role: AdminRole; goTo: (section: SectionKey) => void }) {
-  const [counts, setCounts] = useState<Counts>({ messages: 0, newsletter: 0, clients: 0, applications: 0, posts: 0, inquiries: 0 });
+  const [counts, setCounts] = useState<Counts>({ messages: 0, quotes: 0, newsletter: 0, clients: 0, applications: 0, posts: 0, inquiries: 0 });
 
   useEffect(() => {
     if (!supabase) return;
@@ -15,12 +15,13 @@ export default function OverviewPanel({ role, goTo }: { role: AdminRole; goTo: (
       return value ?? 0;
     };
     void Promise.all([
-      count("contact_messages"), count("newsletter_subscribers"), count("clients"), count("job_applications"), count("blog_posts"), count("ai_inquiries"),
-    ]).then(([messages, newsletter, clients, applications, posts, inquiries]) => setCounts({ messages, newsletter, clients, applications, posts, inquiries }));
+      count("contact_messages"), count("quote_requests"), count("newsletter_subscribers"), count("clients"), count("job_applications"), count("blog_posts"), count("ai_inquiries"),
+    ]).then(([messages, quotes, newsletter, clients, applications, posts, inquiries]) => setCounts({ messages, quotes, newsletter, clients, applications, posts, inquiries }));
   }, []);
 
   const cards = [
     { key: "messages" as const, label: "رسائل التواصل", value: counts.messages, icon: Mail },
+    { key: "quotes" as const, label: "طلبات عرض السعر", value: counts.quotes, icon: FileText },
     { key: "newsletter" as const, label: "مشتركو النشرة", value: counts.newsletter, icon: Send },
     { key: "clients" as const, label: "العملاء", value: counts.clients, icon: UsersRound },
     { key: "applications" as const, label: "طلبات التوظيف", value: counts.applications, icon: BriefcaseBusiness },
@@ -35,7 +36,7 @@ export default function OverviewPanel({ role, goTo }: { role: AdminRole; goTo: (
         <h2 className="mt-2 text-[21px] font-extrabold">نظرة سريعة</h2>
         <p className="mt-1 text-[11.5px] text-white/45">الدور الحالي: {role}. الأرقام تعرض فقط البيانات المسموح لك برؤيتها.</p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map(({ key, label, value, icon: Icon }) => (
           <button key={key} type="button" onClick={() => goTo(key)} className="rounded-xl border border-white/8 bg-white/[0.025] p-4 text-right transition hover:border-brand-500/30 hover:bg-brand-500/[0.04]">
             <Icon className="h-4 w-4 text-brand-300" />

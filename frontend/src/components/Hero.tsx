@@ -197,7 +197,7 @@ export default function Hero() {
           <Reveal delay={240}>
             <div className="mt-9 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
               <Link
-                to="/contact"
+                to="/quote"
                 className="group inline-flex w-full items-center justify-center gap-3 rounded-xl bg-brand-500 px-7 py-3.5 text-[15px] font-bold text-white shadow-[var(--shadow-brand)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 sm:w-auto"
               >
                 {t("nav.startProject")}

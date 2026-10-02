@@ -33,6 +33,7 @@ const PortfolioDetail = lazy(() => import("./pages/PortfolioDetail"));
 const PMS = lazy(() => import("./pages/PMS"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
+const Quote = lazy(() => import("./pages/Quote"));
 const ExportData = lazy(() => import("./pages/ExportData"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
@@ -255,6 +256,7 @@ function AppShell() {
             <Route path="/pms" element={<PMS />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/quote" element={<Quote />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogArticle />} />
             <Route path="/jobs" element={<Jobs />} />

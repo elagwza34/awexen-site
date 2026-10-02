@@ -55,6 +55,7 @@ const columns = [
       { label: { ar: "معرض الأعمال", en: "Portfolio" }, to: "/portfolio" },
       { label: { ar: "نظام إدارة المنتجات", en: "Product Management System" }, to: "/pms" },
       { label: { ar: "من نحن", en: "About Us" }, to: "/about" },
+      { label: { ar: "اطلب عرض سعر", en: "Get a quote" }, to: "/quote" },
       { label: { ar: "تواصل معنا", en: "Contact Us" }, to: "/contact" },
     ],
   },

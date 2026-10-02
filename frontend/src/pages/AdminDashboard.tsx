@@ -11,6 +11,7 @@ import {
   Inbox,
   Images,
   FileCheck2,
+  FileText,
   LayoutDashboard,
   LibraryBig,
   LogOut,
@@ -51,6 +52,7 @@ const navItems: Array<{
 }> = [
   { key: "overview", label: "الرئيسية", icon: House, roles: allRoles, group: "عام" },
   { key: "messages", label: "رسائل التواصل", icon: Mail, roles: ["owner", "admin", "support"], group: "المبيعات" },
+  { key: "quotes", label: "طلبات عرض السعر", icon: FileText, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "newsletter", label: "القائمة البريدية", icon: Send, roles: ["owner", "admin", "editor", "support"], group: "المبيعات" },
   { key: "clients", label: "إدارة العملاء", icon: UsersRound, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "pages", label: "الصفحات", icon: FilePlus2, roles: ["owner", "admin", "editor"], group: "المحتوى" },
@@ -219,6 +221,24 @@ export default function AdminDashboard({ userId }: { userId: string }) {
             <InboxManager table="contact_messages" title="رسائل التواصل" description="طلبات الخدمات وعروض الأسعار الواردة من صفحة التواصل." fields={[
               { key: "email", label: "البريد", kind: "email" }, { key: "phone", label: "الهاتف", kind: "phone" },
               { key: "service", label: "الخدمة" }, { key: "budget", label: "الميزانية" }, { key: "message", label: "الرسالة", wide: true },
+            ]} />
+          )}
+          {active === "quotes" && (
+            <InboxManager table="quote_requests" title="طلبات عرض السعر" description="الطلبات الواردة من صفحة /quote بكل تفاصيل المشروع." fields={[
+              { key: "email", label: "البريد", kind: "email" }, { key: "phone", label: "الهاتف", kind: "phone" },
+              { key: "project_type", label: "نوع المشروع" }, { key: "industry", label: "القطاع" },
+              { key: "budget", label: "الميزانية" }, { key: "timeline", label: "الموعد" },
+              { key: "goals", label: "الأهداف", wide: true },
+              { key: "pages", label: "الصفحات" }, { key: "languages", label: "اللغات" },
+              { key: "design_style", label: "التصميم" }, { key: "colors", label: "الألوان" },
+              { key: "logo", label: "الشعار" }, { key: "content_ready", label: "المحتوى" },
+              { key: "products", label: "المنتجات" }, { key: "payments", label: "الدفع" },
+              { key: "hosting", label: "الاستضافة" }, { key: "domain", label: "النطاق" },
+              { key: "seo", label: "SEO" }, { key: "analytics", label: "التحليلات" },
+              { key: "maintenance", label: "الصيانة" }, { key: "current_site", label: "الموقع الحالي" },
+              { key: "features", label: "المزايا", wide: true },
+              { key: "reference", label: "مراجع", wide: true },
+              { key: "notes", label: "ملاحظات", wide: true },
             ]} />
           )}
           {active === "newsletter" && (

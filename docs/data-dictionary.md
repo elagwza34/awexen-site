@@ -17,6 +17,31 @@
 | CourseProgress | cache للتقدم الكلي | سجل واحد لكل Enrollment، قابل لإعادة البناء |
 | AuditEvent | أثر حساس غير قابل للتعديل | actor/action/target/reason/request_id |
 
+جداول الموقع العام (ليست جزءًا من نواة LMS):
+
+| الكيان | الغرض | أهم القيود |
+|---|---|---|
+| contact_messages | رسائل صفحة `/contact` | زائر يُدرج فقط؛ القراءة للإدارة عبر `lms_can_review_payments()` |
+| quote_requests | طلبات عرض السعر من `/quote` | زائر يُدرج فقط؛ 22 حقل تفاصيل المشروع |
+| newsletter_subscribers | اشتراكات النشرة البريدية | بريد فريد غير حساس لحالة الأحرف |
+
+## طلبات عرض السعر (`quote_requests`)
+
+تحتوي طلبات الـ `/quote`. الإلزامي: `name` + `email` + `goals`؛ باقي الحقول
+nullable عشان تتوسّع الأسئلة بلا migration جديد:
+
+| المجموعة | الحقول |
+|---|---|
+| النطاق | `project_type` · `industry` · `current_site` · `goals` · `timeline` |
+| التصميم | `pages` · `languages` · `design_style` · `colors` · `logo` · `content_ready` |
+| المزايا | `products` · `payments` · `features` |
+| التقني | `hosting` · `domain` · `seo` · `analytics` · `maintenance` |
+| التجاري | `budget` · `reference` · `notes` |
+
+الزائر يملك `insert` فقط، والقراءة محجوزة على `lms_can_review_payments()` —
+لأن الطلبات فيها بيانات اتصال العملاء. `scripts/test-upload.mjs` بيتحقق من
+السياسات دي ومن أن كل حقل في الفورم متخزّن فعلاً.
+
 التقدم الوزني:
 
 ```text
