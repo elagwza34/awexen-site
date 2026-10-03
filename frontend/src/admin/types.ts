@@ -28,13 +28,21 @@ export type FieldOption = { label: string; value: string };
 export type FieldDefinition = {
   key: string;
   label: string;
-  type?: "text" | "textarea" | "number" | "url" | "image" | "date" | "datetime-local" | "select" | "checkbox";
+  type?: "text" | "textarea" | "number" | "url" | "image" | "date" | "datetime-local" | "select" | "managed-select" | "checkbox";
   storageBucket?: "course-images" | "portfolio-media";
   placeholder?: string;
   required?: boolean;
   nullable?: boolean;
   min?: number;
   options?: FieldOption[];
+  /** لمربع managed-select: الجدول اللي بتقرأ منه الخيارات وتكتب فيها. */
+  optionsTable?: string;
+  /** اسم العمود اللي بيخزّن النص العربي المعروض. */
+  optionsLabelKey?: string;
+  /** اسم العمود اللي بيخزّن النص الإنجليزي (اختياري). */
+  optionsValueKey?: string;
+  /** نص الزر اللي بيظهر فوق قائمة الخيارات. */
+  optionsManagerLabel?: string;
   wide?: boolean;
 };
 

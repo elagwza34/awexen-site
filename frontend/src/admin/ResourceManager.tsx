@@ -18,6 +18,7 @@ import { supabase } from "../lib/supabase";
 import { uploadPublicImage } from "../lib/storage";
 import { ADMIN_DRAFT_PREFIX } from "../lib/adminSession";
 import { useConfirmDialog } from "../components/ConfirmDialog";
+import ManagedSelect from "./ManagedSelect";
 import type { AdminRow, FieldDefinition, ResourceDefinition } from "./types";
 
 const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
@@ -160,6 +161,22 @@ function Field({ field, value, onChange, onImageUpload, uploading }: {
         onChange={(event) => onChange(event.target.value)}
         placeholder={field.placeholder}
         className={`${base} resize-y leading-6`}
+      />
+    );
+  }
+
+  if (field.type === "managed-select" && field.optionsTable) {
+    return (
+      <ManagedSelect
+        name={field.key}
+        label={field.label}
+        table={field.optionsTable}
+        labelKey={field.optionsLabelKey ?? "label_ar"}
+        valueKey={field.optionsValueKey}
+        managerLabel={field.optionsManagerLabel}
+        value={String(value ?? "")}
+        required={field.required}
+        onChange={onChange}
       />
     );
   }

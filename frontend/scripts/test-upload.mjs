@@ -365,6 +365,27 @@ check("نافذة الحذف بنبرة خطر", /tone: "danger"/.test(resourceS
 check("المسودات ليها زرار حذف", /status === "draft"[^\n]*removeRow/.test(resourceSrc));
 check("المنشور لسه بينقل للمسودات", /status !== "draft"[^\n]*moveToDraft/.test(resourceSrc));
 
+// التصنيف بدورب داون قابل للإدارة: جدول + migrated field + مكوّن.
+const categoriesSql = readFileSync(resolve(migrationsDir, "202610020001_portfolio_categories.sql"), "utf8");
+check("جدول أنواع المواقع موجود", /create table if not exists public\.portfolio_categories/.test(categoriesSql));
+check("جدول الأنواع RLS مفعّل", /alter table public\.portfolio_categories enable row level security/.test(categoriesSql));
+check("الزوار ميملوش الأنواع", /has_awexen_role\(array\['owner','admin','editor'\]\)[\s\S]*?with check/.test(categoriesSql));
+check("في قيم مبدئية", /on conflict \(label_ar\) do nothing/.test(categoriesSql));
+check("الأنواع مالهاش تكرار", /unique index if not exists idx_portfolio_categories_label_ar/.test(categoriesSql));
+
+const managedSelectSrc = readFileSync(resolve(here, "..", "src", "admin", "ManagedSelect.tsx"), "utf8");
+const managedOptionsSrc = readFileSync(resolve(here, "..", "src", "admin", "ManagedOptions.tsx"), "utf8");
+const resourceDefs = readFileSync(resolve(here, "..", "src", "admin", "resourceDefinitions.ts"), "utf8");
+check("التصنيف بقى managed-select", /key: "category_ar"[\s\S]{0,200}type: "managed-select"/.test(resourceDefs));
+check("التصنيف مربوط بجدول الأنواع", /optionsTable: "portfolio_categories"/.test(resourceDefs));
+check("الـ drop-down بيقرأ من الجدول", /\.from\(table\)/.test(managedSelectSrc));
+check("فيه زرار اختيار", /onPick/.test(managedSelectSrc));
+check("خيارات الجدول بتتحدّث بعد الإضافة", /onChanged=\{load\}/.test(managedSelectSrc));
+check("فيه إمكانية إضافة عنصر", /\.insert\(payload\)/.test(managedOptionsSrc));
+check("فيه إمكانية حذف عنصر", /\.from\(table\)\.delete\(\)/.test(managedOptionsSrc));
+check("الخطأ بيتعرض للمستخدم", /role="alert"/.test(managedOptionsSrc));
+check("الزرار بيتعطّل وقت الإضافة", /disabled=\{busy \|\| !draftLabel\.trim\(\)\}/.test(managedOptionsSrc));
+
 const quoteInboxSrc = readFileSync(resolve(here, "..", "src", "admin", "QuoteInbox.tsx"), "utf8");
 check("صندوق الطلبات بيقرأ quote_requests", /\.from\("quote_requests"\)/.test(quoteInboxSrc));
 check("صندوق الطلبات بيقدر يحدّث الحالة", /\.update\(\{ status/.test(quoteInboxSrc));
