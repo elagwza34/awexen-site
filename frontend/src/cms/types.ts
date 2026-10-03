@@ -35,6 +35,24 @@ export type CmsLinkItem = {
 };
 
 /**
+ * عنصر مكرّر جوّه قسم، مثل كارت خدمة أو مشروع أو خطة.
+ *
+ * الحقول اختيارية عمدًا: أي قسم بيعرض كروت بيملأ اللي يناسبه بس، والباقي
+ * بيرجع لمحتوى الكود زي ما كان. الحقول كلها ثنائية اللغة أو صورة أو رابط.
+ */
+export type CmsItem = {
+  id: string;
+  title?: LocalizedText;
+  description?: LocalizedText;
+  link?: string;
+  newTab?: boolean;
+  visible?: boolean;
+  image?: CmsImage;
+  /** حقول إضافية من القسم، مثل السعر والخصائص. */
+  extras?: Record<string, LocalizedText | string | boolean>;
+};
+
+/**
  * القيم المسموحة جوه content.
  * القيم الفارغة تُخزَّن كنص فارغ مش undefined، عشان الـ JSON يبقى مستقر.
  */
@@ -46,7 +64,8 @@ export type CmsFieldValue =
   | CmsImage
   | ElementStyle
   | CmsButton[]
-  | CmsLinkItem[];
+  | CmsLinkItem[]
+  | CmsItem[];
 
 /** محتوى قسم واحد: خريطة مفتاح ← قيمة. */
 export type CmsContent = Record<string, CmsFieldValue>;
@@ -270,6 +289,20 @@ export function readLinks(value: CmsFieldValue | undefined): CmsLinkItem[] {
   return Array.isArray(value) && value.every((item) => "link" in item)
     ? (value as CmsLinkItem[])
     : [];
+}
+
+/**
+ * Reads a repeated item list such as service cards or pricing plans.
+ *
+ * The id is required because the CMS builds stable element ids from it, and a
+ * random id would break the selection between renders.
+ */
+export function readItems(value: CmsFieldValue | undefined): CmsItem[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is CmsItem =>
+      typeof item === "object" && item !== null && "id" in item && typeof item.id === "string",
+  );
 }
 
 /**

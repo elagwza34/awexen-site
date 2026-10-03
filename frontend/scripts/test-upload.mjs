@@ -446,6 +446,10 @@ const cmsStyle = readFileSync(resolve(here, "..", "src", "cms", "style.ts"), "ut
 const propertyControls = readFileSync(resolve(here, "..", "src", "admin", "cms", "PropertyControls.tsx"), "utf8");
 const elementPanel = readFileSync(resolve(here, "..", "src", "admin", "cms", "ElementPanel.tsx"), "utf8");
 const uiSource = readFileSync(resolve(here, "..", "src", "components", "ui.tsx"), "utf8");
+const styleSheet = readFileSync(resolve(here, "..", "src", "context", "CmsStyleSheet.tsx"), "utf8");
+const servicesSource = readFileSync(resolve(here, "..", "src", "components", "Services.tsx"), "utf8");
+const navbarSource = readFileSync(resolve(here, "..", "src", "components", "Navbar.tsx"), "utf8");
+const footerSource = readFileSync(resolve(here, "..", "src", "components", "Footer.tsx"), "utf8");
 // Every public component, so section coverage can be asserted in one place.
 const componentsSource = [
   "Hero",
@@ -728,6 +732,94 @@ for (const key of ["hero", "brands", "cta", "whyus"]) {
 for (const key of ["process", "services", "portfolio", "pricing", "latest", "pms"]) {
   check(`section ${key} is wired through SectionHeading`, componentsSource.includes(`section="${key}"`));
 }
+
+/* --- Final pass: hover, responsive, cards, upload, navbar, footer --- */
+
+// 1. Hover rules must actually reach the page, scoped per element.
+check(
+  "hover rules are emitted by buildPreviewCss",
+  /export function buildPreviewCss/.test(cmsStyle) && /buildHoverRule\(`\.\$\{scope\}`/.test(cmsStyle),
+);
+check(
+  "hover rules are mounted in the preview",
+  /<style data-cms-styles="true"/.test(styleSheet),
+);
+check(
+  "hover rules only mount while editing",
+  /editing && <style data-cms-styles/.test(styleSheet),
+);
+check(
+  "hover colours are validated before emission",
+  /hoverBackgroundColor && isSafeColor/.test(cmsStyle) &&
+    /hoverTextColor && isSafeColor/.test(cmsStyle),
+);
+
+// 2. Responsive overrides must be mounted per element, never on :root.
+check(
+  "mobile overrides are emitted in a media query",
+  /@media \(max-width:768px\)\{\.\$\{scope\}/.test(cmsStyle),
+);
+check(
+  "mobile overrides are scoped to the element class",
+  /\.cmsPreviewCssRoot|:root\{/.test(cmsStyle) === false,
+);
+check(
+  "mobile overrides are clamped like every other metric",
+  /clampMetric\(metric, raw\)/.test(cmsStyle),
+);
+check(
+  "elements register their style for the stylesheet",
+  /useRegisterElementStyle/.test(cmsEditable) &&
+    /register\(scope/.test(styleSheet),
+);
+
+// 3. Cards use stable ids derived from real data, never random.
+check(
+  "repeated items are read through a typed reader",
+  /export function readItems/.test(cmsTypes) &&
+    /typeof item\.id === "string"/.test(cmsTypes),
+);
+check(
+  "service cards carry a stable item id",
+  /item\.\$\{slug\}\.title/.test(servicesSource) &&
+    /item\.\$\{slug\}\.description/.test(servicesSource),
+);
+check(
+  "service cards honour the item link and visibility",
+  /item\?\.link \|\| `\/services\/\$\{slug\}`/.test(servicesSource) &&
+    /item\?\.visible === false/.test(servicesSource),
+);
+
+// 4. Image upload reuses the existing helper.
+check(
+  "image panel uses the existing upload helper",
+  /uploadPublicImage/.test(elementPanel) && /"portfolio-media", "cms"/.test(elementPanel),
+);
+check(
+  "uploaded image lands in the draft, not the database",
+  /patch\(\{ src \}\)/.test(elementPanel) &&
+    // saveSection may only appear in a comment, never as a call.
+    !/[^.\w]saveSection\(/.test(elementPanel),
+);
+
+// 5. Navbar and Footer.
+check(
+  "navbar CTA is editable",
+  navbarSource.includes('<CmsEditable section="navbar" element="cta">'),
+);
+check(
+  "footer description is editable",
+  footerSource.includes('<CmsEditable section="footer" element="description">'),
+);
+check(
+  "footer copyright is editable",
+  footerSource.includes('<CmsEditable section="footer" element="copyright">'),
+);
+check(
+  "footer keeps its original design",
+  /<Logo dark \/>/.test(footerSource) &&
+    /footer\.allRights/.test(footerSource),
+);
 
 check("CMS editor builds fields from the schema", /schema\.fields\.map/.test(cmsEditor));
 check("CMS editor validates required fields", /field\.required/.test(cmsEditor));

@@ -202,26 +202,12 @@ export function buildElementStyle(
   }
 
 /**
- * The media query that applies the mobile values.
+ * Builds the hover rule for an element.
  *
- * Variable names are already scoped per element by buildElementStyle, so a
- * mobile override only ever affects the element it belongs to.
+ * The selector is scoped to the element class, so a hover colour on one
+ * button can never reach another. Values are validated the same way as in
+ * buildElementStyle, so no raw user string ends up in the stylesheet.
  */
-export function buildResponsiveCss(vars: Record<string, string>): string {
-  const keys = Object.keys(vars);
-  if (!keys.length) return "";
-  const decls = keys
-    .map((key) => {
-      const camel = key.replace(/^--c-/, "").replace(/-([a-z])/g, (_m, c: string) => c.toUpperCase());
-      // fontWeight and lineHeight must stay unitless numbers.
-      const unitless = camel === "fontWeight" || camel === "lineHeight";
-      return `${camel}:${unitless ? String(Number(vars[key])) : vars[key]}`;
-    })
-    .join(";");
-  return `@media (max-width:768px){:root{${decls}}}`;
-}
-
-/** بيتولّد قاعدة hover — بيتحقن في الـpreview بس، مش inline. */
 export function buildHoverRule(selector: string, style: ElementStyle | undefined): string | null {
   if (!style) return null;
   const declarations: string[] = [];
@@ -232,6 +218,74 @@ export function buildHoverRule(selector: string, style: ElementStyle | undefined
     declarations.push(`color:${style.hoverTextColor.trim()}`);
   }
   return declarations.length ? `${selector}:hover{${declarations.join(";")}}` : null;
+}
+
+/**
+ * The full stylesheet for the CMS preview.
+ *
+ * Both the hover rules and the mobile overrides are scoped per element, and
+ * mobile variables land on the element class itself instead of :root, so two
+ * elements can never read each other's values.
+ */
+export function buildPreviewCss(
+  entries: { scope: string; style: ElementStyle }[],
+): string {
+  const lines: string[] = [];
+
+  for (const { scope, style } of entries) {
+    const hover = buildHoverRule(`.${scope}`, style);
+    if (hover) lines.push(hover);
+
+    const mobile: string[] = [];
+    const push = (property: string, value: string) => mobile.push(`${property}:${value}`);
+
+    const numeric = (
+      key: ResponsiveKey,
+      metric: Metric,
+      property: string,
+      unit: Metric["unit"] = "px",
+    ) => {
+      const value = style[key];
+      if (!value) return;
+      const raw = typeof value === "object" ? value.mobile : undefined;
+      if (typeof raw !== "number") return;
+      const clamped = clampMetric(metric, raw);
+      if (clamped !== null) push(property, withUnit(clamped, unit));
+    };
+
+    numeric("fontSize", METRICS.fontSize, "font-size");
+    numeric("fontWeight", METRICS.fontWeight, "font-weight", undefined);
+    numeric("lineHeight", METRICS.lineHeight, "line-height", undefined);
+    numeric("letterSpacing", METRICS.letterSpacing, "letter-spacing");
+    numeric("borderRadius", METRICS.borderRadius, "border-radius");
+    numeric("width", METRICS.size, "width");
+    numeric("height", METRICS.size, "height");
+    numeric("gap", METRICS.gap, "gap");
+    numeric("marginTop", METRICS.margin, "margin-top");
+
+    const paddingX = style.paddingX;
+    const paddingYM = style.paddingY;
+    if (typeof paddingX === "object" && typeof paddingX.mobile === "number") {
+      const px = clampMetric(METRICS.padding, paddingX.mobile);
+      if (px !== null) {
+        push("padding-left", withUnit(px));
+        push("padding-right", withUnit(px));
+      }
+    }
+    if (typeof paddingYM === "object" && typeof paddingYM.mobile === "number") {
+      const py = clampMetric(METRICS.padding, paddingYM.mobile);
+      if (py !== null) {
+        push("padding-top", withUnit(py));
+        push("padding-bottom", withUnit(py));
+      }
+    }
+
+    if (mobile.length) {
+      lines.push(`@media (max-width:768px){.${scope}{${mobile.join(";")}}}`);
+    }
+  }
+
+  return lines.join("\n");
 }
 
 /**

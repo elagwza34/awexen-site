@@ -1,4 +1,5 @@
 import { CmsSectionsProvider } from "../context/CmsContext";
+import { CmsStyleSheet } from "../context/CmsStyleSheet";
 import Hero from "../components/Hero";
 import Brands from "../components/Brands";
 import Services from "../components/Services";
@@ -13,16 +14,18 @@ import LatestInsights from "../components/LatestInsights";
 export default function Home() {
   return (
     <CmsSectionsProvider pageSlug="home">
-      <Hero />
-      <Brands />
-      <Services />
-      <Portfolio />
-      <Process />
-      <WhyUs />
-      <LatestInsights />
-      <Pricing />
-      <PMSSection />
-      <CTA />
+      <CmsStyleSheet>
+        <Hero />
+        <Brands />
+        <Services />
+        <Portfolio />
+        <Process />
+        <WhyUs />
+        <LatestInsights />
+        <Pricing />
+        <PMSSection />
+        <CTA />
+      </CmsStyleSheet>
     </CmsSectionsProvider>
   );
 }

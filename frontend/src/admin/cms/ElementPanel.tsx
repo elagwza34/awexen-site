@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ColorField, MetricField, SelectField, ToggleField } from "./PropertyControls";
+import { uploadPublicImage } from "../../lib/storage";
 import {
   readButtons,
   readImage,
@@ -202,8 +203,27 @@ function ImageFields({
   onChange: (key: string, value: CmsFieldValue) => void;
 }) {
   const image = readImage(draft[elementKey]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
   const patch = (changes: Partial<CmsImage>) =>
     onChange(elementKey, { ...image, ...changes } as CmsFieldValue);
+
+  // Reuses the project's upload helper, so type, size and folder rules are
+  // identical to every other upload surface in the dashboard.
+  const upload = async (file: File) => {
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const src = await uploadPublicImage(file, "portfolio-media", "cms");
+      patch({ src });
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "تعذر رفع الصورة.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div className="space-y-2.5">
@@ -220,6 +240,22 @@ function ImageFields({
           className="admin-input w-36 py-1 text-[10px]"
         />
       </div>
+      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-[10px] font-bold text-white/60 hover:bg-white/5">
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/avif"
+          className="hidden"
+          disabled={uploading}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) void upload(file);
+            event.target.value = "";
+          }}
+        />
+        {uploading ? "جارٍ الرفع…" : "رفع صورة من الجهاز"}
+      </label>
+      {uploadError && <p className="text-[10px] text-red-300">{uploadError}</p>}
       <TextFields label="النص البديل" value={image.alt} onChange={(alt) => patch({ alt })} />
       <SelectField
         label="ملء الصورة"

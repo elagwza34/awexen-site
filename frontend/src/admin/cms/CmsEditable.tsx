@@ -1,5 +1,12 @@
 import { useCallback, cloneElement, isValidElement, type CSSProperties, type ReactNode } from "react";
-import { useCmsEditing, useCmsSelection, useCmsStyle } from "../../context/CmsContext";
+import {
+  useCmsEditing,
+  useCmsSelection,
+  useCmsStyle,
+  useElementStyle,
+} from "../../context/CmsContext";
+import { useRegisterElementStyle } from "../../context/CmsStyleSheet";
+import { elementClass } from "../../cms/style";
 
 /**
  * Makes a real element on the site visually editable.
@@ -27,6 +34,11 @@ export default function CmsEditable({
   const selected = useCmsSelection();
   const cmsStyle = useCmsStyle(section, element);
   const elementId = `${section}.${element}`;
+  const scope = elementClass(section, element);
+
+  // Registers the style so its hover and mobile rules reach the stylesheet.
+  const rawStyle = useElementStyle(section, element);
+  useRegisterElementStyle(scope, rawStyle);
 
   const onClick = useCallback(
     (event: React.MouseEvent) => {
@@ -43,12 +55,17 @@ export default function CmsEditable({
   if (!editing) return <>{children}</>;
 
   const merged = { ...cmsStyle, ...style } as CSSProperties;
+  // The scope class is what hover and mobile rules are scoped to, so it must
+  // land on the element itself. The original className is preserved.
+  const withScope = (existing: unknown) =>
+    [typeof existing === "string" && existing ? existing : "", scope].filter(Boolean).join(" ");
 
   // A single element child: annotate it directly, no wrapper.
   if (isValidElement(children)) {
     const child = children as React.ReactElement<Record<string, unknown>>;
     return cloneElement(child, {
       ...merged,
+      className: withScope(child.props.className),
       "data-cms-element": elementId,
       "data-cms-selected": selected === elementId ? "true" : undefined,
       onClick,
@@ -62,6 +79,7 @@ export default function CmsEditable({
   // the DOM attribute types.
   const spanProps = {
     ...merged,
+    className: scope,
     "data-cms-element": elementId,
     "data-cms-selected": selected === elementId ? "true" : undefined,
     onClick,

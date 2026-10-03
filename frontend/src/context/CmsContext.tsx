@@ -13,13 +13,19 @@ import { useLanguage } from "./LanguageContext";
 import {
   readButtons,
   readImage,
+  readItems,
   readLinks,
   readLocalized,
   readStyle,
   readText,
+  type CmsButton,
+  type CmsContent,
+  type CmsImage,
+  type CmsLang,
+  type CmsLinkItem,
+  type LocalizedText,
 } from "../cms/types";
 import { buildElementStyle, elementClass } from "../cms/style";
-import type { CmsButton, CmsContent, CmsImage, CmsLang, CmsLinkItem, LocalizedText } from "../cms/types";
 
 /**
  * محتوى قسم واحد بعد الدمج: قيم الـ CMS لو موجودة، والترجمة المارد
@@ -305,4 +311,39 @@ export function useCmsText(section: string, element: string, fallback = "") {
     () => readText(content, element, lang as CmsLang, fallback),
     [content, element, lang, fallback],
   );
+}
+
+/**
+ * Reads one repeated item from a section, or undefined when the section has
+ * no CMS items yet. The admin creates them from the item editor.
+ */
+export function useSectionItem(section: string, fieldKey: string, itemId: string) {
+  const { sections, draft } = useCmsState();
+  const content = draft?.[section] ?? sections[section];
+  return useMemo(() => readItems(content?.[fieldKey]).find((item) => item.id === itemId), [
+    content,
+    fieldKey,
+    itemId,
+  ]);
+}
+
+/**
+ * Reads a repeated item list for a section.
+ *
+ * With no CMS items the caller keeps its own defaults, so a section renders
+ * exactly as it did before the CMS had anything for it. Once items exist they
+ * are merged onto the matching default, which keeps fields the CMS does not
+ * manage, such as an icon name.
+ */
+export function useSectionItems<T extends object>(section: string, fieldKey: string, fallback: T[]) {
+  const { sections, draft } = useCmsState();
+  const content = draft?.[section] ?? sections[section];
+  return useMemo(() => {
+    const items = readItems(content?.[fieldKey]);
+    if (!items.length) return fallback;
+    return items.map((item, index) => {
+      const base = (fallback[index] ?? fallback[fallback.length - 1] ?? {}) as T;
+      return { ...base, ...item };
+    });
+  }, [content, fieldKey, fallback]);
 }

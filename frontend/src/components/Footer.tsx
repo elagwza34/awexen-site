@@ -5,6 +5,8 @@ import { useContent } from "../context/ContentContext";
 import { useLanguage } from "../context/LanguageContext";
 import { supabase } from "../lib/supabase";
 import { Logo } from "./ui";
+import { useSection } from "../context/CmsContext";
+import CmsEditable from "../admin/cms/CmsEditable";
 
 /* ------------------------------ Social icons ---------------------------- */
 function TikTok({ className }: { className?: string }) {
@@ -82,6 +84,7 @@ const columns = [
 export default function Footer() {
   const { settings } = useContent();
   const { lang, t, pick } = useLanguage();
+  const cms = useSection("footer");
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -186,9 +189,11 @@ export default function Footer() {
         <div className="grid gap-11 pb-14 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,0.8fr))_minmax(0,1.25fr)]">
           <div>
             <Logo dark />
-            <p className="mt-5 max-w-sm text-[14.5px] leading-8 text-ink-400">
-              {lang === "ar" ? settings.description : t("footer.companyDesc")}
-            </p>
+            <CmsEditable section="footer" element="description">
+              <p className="mt-5 max-w-sm text-[14.5px] leading-8 text-ink-400">
+                {cms.text("description", lang === "ar" ? settings.description : t("footer.companyDesc"))}
+              </p>
+            </CmsEditable>
             <div className="mt-6 flex items-center gap-2.5">
               {socials.map(({ Icon, label }) => (
                 <a
@@ -253,10 +258,14 @@ export default function Footer() {
         </div>
 
         <div className="flex flex-col items-center justify-between gap-4 border-t border-white/10 py-6 sm:flex-row">
-          <p className="text-[13.5px] text-ink-400">
-            © {new Date().getFullYear()} {t("footer.allRights")}{" "}
+          <CmsEditable section="footer" element="copyright">
+
+            <p className="text-[13.5px] text-ink-400">
+
+              © {new Date().getFullYear()} {cms.text("copyright", t("footer.allRights"))}{" "}
             <span className="font-bold text-white">awexen.com</span>
           </p>
+            </CmsEditable>
           <div className="flex items-center gap-6 text-[13.5px] text-ink-400">
             <Link to="/privacy" className="link-underline hover:text-brand-400">
               {t("footer.privacy")}
