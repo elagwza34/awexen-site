@@ -5,11 +5,20 @@ import {
   useMemo,
   useState,
   type ReactNode,
-} from "react";
+}
+ from "react";
 import { supabase } from "../lib/supabase";
 import { loadPageSections, type CmsSectionRow } from "../lib/cms";
 import { useLanguage } from "./LanguageContext";
-import { readButtons, readImage, readLinks, readLocalized, readText } from "../cms/types";
+import {
+  readButtons,
+  readImage,
+  readLinks,
+  readLocalized,
+  readStyle,
+  readText,
+} from "../cms/types";
+import { buildElementStyle } from "../cms/style";
 import type { CmsButton, CmsContent, CmsImage, CmsLang, CmsLinkItem, LocalizedText } from "../cms/types";
 
 /**
@@ -44,6 +53,24 @@ const emptyState: CmsState = {
 };
 
 const CmsContext = createContext<CmsState>(emptyState);
+
+/* ------------------------------------------------------------------ */
+/* وضع التحرير: بيتشال جوه الـiframe دلوقتي                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * بيتحط `true` غير جوه الـpreview بتاع الـCMS.
+ *
+ * دي الحيلة اللي بتضمن إن طبقة التحرير **مالهاش أي أثر على الموقع العام**:
+ * لو الـflag false، الـCmsEditable بيرسم children زي ما هما بالظبط
+ * من غير outline ولا listeners ولا أي class زيادة.
+ */
+const CmsEditingContext = createContext(false);
+
+export const CmsEditingProvider = CmsEditingContext.Provider;
+
+/** بيتقرأ جوه الـiframe عشان يقرر يرسم طبقة الاختيار ولا لا. */
+export const useCmsEditing = () => useContext(CmsEditingContext);
 
 export function CmsSectionsProvider({
   pageSlug,
@@ -110,7 +137,10 @@ export function CmsSectionsProvider({
         setDraft(null);
         return;
       }
-      setDraft({ [data.sectionKey]: data.draft[data.sectionKey] ?? data.draft });
+      // المسودّة جاية جاهزة بمفتاح القسم. الكود القديم كان بيعيد لفّها
+      // فتصير {hero: {hero: ...}}، والتعديلات بتضيع في التداخل ده.
+      const section = data.draft[data.sectionKey];
+      setDraft(section === undefined ? null : { [data.sectionKey]: section });
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
@@ -121,7 +151,23 @@ export function CmsSectionsProvider({
     [sections, order, loading, error, draft],
   );
 
-  return <CmsContext.Provider value={value}>{children}</CmsContext.Provider>;
+  /**
+   * وضع التحرير بيتشال غير جوه الـpreview.
+   *
+   * الـiframe بيفتح الصفحة بـ`?cmsPreview=1`، فده الـmarker. من غيره
+   * (الموقع العام) الـflag بيبقى false والـCmsEditable بيرسم children
+   * زي ما هما — صفر تأثير على الموقع الحقيقي.
+   */
+  const editing = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).get("cmsPreview") === "1";
+  }, []);
+
+  return (
+    <CmsEditingProvider value={editing}>
+      <CmsContext.Provider value={value}>{children}</CmsContext.Provider>
+    </CmsEditingProvider>
+  );
 }
 
 export function useCmsState() {
@@ -168,9 +214,48 @@ export function useSectionButtons(key: string, fieldKey = "buttons"): CmsButton[
   const content = draft?.[key] ?? sections[key];
   return useMemo(() => readButtons(content?.[fieldKey]), [content, fieldKey]);
 }
-
 export function useSectionLinks(key: string, fieldKey = "links"): CmsLinkItem[] {
   const { sections, draft } = useCmsState();
   const content = draft?.[key] ?? sections[key];
   return useMemo(() => readLinks(content?.[fieldKey]), [content, fieldKey]);
+}
+
+/* ------------------------------------------------------------------ */
+/* Visual hooks: binding a real element to the CMS                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Reads the stored style for one element.
+ *
+ * The style lives inside the same content JSONB under `element__style`, so no
+ * new table and no migration are needed. When nothing was changed it returns
+ * undefined, and the site renders exactly as before.
+ */
+export function useElementStyle(section: string, element: string) {
+  const { sections, draft } = useCmsState();
+  const content = draft?.[section] ?? sections[section];
+  return useMemo(() => readStyle(content?.[`${element}__style`]), [content, element]);
+}
+
+/** The style as ready-to-spread CSSProperties. */
+export function useCmsStyle(section: string, element: string) {
+  const style = useElementStyle(section, element);
+  return useMemo(() => buildElementStyle(style).inline, [style]);
+}
+
+/** CSS variables for the element, injected into the preview. */
+export function useElementVars(section: string, element: string) {
+  const style = useElementStyle(section, element);
+  return useMemo(() => buildElementStyle(style).vars, [style]);
+}
+
+/** Reads an element text with a fallback, same as cms.text but explicit. */
+export function useCmsText(section: string, element: string, fallback = "") {
+  const { sections, draft } = useCmsState();
+  const { lang } = useLanguage();
+  const content = draft?.[section] ?? sections[section];
+  return useMemo(
+    () => readText(content, element, lang as CmsLang, fallback),
+    [content, element, lang, fallback],
+  );
 }

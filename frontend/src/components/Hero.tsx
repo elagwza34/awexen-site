@@ -4,6 +4,7 @@ import { useSection, useSectionButtons } from "../context/CmsContext";
 import { useContent } from "../context/ContentContext";
 import { useLanguage } from "../context/LanguageContext";
 import { AnchorLink, CountUp, Reveal } from "./ui";
+import CmsEditable from "../admin/cms/CmsEditable";
 
 /* ---------- عنصر بصري: نافذة متصفح تعرض لوحة أداء مجردة ---------- */
 function ProductMockup() {
@@ -192,13 +193,17 @@ export default function Hero() {
           </Reveal>
 
           <Reveal delay={90}>
-            <h1 className="mt-7 text-balance text-[clamp(2.15rem,7vw,5.25rem)] font-black leading-[1.16] tracking-tight text-white">
-              {cms.text("title", t("hero.title1"))}
-              <br />
-              <span className="text-gradient-brand">
-                {cms.text("subtitle", t("hero.highlight"))}
-              </span>
-            </h1>
+            {/* قابل للتحرير بصريًا — داخل الـCMS preview بس. العنوان الرئيسي
+                جوه العنوان، والـhighlight يفضل زي ما هو دلوقتي. */}
+            <CmsEditable elementId="hero.title" as="span">
+              <h1 className="mt-7 text-balance text-[clamp(2.15rem,7vw,5.25rem)] font-black leading-[1.16] tracking-tight text-white">
+                {cms.text("title", t("hero.title1"))}
+                <br />
+                <span className="text-gradient-brand">
+                  {cms.text("subtitle", t("hero.highlight"))}
+                </span>
+              </h1>
+            </CmsEditable>
           </Reveal>
 
           <Reveal delay={170}>

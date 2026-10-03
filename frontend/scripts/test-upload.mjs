@@ -440,6 +440,8 @@ const cmsPreview = readFileSync(resolve(here, "..", "src", "admin", "cms", "Page
 const cmsContext = readFileSync(resolve(here, "..", "src", "context", "CmsContext.tsx"), "utf8");
 const cmsLib = readFileSync(resolve(here, "..", "src", "lib", "cms.ts"), "utf8");
 const appShell = readFileSync(resolve(here, "..", "src", "App.tsx"), "utf8");
+const cmsEditable = readFileSync(resolve(here, "..", "src", "admin", "cms", "CmsEditable.tsx"), "utf8");
+const heroSource = readFileSync(resolve(here, "..", "src", "components", "Hero.tsx"), "utf8");
 
 check("CMS table exists", /create table if not exists public\.page_sections/.test(cmsMigration));
 check("CMS table has RLS on", /alter table public\.page_sections enable row level security/.test(cmsMigration));
@@ -524,6 +526,78 @@ check(
   /class CmsErrorBoundary/.test(cmsPanel) &&
     /<CmsErrorBoundary>/.test(cmsPanel) &&
     /getDerivedStateFromError/.test(cmsPanel),
+);
+
+// regresión: الكود كان بيعيد لفّ المسودّة فتصير {hero:{hero:...}} والتعديلات
+// بتضيع. المسودّة لازم تتخزّن بمفتاح القسم كما جت، مرة واحدة بس.
+check(
+  "preview draft is stored once, without re-wrapping",
+  !/data\.draft\[data\.sectionKey\] \?\? data\.draft/.test(cmsContext) &&
+    /setDraft\(section === undefined \? null : \{ \[data\.sectionKey\]: section \}\)/.test(cmsContext),
+);
+check(
+  "preview draft reads the section without re-wrapping it",
+  /const section = data\.draft\[data\.sectionKey\];\n/.test(cmsContext) &&
+    !/const section = data\.draft\[data\.sectionKey\] \?\?/.test(cmsContext),
+);
+
+/* --- Phase 2A: visual editing of the Hero title --- */
+
+check(
+  "CmsEditable sends the element id on click",
+  /elementId/.test(cmsEditable) && /awexen:cms-select/.test(cmsEditable),
+);
+check(
+  "CmsEditable has a stable hero.title identity",
+  /elementId: string/.test(cmsEditable) && /data-cms-element/.test(cmsEditable),
+);
+// The critical one: no wrapper, no outline, no listener on the public site.
+check(
+  "CmsEditable renders children untouched outside the preview",
+  /if \(!editing\) return <>\{children\}<\/>;/.test(cmsEditable),
+);
+check(
+  "editing mode only turns on inside the preview route",
+  /get\("cmsPreview"\) === "1"/.test(cmsContext) &&
+    !/cmsPreview"\)\s*\n?\s*:\s*true/.test(cmsContext),
+);
+check(
+  "Hero title is wrapped in CmsEditable",
+  /<CmsEditable elementId="hero\.title"/.test(heroSource),
+);
+check(
+  "Hero title keeps its CMS fallback",
+  /cms\.text\("title", t\("hero\.title1"\)\)/.test(heroSource),
+);
+check(
+  "selection reaches the panel from the preview",
+  /awexen:cms-select/.test(cmsPreview) && /onSelectElement/.test(cmsPreview),
+);
+check(
+  "panel opens the editor for the selected title",
+  /selectedElement === `\$\{row\.section_key\}\.title`/.test(cmsPanel),
+);
+check(
+  "panel edits the bilingual title in the draft",
+  /onChange\("title", \{ \.\.\.current, ar: event\.target\.value \}\)/.test(cmsPanel) &&
+    /onChange\("title", \{ \.\.\.current, en: event\.target\.value \}\)/.test(cmsPanel),
+);
+check(
+  "panel persists through the existing saveSection path",
+  /saveSection\(\{ id: row\.id, content: content as Record<string, unknown> \}\)/.test(cmsPanel),
+);
+check(
+  "cancel clears the draft and restores persisted content",
+  /onDraft\?\.\(null\);[\s\S]{0,80}onCancel\(\);/.test(cmsEditor),
+);
+
+// Codegen in this workspace has been dropping stray CJK characters into
+// Arabic comments, so guard the CMS sources against encoding damage.
+check(
+  "CMS sources are free of encoding damage",
+  [cmsEditable, cmsContext, cmsPanel, cmsPreview, cmsEditor, heroSource].every(
+    (source) => !/[\uFFFD]/.test(source) && !/[\u4e00-\u9fff]/.test(source),
+  ),
 );
 
 check("CMS editor builds fields from the schema", /schema\.fields\.map/.test(cmsEditor));

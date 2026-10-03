@@ -9,6 +9,8 @@ type Props = {
   /** القسم اللي بيتعديل، عشان نركّز عليه. */
   sectionKey: string;
   draft: CmsContent | null;
+  /** الأداري دوس على عنصر جوّه الـpreview. */
+  onSelectElement?: (elementId: string) => void;
 };
 
 /**
@@ -19,7 +21,13 @@ type Props = {
  * جوه الـ iframe بيحطها فوق البيانات المحفوظة قبل الرسم. كده الأداري
  * بيشوف النتيجة قبل ما يدوس حفظ.
  */
-export default function PagePreview({ route, viewport, sectionKey, draft }: Props) {
+export default function PagePreview({
+  route,
+  viewport,
+  sectionKey,
+  draft,
+  onSelectElement,
+}: Props) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   /** بيتحدّث مع كل مسودّة جديدة، والـ onLoad بيقراه وقت التحميل. */
   const draftRef = useRef({ sectionKey, draft });
@@ -48,13 +56,19 @@ export default function PagePreview({ route, viewport, sectionKey, draft }: Prop
     // ونبعتها تاني فورًا. ده بيغطي الحالة اللي الـ iframe حمّل بعد آخر تعديل.
     const onReady = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
-      const data = event.data as { type?: string } | null;
-      if (data?.type !== "awexen:cms-preview-ready") return;
-      send();
+      const data = event.data as { type?: string; elementId?: string } | null;
+      if (data?.type === "awexen:cms-preview-ready") {
+        send();
+        return;
+      }
+      // الأداري دوس على عنصر جوّه الصفحة المعروضة.
+      if (data?.type === "awexen:cms-select" && data.elementId) {
+        onSelectElement?.(data.elementId);
+      }
     };
     window.addEventListener("message", onReady);
     return () => window.removeEventListener("message", onReady);
-  }, [send]);
+  }, [send, onSelectElement]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-white/10 bg-white">
