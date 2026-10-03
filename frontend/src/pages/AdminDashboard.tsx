@@ -180,18 +180,32 @@ export default function AdminDashboard({ userId }: { userId: string }) {
                   <div className="flex gap-1 lg:block lg:space-y-0.5">
                     {items.map(({ key, label, icon: Icon }) => {
                       const notificationCount = notificationCounts[key] ?? 0;
+                      const isActive = active === key;
                       return (
                         <button
                           key={key}
                           type="button"
                           onClick={() => safeGoTo(key)}
-                          className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[10.5px] font-bold transition lg:w-full ${active === key ? "bg-brand-500 text-white shadow-lg shadow-brand-500/10" : "text-white/50 hover:bg-white/5 hover:text-white"}`}
+                          aria-current={isActive ? "page" : undefined}
+                          title={label}
+                          className={`group relative flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[10.5px] font-bold transition-all duration-200 lg:w-full ${
+                            isActive
+                              ? "bg-brand-500 text-white shadow-lg shadow-brand-500/25"
+                              : "text-white/55 hover:bg-white/[0.07] hover:text-white hover:shadow-sm"
+                          }`}
                           aria-label={notificationCount > 0 ? `${label}: ${notificationCount} إشعار جديد` : label}
                         >
-                          <Icon className="h-3.5 w-3.5" />
-                          <span>{label}</span>
+                          {/* علامة الصفحة الحالية: شريط جانبي + توهّج */}
+                          <span
+                            aria-hidden="true"
+                            className={`pointer-events-none absolute inset-y-1.5 -right-px w-[3px] rounded-full bg-brand-400 transition-all duration-200 ${
+                              isActive ? "opacity-100 shadow-[0_0_10px_2px] shadow-brand-400/60" : "opacity-0 group-hover:opacity-40"
+                            }`}
+                          />
+                          <Icon className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${isActive ? "" : "group-hover:scale-110"}`} />
+                          <span className="truncate">{label}</span>
                           {notificationCount > 0 && (
-                            <span className={`mr-auto grid min-w-5 place-items-center rounded-full px-1.5 py-0.5 text-[8px] font-black leading-none ${active === key ? "bg-white text-brand-600" : "bg-brand-500 text-white shadow-md shadow-brand-500/20"}`}>
+                            <span className={`mr-auto grid min-w-5 place-items-center rounded-full px-1.5 py-0.5 text-[8px] font-black leading-none ${isActive ? "bg-white text-brand-600" : "bg-brand-500 text-white shadow-md shadow-brand-500/20"}`}>
                               {notificationCount > 99 ? "99+" : notificationCount}
                             </span>
                           )}

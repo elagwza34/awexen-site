@@ -322,6 +322,19 @@ const adminSrc = readFileSync(resolve(here, "..", "src", "pages", "AdminDashboar
 check("اللوحة بتعرض الطلبات", /active === "quotes"/.test(adminSrc));
 check("اللوحة بتقرأ الجدول الصح", /table="quote_requests"/.test(adminSrc));
 check("قائمة الأقسام فيها quotes", /key: "quotes"/.test(adminSrc));
+check("الـ quotes في مجموعة المبيعات", /key: "quotes".*group: "المبيعات"/.test(adminSrc));
+check("الـ quotes مربوطة بأدوار المبيعات", /key: "quotes".*roles: \["owner", "admin", "support"\]/.test(adminSrc));
+
+// Sidebar affordances: an active marker so the current page is obvious, and a
+// hover state so every section reacts to the pointer.
+check("السايدبار عليه hover", /hover:bg-white\/\[\.0?7\]/.test(adminSrc) || /group-hover:/.test(adminSrc));
+check("السايدبار عليه علامة active", /aria-current=\{isActive \? "page" : undefined\}/.test(adminSrc));
+check("في متغير isActive", /const isActive = active === key/.test(adminSrc));
+check("في شريط علامة الصفحة", /inset-y-1\.5/.test(adminSrc) && /bg-brand-400/.test(adminSrc));
+check("في عنوان القسم", /title=\{label\}/.test(adminSrc));
+check("العلامة بتظهر عند الهوفر كمان", /group-hover:opacity-40/.test(adminSrc));
+check("الأيقونة بتتحرك عند الهوفر", /group-hover:scale-110/.test(adminSrc));
+check("الصفحة الحالية مميّزة في الهيدر", /activeLabel/.test(adminSrc));
 
 // The primary calls to action must lead to the quote page, not the old
 // generic contact form, otherwise the new page gets no traffic.
