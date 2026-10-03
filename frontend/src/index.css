@@ -593,27 +593,42 @@
 
 /* Admin dashboard: light is the default presentation. */
 .dashboard-light.admin-shell {
-  background: #f5f7fb !important;
+  background: #f9f9f9 !important;
   color: #0f172a !important;
   color-scheme: light;
 }
 
 .dashboard-light.admin-shell > header {
-  border-color: #e2e8f0 !important;
-  background: rgb(255 255 255 / 0.96) !important;
+  border-color: #e5e7eb !important;
+  background: #fff !important;
 }
 
-.dashboard-light.admin-shell > div > aside,
-.dashboard-light.admin-shell > div > main {
-  border-color: #e2e8f0 !important;
+/* الخلفية الرمادية الفاتحة هي اللي بيخلّي الكروت البيضاء تبان. */
+.dashboard-light.admin-shell > div > aside {
+  border-color: #e5e7eb !important;
   background: #fff !important;
+}
+
+.dashboard-light.admin-shell > div > main {
+  border-color: #e5e7eb !important;
+  background: #f9f9f9 !important;
 }
 
 .dashboard-light.admin-shell :is(h1, h2, h3, h4, h5) { color: #0f172a; }
 .dashboard-light.admin-shell [class*="text-white/"] { color: #64748b !important; }
 .dashboard-light.admin-shell .text-white { color: #0f172a !important; }
-.dashboard-light.admin-shell [class*="border-white"] { border-color: #e2e8f0 !important; }
-.dashboard-light.admin-shell [class*="bg-[#"] { background-color: #fff !important; }
+.dashboard-light.admin-shell [class*="border-white"] { border-color: #e5e7eb !important; }
+
+/* كل عنصر فاتح على خلفية بيضاء: أبيض ن pure بـ 8px radius.
+   ده بيدي الشكل الموحّد على الداش بورد كله، مهما كان الـ class الأصلي. */
+.dashboard-light.admin-shell [class*="bg-[#"],
+.dashboard-light.admin-shell [class*="bg-white/"] {
+  background-color: #fff !important;
+  border-radius: 8px;
+  border-color: #e5e7eb;
+}
+
+.dashboard-light.admin-shell .rounded-full { border-radius: 9999px; }
 .dashboard-light.admin-shell .bg-brand-500.text-white,
 .dashboard-light.admin-shell .bg-emerald-500.text-white,
 .dashboard-light.admin-shell .bg-red-500.text-white { color: #fff !important; }
@@ -624,9 +639,10 @@
 
 .dashboard-light.admin-shell .admin-button-secondary,
 .dashboard-light.admin-shell .admin-icon-button {
-  border-color: #dbe3ee;
+  border-color: #e5e7eb;
   background: #fff;
   color: #475569;
+  border-radius: 8px;
 }
 
 .dashboard-light.admin-shell .admin-button-secondary:hover,
@@ -636,17 +652,19 @@
 }
 
 .dashboard-light.admin-shell .admin-input {
-  border-color: #dbe3ee;
+  border-color: #e5e7eb;
   background: #fff;
   color: #0f172a;
+  border-radius: 8px;
 }
 
 .dashboard-light.admin-shell .admin-input::placeholder { color: #94a3b8; }
 .dashboard-light.admin-shell .admin-input:focus { background: #fff; }
 .dashboard-light.admin-shell :is(input:not([type="checkbox"]), select, textarea) {
-  border-color: #dbe3ee !important;
+  border-color: #e5e7eb !important;
   background-color: #fff !important;
   color: #0f172a !important;
+  border-radius: 8px !important;
 }
 
 /* The original admin palette remains available as dark mode. */

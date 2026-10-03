@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronDown, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import type { AdminRow, FieldOption } from "./types";
 
@@ -16,6 +16,10 @@ type Props = {
   description: string;
   fields: InboxField[];
   statusOptions?: FieldOption[];
+  /** العمود اللي بيظهر كعنوان في السطر المختصر. */
+  titleKey?: string;
+  /** الحقول اللي بتظهر في السطر المختصر قبل ما تفتح التفاصيل. */
+  previewKeys?: string[];
 };
 
 function FieldValue({ field, value }: { field: InboxField; value: unknown }) {
@@ -26,10 +30,17 @@ function FieldValue({ field, value }: { field: InboxField; value: unknown }) {
   return <span className="whitespace-pre-wrap break-words">{text}</span>;
 }
 
-export default function InboxManager({ table, title, description, fields, statusOptions }: Props) {
+export default function InboxManager({ table, title, description, fields, statusOptions, titleKey = "name", previewKeys }: Props) {
   const [rows, setRows] = useState<AdminRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  // السطر المختصر بيعرض الحقول دي بس؛ الباقي جوه التفاصيل عند الفتح.
+  const previewFields = useMemo(() => {
+    const wanted = previewKeys ?? fields.slice(0, 3).map((field) => field.key);
+    return fields.filter((field) => wanted.includes(field.key));
+  }, [fields, previewKeys]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -78,29 +89,81 @@ export default function InboxManager({ table, title, description, fields, status
         <div className="grid min-h-36 place-items-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] text-[12px] text-white/40">لا توجد بيانات حتى الآن.</div>
       ) : (
         <div className="space-y-3">
-          {rows.map((row) => (
-            <article key={String(row.id)} className="rounded-xl border border-white/8 bg-white/[0.018] p-4">
-              <header className="mb-4 flex flex-col gap-2 border-b border-white/8 pb-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h3 className="text-[12.5px] font-bold text-white">{String(row.full_name ?? row.name ?? row.question ?? row.email ?? `#${row.id}`)}</h3>
-                  {Boolean(row.created_at) && <time dateTime={String(row.created_at)} className="mt-1 block text-[9.5px] text-white/30">{new Date(String(row.created_at)).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}</time>}
+          {rows.map((row) => {
+            const isOpen = openId === String(row.id);
+            return (
+            <article key={String(row.id)} className="rounded-xl border border-white/8 bg-white/[0.018]">
+              <button
+                type="button"
+                aria-expanded={isOpen}
+                onClick={() => setOpenId(isOpen ? null : String(row.id))}
+                className="flex w-full items-center gap-3 p-4 text-right"
+              >
+                <ChevronDown className={`h-4 w-4 shrink-0 text-white/30 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[12.5px] font-bold text-white">
+                    {String(row[titleKey] ?? "بدون اسم")}
+                  </span>
+                  <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-white/40">
+                    {previewFields.map((field) => {
+                      const text = row[field.key];
+                      if (text === null || text === undefined || String(text).trim() === "") return null;
+                      return (
+                        <span key={field.key} dir={field.kind === "email" || field.kind === "phone" ? "ltr" : undefined} className="truncate">
+                          {String(text)}
+                        </span>
+                      );
+                    })}
+                    {Boolean(row.created_at) && (
+                      <time dateTime={String(row.created_at)} className="text-white/30">
+                        {new Date(String(row.created_at)).toLocaleString("ar-EG", { dateStyle: "short" })}
+                      </time>
+                    )}
+                  </span>
+                </span>
+              </button>
+
+              {statusOptions && row.id !== undefined && row.id !== null && !isOpen && (
+                <select
+                  value={String(row.status ?? "new")}
+                  onClick={(event) => event.stopPropagation()}
+                  onChange={(event) => void updateStatus(row.id!, event.target.value)}
+                  aria-label="حالة الطلب"
+                  className="mx-4 mb-4 rounded-lg border border-white/10 bg-ink-950 px-2.5 py-2 text-[10.5px] text-white/70 outline-none focus:border-brand-500"
+                >
+                  {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              )}
+
+              {isOpen && (
+                <div className="border-t border-white/8 px-4 pb-4 pt-4">
+                  <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {fields.map((field) => (
+                      <div key={field.key} className={field.wide ? "sm:col-span-2 xl:col-span-3" : ""}>
+                        <dt className="mb-1 text-[9.5px] font-bold text-white/30">{field.label}</dt>
+                        <dd className="text-[11.5px] leading-6 text-white/72"><FieldValue field={field} value={row[field.key]} /></dd>
+                      </div>
+                    ))}
+                  </dl>
+
+                  {statusOptions && row.id !== undefined && row.id !== null && (
+                    <div className="mt-4 flex items-center gap-2 border-t border-white/8 pt-4">
+                      <span className="text-[10px] font-bold text-white/40">الحالة</span>
+                      <select
+                        value={String(row.status ?? "new")}
+                        onChange={(event) => void updateStatus(row.id!, event.target.value)}
+                        aria-label="حالة الطلب"
+                        className="rounded-lg border border-white/10 bg-ink-950 px-2.5 py-2 text-[10.5px] text-white/70 outline-none focus:border-brand-500"
+                      >
+                        {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </div>
+                  )}
                 </div>
-                {statusOptions && row.id !== undefined && row.id !== null && (
-                  <select value={String(row.status ?? "new")} onChange={(event) => void updateStatus(row.id!, event.target.value)} className="rounded-lg border border-white/10 bg-ink-950 px-2.5 py-2 text-[10.5px] text-white/70 outline-none focus:border-brand-500">
-                    {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                  </select>
-                )}
-              </header>
-              <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {fields.map((field) => (
-                  <div key={field.key} className={field.wide ? "sm:col-span-2 xl:col-span-3" : ""}>
-                    <dt className="mb-1 text-[9.5px] font-bold text-white/30">{field.label}</dt>
-                    <dd className="text-[11.5px] leading-6 text-white/72"><FieldValue field={field} value={row[field.key]} /></dd>
-                  </div>
-                ))}
-              </dl>
+              )}
             </article>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
