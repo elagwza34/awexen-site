@@ -465,6 +465,31 @@ export default function ResourceManager({ definition, draftOwnerId }: { definiti
     );
   };
 
+  const removeRow = async (row: AdminRow) => {
+    if (!supabase || !row.id) return;
+    const title = String(row[definition.titleKey] ?? "بدون عنوان");
+    if (!await confirm({
+      title: "حذف نهائي؟",
+      description: `هيتشال «${title}» نهائيًا. لو هو مسودة، مش هينفع ترجعه تاني.`,
+      confirmLabel: "احذف نهائيًا",
+      cancelLabel: "إلغاء",
+      tone: "danger",
+    })) return;
+
+    const { error: deleteError } = await supabase
+      .from(definition.table)
+      .delete()
+      .eq("id", row.id);
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
+    // لو كنا بنعدّل السطر ده، اقفل المحرر عشان مايفضلش محفوظ في الذاكرة.
+    if (String(editingId ?? "") === String(row.id)) setEditorOpen(false);
+    setRows((current) => current.filter((item) => String(item.id) !== String(row.id)));
+    setSaved(true);
+  };
+
   const moveToDraft = async (row: AdminRow) => {
     if (!supabase || !row.id || !definition.statusKey || !supportsDrafts) return;
     if (!await confirm({
@@ -599,6 +624,7 @@ export default function ResourceManager({ definition, draftOwnerId }: { definiti
                   {typeof row.file_path === "string" && row.file_path && <button type="button" onClick={() => void openStoredFile(row.file_path as string)} className="admin-icon-button" aria-label="فتح ملف PDF"><FileDown className="h-3.5 w-3.5" /></button>}
                   <button type="button" onClick={() => void openEdit(row)} className="admin-icon-button" aria-label="تعديل"><Pencil className="h-3.5 w-3.5" /></button>
                   {supportsDrafts && status !== "draft" && <button type="button" onClick={() => void moveToDraft(row)} className="admin-icon-button text-red-300 hover:bg-red-500/10" aria-label="نقل إلى المسودات" title="نقل إلى المسودات بدون حذف"><Trash2 className="h-3.5 w-3.5" /></button>}
+                  {supportsDrafts && status === "draft" && <button type="button" onClick={() => void removeRow(row)} className="admin-icon-button text-red-300 hover:bg-red-500/10" aria-label="حذف نهائي" title="حذف المسودة نهائيًا"><Trash2 className="h-3.5 w-3.5" /></button>}
                 </div>
               </div>
             );

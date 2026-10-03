@@ -356,6 +356,15 @@ check("اللوحة بتقرأ الجدول الصح", /active === "quotes".*Quo
 
 // استعلام quote_requests انتقل لمكوّن مخصص بعد ما بقى فيه
 // خط مختصر وتعديل وحذف وعرض سعر، فبنتحقق منه في مكانه.
+// حذف المسودات: لازم يكون فيه delete حقيقي مع تأكيد، مش مجرد نقل.
+const resourceSrc = readFileSync(resolve(here, "..", "src", "admin", "ResourceManager.tsx"), "utf8");
+check("فيه دالة حذف صف", /const removeRow = async/.test(resourceSrc));
+check("الحذف بيحذف من الجدول", /\.from\(definition\.table\)\s*\n?\s*\.delete\(\)/.test(resourceSrc));
+check("الحذف بيطلب تأكيد", /removeRow[\s\S]{0,400}confirm\(/.test(resourceSrc));
+check("نافذة الحذف بنبرة خطر", /tone: "danger"/.test(resourceSrc));
+check("المسودات ليها زرار حذف", /status === "draft"[^\n]*removeRow/.test(resourceSrc));
+check("المنشور لسه بينقل للمسودات", /status !== "draft"[^\n]*moveToDraft/.test(resourceSrc));
+
 const quoteInboxSrc = readFileSync(resolve(here, "..", "src", "admin", "QuoteInbox.tsx"), "utf8");
 check("صندوق الطلبات بيقرأ quote_requests", /\.from\("quote_requests"\)/.test(quoteInboxSrc));
 check("صندوق الطلبات بيقدر يحدّث الحالة", /\.update\(\{ status/.test(quoteInboxSrc));
