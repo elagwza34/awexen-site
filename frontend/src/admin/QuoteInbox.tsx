@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
-  ChevronDown,
   FileDown,
   Loader2,
   Mail,
@@ -9,6 +8,7 @@ import {
   RefreshCw,
   Send,
   Trash2,
+  X,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
@@ -184,6 +184,17 @@ export default function QuoteInbox() {
     void load();
   }, [load]);
 
+  // Escape يقفل بوب أب التفاصيل أو نافذة الحذف، وأي واحد مفتوح يتقفل الأول.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (pendingDelete) setPendingDelete(null);
+      else setOpenId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pendingDelete]);
+
   const open = rows.find((row) => row.id === openId) ?? null;
 
   const patch = (id: number, values: Partial<QuoteRow>) =>
@@ -266,7 +277,7 @@ export default function QuoteInbox() {
             )}
           </div>
           <p className="mt-1 text-[11.5px] leading-5 text-white/45">
-            اضغط على أي سطر لعرض تفاصيله، أو حمّله PDF، أو سجّل عرض السعر وامسح الطلب.
+            كل طلب في سطر مختصر. اضغط «التفاصيل» تشوف كل الحقول وتحمّله PDF أو تسجّل عرض السعر، والسلة بتمسح الطلب.
           </p>
         </div>
         <button type="button" onClick={() => void load()} className="admin-button-secondary">
@@ -288,22 +299,10 @@ export default function QuoteInbox() {
       ) : (
         <div className="space-y-2">
           {rows.map((row) => {
-            const isOpen = openId === row.id;
-            const busy = busyId === row.id;
             return (
-              <article key={String(row.id)} className="overflow-hidden rounded-xl border border-white/8 bg-white/[0.018]">
+              <article key={String(row.id)} className="rounded-xl border border-white/8 bg-white/[0.018]">
                 <div className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:gap-3">
-                  <button
-                    type="button"
-                    aria-expanded={isOpen}
-                    onClick={() => {
-                      setOpenId(isOpen ? null : row.id!);
-                      setQuoteAmount(row.quoted_amount ? String(row.quoted_amount) : "");
-                      setQuoteNotes(row.admin_notes ?? "");
-                    }}
-                    className="flex min-w-0 flex-1 items-center gap-3 text-right"
-                  >
-                    <ChevronDown className={`h-4 w-4 shrink-0 text-white/30 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
                         <span className="truncate text-[12.5px] font-bold text-white">{row.name || "بدون اسم"}</span>
@@ -323,9 +322,20 @@ export default function QuoteInbox() {
                         )}
                       </span>
                     </span>
-                  </button>
+                  </div>
 
                   <div className="flex shrink-0 items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenId(row.id!);
+                        setQuoteAmount(row.quoted_amount ? String(row.quoted_amount) : "");
+                        setQuoteNotes(row.admin_notes ?? "");
+                      }}
+                      className="rounded-lg border border-white/10 px-2.5 py-1.5 text-[10px] font-bold text-white/65 transition hover:border-brand-500/50 hover:text-white"
+                    >
+                      التفاصيل
+                    </button>
                     {row.email && (
                       <a href={`mailto:${row.email}`} aria-label={`رد على ${row.name}`} className="admin-icon-button">
                         <Mail className="h-3.5 w-3.5" />
@@ -341,88 +351,137 @@ export default function QuoteInbox() {
                     </button>
                   </div>
                 </div>
-
-                {isOpen && (
-                  <div id="quote-print" className="border-t border-white/8 px-4 pb-4 pt-4">
-                    <QuoteDetails row={row} />
-
-                    <div className="no-print mt-5 flex flex-wrap items-center gap-2 border-t border-white/8 pt-4">
-                      <button type="button" onClick={() => window.print()} className="admin-button-secondary">
-                        <FileDown className="h-3.5 w-3.5" />تحميل PDF
-                      </button>
-                      {row.email && (
-                        <a
-                          href={`mailto:${row.email}?subject=${encodeURIComponent("عرض سعر مشروعك — Awexen")}`}
-                          className="admin-button-secondary"
-                        >
-                          <Send className="h-3.5 w-3.5" />رد على العميل
-                        </a>
-                      )}
-                      <span className="mx-1 hidden h-4 w-px bg-white/10 sm:block" />
-                      {STATUSES.filter((s) => s.value !== (row.status ?? "new")).map((s) => (
-                        <button
-                          key={s.value}
-                          type="button"
-                          disabled={busy}
-                          onClick={() => void changeStatus(row, s.value)}
-                          className="rounded-lg border border-white/10 px-2.5 py-1.5 text-[10px] font-bold text-white/60 transition hover:border-brand-500/50 hover:text-white"
-                        >
-                          {s.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* تسجيل عرض السعر على الطلب */}
-                    <div className="no-print mt-4 rounded-xl border border-brand-500/20 bg-brand-500/[0.04] p-4">
-                      <h3 className="text-[12px] font-extrabold text-white">تسجيل عرض السعر</h3>
-                      <p className="mt-1 text-[10.5px] text-white/45">
-                        بيتحفظ على الطلب بتاريخ الإرسال، وتقدر ترسله للعميل من زر «رد على العميل».
-                      </p>
-                      <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,180px)_minmax(0,1fr)]">
-                        <div>
-                          <label htmlFor={`quote-amount-${row.id}`} className="mb-1.5 block text-[10px] font-bold text-white/50">
-                            المبلغ المقترح
-                          </label>
-                          <input
-                            id={`quote-amount-${row.id}`}
-                            dir="ltr"
-                            inputMode="decimal"
-                            value={quoteAmount}
-                            onChange={(e) => setQuoteAmount(e.target.value)}
-                            placeholder="15000"
-                            className="admin-input"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor={`quote-notes-${row.id}`} className="mb-1.5 block text-[10px] font-bold text-white/50">
-                            ملاحظات العرض
-                          </label>
-                          <input
-                            id={`quote-notes-${row.id}`}
-                            value={quoteNotes}
-                            onChange={(e) => setQuoteNotes(e.target.value)}
-                            placeholder="يشمل التصميم والاستضافة وثلاثة أشهر دعم"
-                            className="admin-input"
-                          />
-                        </div>
-                      </div>
-                      <button type="button" disabled={busy} onClick={() => void saveQuote()} className="admin-button-primary mt-3">
-                        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                        حفظ عرض السعر
-                      </button>
-                      {row.quoted_amount ? (
-                        <p className="mt-3 rounded-lg border border-emerald-500/20 bg-emerald-500/8 p-3 text-[11px] text-emerald-200">
-                          عرض مسجّل:{" "}
-                          <span dir="ltr" className="font-black">{Number(row.quoted_amount).toLocaleString("en-US")}</span>
-                          {row.quote_sent_at && ` · بتاريخ ${new Date(row.quote_sent_at).toLocaleString("ar-EG", { dateStyle: "short" })}`}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                )}
               </article>
             );
           })}
+        </div>
+      )}
+
+      {/* بوب أب التفاصيل: طلب واحد بس في كل مرة */}
+      {open && (
+        <div
+          className="fixed inset-0 z-[110] flex items-start justify-center overflow-y-auto bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`تفاصيل طلب ${open.name || ""}`}
+          onClick={() => setOpenId(null)}
+        >
+          <div
+            className="my-8 w-full max-w-3xl rounded-2xl border border-white/10 bg-[#0d111b] p-5"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header className="mb-4 flex items-start justify-between gap-3 border-b border-white/8 pb-4">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="truncate text-[16px] font-extrabold text-white">{open.name || "بدون اسم"}</h3>
+                  <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold ${statusTone(open.status)}`}>
+                    {statusLabel(open.status)}
+                  </span>
+                </div>
+                <p className="mt-1 text-[10.5px] text-white/40">
+                  {open.project_type || "—"} · {open.budget || "ميزانية غير محددة"}
+                  {open.created_at && ` · ${new Date(open.created_at).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}`}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingDelete(open);
+                    setOpenId(null);
+                  }}
+                  aria-label={`حذف طلب ${open.name}`}
+                  className="admin-icon-button text-red-300"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+                <button type="button" onClick={() => setOpenId(null)} aria-label="إغلاق التفاصيل" className="admin-icon-button">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </header>
+
+            <div id="quote-print">
+              <QuoteDetails row={open} />
+            </div>
+
+            <div className="no-print mt-5 flex flex-wrap items-center gap-2 border-t border-white/8 pt-4">
+              <button type="button" onClick={() => window.print()} className="admin-button-secondary">
+                <FileDown className="h-3.5 w-3.5" />تحميل PDF
+              </button>
+              {open.email && (
+                <a
+                  href={`mailto:${open.email}?subject=${encodeURIComponent("عرض سعر مشروعك — Awexen")}`}
+                  className="admin-button-secondary"
+                >
+                  <Send className="h-3.5 w-3.5" />رد على العميل
+                </a>
+              )}
+              <span className="mx-1 hidden h-4 w-px bg-white/10 sm:block" />
+              {STATUSES.filter((s) => s.value !== (open.status ?? "new")).map((s) => (
+                <button
+                  key={s.value}
+                  type="button"
+                  disabled={busyId === open.id}
+                  onClick={() => void changeStatus(open, s.value)}
+                  className="rounded-lg border border-white/10 px-2.5 py-1.5 text-[10px] font-bold text-white/60 transition hover:border-brand-500/50 hover:text-white"
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            {/* تسجيل عرض السعر على الطلب */}
+            <div className="no-print mt-4 rounded-xl border border-brand-500/20 bg-brand-500/[0.04] p-4">
+              <h3 className="text-[12px] font-extrabold text-white">تسجيل عرض السعر</h3>
+              <p className="mt-1 text-[10.5px] text-white/45">
+                بيتحفظ على الطلب بتاريخ الإرسال، وتقدر ترسله للعميل من زر «رد على العميل».
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,180px)_minmax(0,1fr)]">
+                <div>
+                  <label htmlFor="quote-amount" className="mb-1.5 block text-[10px] font-bold text-white/50">
+                    المبلغ المقترح
+                  </label>
+                  <input
+                    id="quote-amount"
+                    dir="ltr"
+                    inputMode="decimal"
+                    value={quoteAmount}
+                    onChange={(e) => setQuoteAmount(e.target.value)}
+                    placeholder="15000"
+                    className="admin-input"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="quote-notes" className="mb-1.5 block text-[10px] font-bold text-white/50">
+                    ملاحظات العرض
+                  </label>
+                  <input
+                    id="quote-notes"
+                    value={quoteNotes}
+                    onChange={(e) => setQuoteNotes(e.target.value)}
+                    placeholder="يشمل التصميم والاستضافة وثلاثة أشهر دعم"
+                    className="admin-input"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={busyId === open.id}
+                onClick={() => void saveQuote()}
+                className="admin-button-primary mt-3"
+              >
+                {busyId === open.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                حفظ عرض السعر
+              </button>
+              {open.quoted_amount ? (
+                <p className="mt-3 rounded-lg border border-emerald-500/20 bg-emerald-500/8 p-3 text-[11px] text-emerald-200">
+                  عرض مسجّل: <span dir="ltr" className="font-black">{Number(open.quoted_amount).toLocaleString("en-US")}</span>
+                  {open.quote_sent_at && ` · بتاريخ ${new Date(open.quote_sent_at).toLocaleString("ar-EG", { dateStyle: "short" })}`}
+                </p>
+              ) : null}
+            </div>
+          </div>
         </div>
       )}
 

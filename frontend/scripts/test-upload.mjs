@@ -364,6 +364,17 @@ check("صندوق الطلبات بيحفظ عرض السعر", /quoted_amount/.
 check("صندوق الطلبات بيطلب تأكيد الحذف", /pendingDelete/.test(quoteInboxSrc));
 check("الخط المختصر بيعرض الاسم والحالة", /statusLabel/.test(quoteInboxSrc));
 check("فيه زرار تحميل PDF", /window\.print\(\)/.test(quoteInboxSrc));
+const AR_MODAL = "\u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644 \u0641\u064a \u0628\u0648\u0628 \u0623\u0628 \u0645\u0634 inline";
+check(AR_MODAL, /\{open && \(\s*<div[\s\S]{0,200}role="dialog"/.test(quoteInboxSrc));
+check("البوب أب فيه aria-modal", /aria-modal="true"/.test(quoteInboxSrc));
+// بنستخدم \u escapes بدل حروف عربية حرفية، لأن الـ Windows console
+// بيموّج بعض الحركات في الأمر فبتبوظ النمط جوه السطر.
+const AR_DETAILS = "\u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644";
+check("فيه زرار التفاصيل", new RegExp(AR_DETAILS + "\\s*<\\/").test(quoteInboxSrc));
+check("السطر مش قابل للضغط", !/aria-expanded/.test(quoteInboxSrc));
+check("البوب أب بيتقفل بـ Escape", /event\.key !== "Escape"/.test(quoteInboxSrc));
+check("الخلفية بتتقفل بالضغط عليها", /event\.stopPropagation/.test(quoteInboxSrc));
+check("في زرار إغلاق في البوب أب", /X className="h-4 w-4"/.test(quoteInboxSrc));
 check("الطباعة بتخفي أزرار اللوحة", /\.no-print\s*\{\s*display:\s*none/.test(readFileSync(resolve(here, "..", "src", "index.css"), "utf8")));
 check("قائمة الأقسام فيها quotes", /key: "quotes"/.test(adminSrc));
 check("الـ quotes في مجموعة المبيعات", /key: "quotes".*group: "المبيعات"/.test(adminSrc));
