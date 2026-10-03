@@ -266,15 +266,24 @@ export type CmsSectionRow = {
 };
 
 /**
- * بيحمل أقسام صفحة واحدة. بنمرر الـ page_id (مش الـ slug) عشان الفلترة
- * تبقى في قاعدة البيانات نفسها مش في المتصفح.
+ * بيحمل أقسام صفحة واحدة.
+ *
+ * بيقبل إمّا الـ page_id (UUID، زي ما الداشبورد بيبعت) وإمّا السلاج
+ * (زي "home"، زي ما الصفحات العامة بتبعت) — وبيحوّل السلاج لمعرّف قبل
+ * الفلترة. شوف resolveCmsPageId للسبب.
+ *
  * المرشحين غير المرئيين بيرجعوا هنا كمان، لأن الـ dashboard محتاج يشوفهم.
  */
-export async function loadPageSections(pageId: string, options?: { includeHidden?: boolean }): Promise<CmsSectionRow[]> {
+export async function loadPageSections(
+  pageSlugOrId: string,
+  options?: { includeHidden?: boolean },
+): Promise<CmsSectionRow[]> {
   const includeHidden = options?.includeHidden ?? false;
+  const pageId = await resolveCmsPageId(pageSlugOrId);
+  const client = supabase;
+  if (!pageId || !client) return [];
   return cached(`${CMS_PREFIX}:${pageId}:${includeHidden ? "all" : "public"}`, async () => {
-    if (!supabase) return [];
-    let query = supabase
+    let query = client
       .from("page_sections")
       .select("id,page_id,section_key,type,name,sort_order,is_visible,content,updated_at,updated_by")
       .eq("page_id", pageId)
@@ -298,6 +307,34 @@ export async function loadCmsPages(): Promise<CmsPageRow[]> {
     if (error || !data) return [];
     return data as CmsPageRow[];
   }, 30_000);
+}
+
+/** شكل الـ UUID بتاع PostgreSQL — بنستخدمه للتفرقة بين المعرّف والسلاج. */
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * بيحوّل السلاج (زي "home") لمعرّف UUID حقيقي من جدول content_pages.
+ *
+ * مهم: مافيش دالة في Supabase بتقبل UUID في فلترة "eq" على عمود من نوع
+ * uuid. لو بعتّلها "home" بيرجع خطأ 400 وبيبقى الجدول فاضي بالكامل —
+ * والصفحة العامة بتفقد كل محتوى الـ CMS silently. فبنحل التحويل هنا
+ * مرة واحدة بدل ما نفضل نلاقي المشكلة دي في كل صفحة.
+ *
+ * لو المُدخل UUID أصلًا بنرجّعه على طول من غير استعلام إضافي.
+ */
+export async function resolveCmsPageId(slugOrId: string): Promise<string | null> {
+  const value = (slugOrId ?? "").trim();
+  if (!value) return null;
+  if (UUID_PATTERN.test(value)) return value;
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("content_pages")
+    .select("id")
+    .eq("slug", value)
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  return (data as { id: string }).id;
 }
 
 /**

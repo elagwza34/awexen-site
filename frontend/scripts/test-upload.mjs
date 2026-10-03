@@ -438,6 +438,7 @@ const cmsPanel = readFileSync(resolve(here, "..", "src", "admin", "cms", "CmsPan
 const cmsEditor = readFileSync(resolve(here, "..", "src", "admin", "cms", "SectionEditor.tsx"), "utf8");
 const cmsPreview = readFileSync(resolve(here, "..", "src", "admin", "cms", "PagePreview.tsx"), "utf8");
 const cmsContext = readFileSync(resolve(here, "..", "src", "context", "CmsContext.tsx"), "utf8");
+const cmsLib = readFileSync(resolve(here, "..", "src", "lib", "cms.ts"), "utf8");
 
 check("CMS table exists", /create table if not exists public\.page_sections/.test(cmsMigration));
 check("CMS table has RLS on", /alter table public\.page_sections enable row level security/.test(cmsMigration));
@@ -469,7 +470,33 @@ check("CMS panel lists pages", /loadCmsPages/.test(cmsPanel));
 check("CMS panel lists sections", /loadPageSections/.test(cmsPanel));
 check("CMS panel has reorder buttons", /aria-label="تحريك لأعلى"/.test(cmsPanel) && /aria-label="تحريك لأسفل"/.test(cmsPanel));
 check("CMS panel has visibility toggle", /isVisible: !row\.is_visible/.test(cmsPanel));
-check("CMS panel is in the dashboard", /site-content/.test(cmsPanel) || readFileSync(resolve(here, "..", "src", "pages", "AdminDashboard.tsx"), "utf8").includes('active === "site-content"'));
+check(
+  "CMS panel is in the dashboard",
+  /site-content/.test(cmsPanel) || readFileSync(resolve(here, "..", "src", "pages", "AdminDashboard.tsx"), "utf8").includes('active === "site-content"'),
+);
+
+// regresión: الداشبورد بيبعت UUID والصفحات العامة بتبعت سلاج (home).
+// لازم التحويل يكون جوّه loadPageSections، وإلا الصفحة العامة بترجع صفر أقسام
+// بصمت والـ preview بيبان زي ما الصفحة اتحمّلت تاني.
+check(
+  "resolveCmsPageId returns a UUID untouched and looks up a slug",
+  /UUID_PATTERN\.test\(value\)\) return value/.test(cmsLib) &&
+    /from\("content_pages"\)/.test(cmsLib) &&
+    /\.eq\("slug", value\)/.test(cmsLib),
+);
+check(
+  "loadPageSections filters by the resolved page id",
+  /const pageId = await resolveCmsPageId/.test(cmsLib) && /\.eq\("page_id", pageId\)/.test(cmsLib),
+);
+check(
+  "CMS provider passes a page slug that gets resolved",
+  /loadPageSections\(pageSlug\)/.test(cmsContext),
+);
+check(
+  "preview resends the draft after the iframe loads",
+  /onLoad=\{send\}/.test(cmsPreview) && /awexen:cms-preview-ready/.test(cmsPreview),
+);
+check("preview page announces readiness", /awexen:cms-preview-ready/.test(cmsContext));
 
 check("CMS editor builds fields from the schema", /schema\.fields\.map/.test(cmsEditor));
 check("CMS editor validates required fields", /field\.required/.test(cmsEditor));

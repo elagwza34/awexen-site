@@ -90,6 +90,16 @@ export function CmsSectionsProvider({
   }, [pageSlug]);
 
   useEffect(() => {
+    // handshake: بنبلّغ الداشبورد إننا اتحمّلنا ومستعدين نستقبل المسودّة.
+    // من غير الرسالة دي، أي تعديل بيحصل قبل ما الـiframe يخلّص تحميله بضيء.
+    if (!window.parent || window.parent === window) return;
+    window.parent.postMessage(
+      { type: "awexen:cms-preview-ready" },
+      window.location.origin,
+    );
+  }, []);
+
+  useEffect(() => {
     // معاينة الـ CMS بتبعت مسودّة عن طريق postMessage جوه الـ iframe،
     // فبنسمعها هنا ونحطها فوق البيانات المحفوظة قبل الرسم.
     const onMessage = (event: MessageEvent) => {
