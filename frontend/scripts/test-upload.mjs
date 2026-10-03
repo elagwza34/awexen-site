@@ -317,10 +317,32 @@ check("سياسة قراءة للأداري بس", /Allow admins to read quote_r
 check("ما فيش سياسة قراءة عامة", !/for select[\s\S]{0,120}to anon/.test(quoteSql));
 check("القراءة بـ lms_can_review_payments", /using \(public\.lms_can_review_payments\(\)\)/.test(quoteSql));
 check("الزوار ما يقرأوش", /revoke all on table public\.quote_requests from anon/.test(quoteSql));
+check("الإدارة تقدر تغيّر الحالة", /for update[\s\S]*?lms_can_review_payments/.test(quoteSql));
+check("الإدارة تقدر تحذف", /for delete[\s\S]*?lms_can_review_payments/.test(quoteSql));
+check("العمود status موجود", /add column if not exists status/.test(quoteSql));
+check("عمود عرض السعر موجود", /add column if not exists quoted_amount/.test(quoteSql));
+check("تاريخ الإرسال موجود", /add column if not exists quote_sent_at/.test(quoteSql));
+check("ملاحظات الأداري موجودة", /add column if not exists admin_notes/.test(quoteSql));
+check("الزوار ما يعدّلوش ولا يحذفوا", /grant select, update, delete on table public\.quote_requests to authenticated/.test(quoteSql));
+check("إعدادات البريد مش مكشوفة", /revoke all on table global\.app_settings from anon/.test(quoteSql));
+check("إعدادات البريد مقفولة بالـ RLS", /alter table global\.app_settings enable row level security/.test(quoteSql));
+check("الويبهوك مش مفعّل تلقائيًا", !/create trigger quote_notify_after_insert\s*\n\s*after insert/.test(quoteSql));
 
 const adminSrc = readFileSync(resolve(here, "..", "src", "pages", "AdminDashboard.tsx"), "utf8");
 check("اللوحة بتعرض الطلبات", /active === "quotes"/.test(adminSrc));
-check("اللوحة بتقرأ الجدول الصح", /table="quote_requests"/.test(adminSrc));
+check("اللوحة بتقرأ الجدول الصح", /active === "quotes".*QuoteInbox/s.test(adminSrc));
+
+// استعلام quote_requests انتقل لمكوّن مخصص بعد ما بقى فيه
+// خط مختصر وتعديل وحذف وعرض سعر، فبنتحقق منه في مكانه.
+const quoteInboxSrc = readFileSync(resolve(here, "..", "src", "admin", "QuoteInbox.tsx"), "utf8");
+check("صندوق الطلبات بيقرأ quote_requests", /\.from\("quote_requests"\)/.test(quoteInboxSrc));
+check("صندوق الطلبات بيقدر يحدّث الحالة", /\.update\(\{ status/.test(quoteInboxSrc));
+check("صندوق الطلبات بيقدر يحذف", /\.from\("quote_requests"\)\.delete\(\)/.test(quoteInboxSrc));
+check("صندوق الطلبات بيحفظ عرض السعر", /quoted_amount/.test(quoteInboxSrc));
+check("صندوق الطلبات بيطلب تأكيد الحذف", /pendingDelete/.test(quoteInboxSrc));
+check("الخط المختصر بيعرض الاسم والحالة", /statusLabel/.test(quoteInboxSrc));
+check("فيه زرار تحميل PDF", /window\.print\(\)/.test(quoteInboxSrc));
+check("الطباعة بتخفي أزرار اللوحة", /\.no-print\s*\{\s*display:\s*none/.test(readFileSync(resolve(here, "..", "src", "index.css"), "utf8")));
 check("قائمة الأقسام فيها quotes", /key: "quotes"/.test(adminSrc));
 check("الـ quotes في مجموعة المبيعات", /key: "quotes".*group: "المبيعات"/.test(adminSrc));
 check("الـ quotes مربوطة بأدوار المبيعات", /key: "quotes".*roles: \["owner", "admin", "support"\]/.test(adminSrc));

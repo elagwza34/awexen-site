@@ -134,6 +134,26 @@ with check (
   and (phone is null or char_length(trim(phone)) <= 30)
 );
 
+-- حالة الطلب: جديدة ← تمت مراجعتها ← تم إرسال عرض ← مقبول أو مرفوض
+alter table public.quote_requests
+  add column if not exists status text not null default 'new';
+
+-- ملاحظات وعرض السعر الذي أرسلته الإدارة للعميل.
+alter table public.quote_requests
+  add column if not exists admin_notes text;
+
+alter table public.quote_requests
+  add column if not exists quoted_amount numeric(14, 2);
+
+alter table public.quote_requests
+  add column if not exists quote_sent_at timestamptz;
+
+alter table public.quote_requests
+  add column if not exists updated_at timestamptz not null default now();
+
+create index if not exists idx_quote_requests_status
+  on public.quote_requests (status, created_at desc);
+
 -- لا يجب أن يتمكن أي زائر من قراءة طلبات العملاء من المتصفح.
 drop policy if exists "Allow public read of quote_requests"
   on public.quote_requests;
@@ -147,19 +167,116 @@ for select
 to authenticated
 using (public.lms_can_review_payments());
 
--- لا زائر ولا متصفح يقرأ ولا يعدّل ولا يحذف.
+-- الإدارة تحدّث الحالة وملاحظاتها وتكتب عرض السعر.
+drop policy if exists "Allow admins to update quote_requests"
+  on public.quote_requests;
+
+create policy "Allow admins to update quote_requests"
+on public.quote_requests
+for update
+to authenticated
+using (public.lms_can_review_payments())
+with check (public.lms_can_review_payments());
+
+-- الإدارة تحذف الطلب بعد التعامل معه.
+drop policy if exists "Allow admins to delete quote_requests"
+  on public.quote_requests;
+
+create policy "Allow admins to delete quote_requests"
+on public.quote_requests
+for delete
+to authenticated
+using (public.lms_can_review_payments());
+
+-- الزائر يُدرج فقط؛ لا قراءة ولا تعديل ولا حذف.
 revoke all on table public.quote_requests from anon, authenticated;
 grant insert on table public.quote_requests to anon, authenticated;
-grant select on table public.quote_requests to authenticated;
+grant select, update, delete on table public.quote_requests to authenticated;
 grant usage, select on sequence public.quote_requests_id_seq
-  to anon, authenticated;
-
 -- ---------------------------------------------------------------------------
--- مثال إدخال:
+-- أمثلة إدخال:
+-- insert into public.contact_messages (name, email, phone, service, budget, message)
+-- values ('أحمد محمد', 'ahmed@example.com', '01000000000', 'تطوير موقع', '5,000 - 15,000', 'أرغب في تصميم موقع متكامل');
+--
 -- insert into public.quote_requests (name, email, phone, project_type, goals, budget)
 -- values ('أحمد محمد', 'ahmed@example.com', '01000000000', 'متجر إلكتروني',
 --         'أريد متجر لبيع العطور مع الدفع عبر إنستاباي', '15,000 - 30,000');
+--
+-- عرض كل الطلبات من SQL Editor:
+-- select id, name, email, project_type, budget, status, created_at
+-- from public.quote_requests order by created_at desc;
+-- ---------------------------------------------------------------------------
+  to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- إشعار بريد عند وصول طلب جديد — معطّل حتى تشغّله بنفسك.
+--
+-- الفكرة: دالة trigger تقرأ الـ endpoint من جدول إعدادات خاص، وتبعت POST
+-- عبر pg_net لمزود البريد. لازم تشغّل pg_net أولًا:
+--   create extension if not exists pg_net;
+--
+-- التشغيل:
+--   1. Supabase → Database → Extensions → فعّل pg_net.
+--   2. من SQL Editor نفّذ الكتل المفعّلة في آخر الملف.
+--   3. ضع رابط الـ endpoint في global.app_settings.
+--
+-- ليش معطّل؟ لأن رابط الـ endpoint سر، ومربع التنفيذ بيفضل مقفل لحد ما
+-- تشغّله بإيدك — يعني من غير ما نكتب سر في المستودع ولا نفترض مزوّد بريد.
 -- ---------------------------------------------------------------------------
 
--- مثال عرض كل الرسائل من SQL Editor أو Django:
--- select * from public.contact_messages order by created_at desc;
+create schema if not exists global;
+
+create table if not exists global.app_settings (
+  key text primary key,
+  value text,
+  updated_at timestamptz not null default now()
+);
+
+comment on table global.app_settings is
+  'App-wide settings kept out of the browser bundle. RLS is on and no policy grants access to anon or authenticated, so only postgres reads it.';
+
+alter table global.app_settings enable row level security;
+
+revoke all on table global.app_settings from anon, authenticated;
+
+-- مثال التفعيل (نفّذه من SQL Editor بعد وضع الـ endpoint):
+--
+--   insert into global.app_settings (key, value) values
+--     ('quote_notify_url', 'https://api.resend.com/emails')
+--   on conflict (key) do update set value = excluded.value, updated_at = now();
+--
+--   create or replace function public.quote_notify_email()
+--   returns trigger language plpgsql security definer
+--   set search_path = pg_catalog, public, global as $$
+--   declare
+--     endpoint text;
+--     payload jsonb;
+--   begin
+--     select value into endpoint from global.app_settings where key = 'quote_notify_url';
+--     if endpoint is null or endpoint = '' then
+--       return new;  -- مش مفعّل: نتجاهل بصمت
+--     end if;
+--
+--     payload := jsonb_build_object(
+--       'from', 'Awexen <no-reply@awexen.com>',
+--       'to', 'info@awexen.com',
+--       'subject', 'طلب عرض سعر جديد: ' || coalesce(new.name, ''),
+--       'text', format(
+--         'الاسم: %s%nالبريد: %s%nالهاتف: %s%nنوع المشروع: %s%nالميزانية: %s%n%nالأهداف:%n%s',
+--         new.name, new.email, coalesce(new.phone, '-'),
+--         coalesce(new.project_type, '-'), coalesce(new.budget, '-'), coalesce(new.goals, '-')
+--       )
+--     );
+--
+--     perform net.http_post(
+--       url := endpoint,
+--       headers := jsonb_build_object('Content-Type', 'application/json'),
+--       body := payload
+--     );
+--     return new;
+--   end;
+--   $$;
+--
+--   create trigger quote_notify_after_insert
+--     after insert on public.quote_requests
+--     for each row execute function public.quote_notify_email();

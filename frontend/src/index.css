@@ -747,3 +747,45 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   طباعة طلب عرض السعر كـ PDF
+   ------------------------------------------------------------
+   نعتمد على طباعة المتصفح بدل مكتبة PDF: اتجاه RTL والنص
+   العربي بينزلوا صح من غير dependency، والمستخدم يختار
+   «حفظ كـ PDF» من نافذة الطباعة.
+   ============================================================ */
+@media print {
+  /* نخفي كل اللوحة إلا الطلب المفتوح */
+  body * { visibility: hidden; }
+  #quote-print,
+  #quote-print * { visibility: visible; }
+
+  #quote-print {
+    position: absolute;
+    inset-inline-start: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  /* نلغي الألوان الداكنة عشان النص يطلع مقروء على ورق أبيض */
+  #quote-print h3,
+  #quote-print dt,
+  #quote-print dd,
+  #quote-print span { color: #111 !important; }
+
+  #quote-print dt { opacity: 1 !important; }
+
+  /* الترويسة والأزرار مش جزء من المستند */
+  .no-print { display: none !important; }
+
+  section { break-inside: avoid; page-break-inside: avoid; }
+
+  @page {
+    margin: 14mm;
+    size: A4;
+  }
+}

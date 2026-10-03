@@ -25,6 +25,7 @@ import {
   UserRoundCheck,
   UsersRound,
 } from "lucide-react";
+import QuoteInbox from "../admin/QuoteInbox";
 import ResourceManager from "../admin/ResourceManager";
 import KnowledgeManager from "../admin/KnowledgeManager";
 import InboxManager from "../admin/InboxManager";
@@ -237,24 +238,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
               { key: "service", label: "الخدمة" }, { key: "budget", label: "الميزانية" }, { key: "message", label: "الرسالة", wide: true },
             ]} />
           )}
-          {active === "quotes" && (
-            <InboxManager table="quote_requests" title="طلبات عرض السعر" description="الطلبات الواردة من صفحة /quote بكل تفاصيل المشروع." fields={[
-              { key: "email", label: "البريد", kind: "email" }, { key: "phone", label: "الهاتف", kind: "phone" },
-              { key: "project_type", label: "نوع المشروع" }, { key: "industry", label: "القطاع" },
-              { key: "budget", label: "الميزانية" }, { key: "timeline", label: "الموعد" },
-              { key: "goals", label: "الأهداف", wide: true },
-              { key: "pages", label: "الصفحات" }, { key: "languages", label: "اللغات" },
-              { key: "design_style", label: "التصميم" }, { key: "colors", label: "الألوان" },
-              { key: "logo", label: "الشعار" }, { key: "content_ready", label: "المحتوى" },
-              { key: "products", label: "المنتجات" }, { key: "payments", label: "الدفع" },
-              { key: "hosting", label: "الاستضافة" }, { key: "domain", label: "النطاق" },
-              { key: "seo", label: "SEO" }, { key: "analytics", label: "التحليلات" },
-              { key: "maintenance", label: "الصيانة" }, { key: "current_site", label: "الموقع الحالي" },
-              { key: "features", label: "المزايا", wide: true },
-              { key: "reference", label: "مراجع", wide: true },
-              { key: "notes", label: "ملاحظات", wide: true },
-            ]} />
-          )}
+          {active === "quotes" && <QuoteInbox />}
           {active === "newsletter" && (
             <InboxManager table="newsletter_subscribers" title="القائمة البريدية" description="عناوين البريد المسجلة من نموذج النشرة الأسبوعية في الموقع." fields={[
               { key: "email", label: "البريد", kind: "email" }, { key: "source", label: "مصدر الاشتراك" },
