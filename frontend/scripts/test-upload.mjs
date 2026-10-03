@@ -369,7 +369,11 @@ check("المنشور لسه بينقل للمسودات", /status !== "draft"[^
 const categoriesSql = readFileSync(resolve(migrationsDir, "202610020001_portfolio_categories.sql"), "utf8");
 check("جدول أنواع المواقع موجود", /create table if not exists public\.portfolio_categories/.test(categoriesSql));
 check("جدول الأنواع RLS مفعّل", /alter table public\.portfolio_categories enable row level security/.test(categoriesSql));
-check("الزوار ميملوش الأنواع", /has_awexen_role\(array\['owner','admin','editor'\]\)[\s\S]*?with check/.test(categoriesSql));
+check("الزوار ميملوش الأنواع", /\(\(select auth\.jwt\(\)\) -> 'app_metadata' ->> 'role'\) in \('owner','admin','editor'\)/.test(categoriesSql));
+// الدالة has_awexen_role مش مضمونة على كل القواعد، ومينفعش الـ policy يعتمد عليها.
+// بنجيب الـ SQL من غير التعليقات عشان نفحص التنفيذ بس.
+const categoriesSqlNoComments = categoriesSql.replace(/--[^\n]*/g, "");
+check("الـ policy ماعتمدش على دالة ناقصة", !/has_awexen_role/.test(categoriesSqlNoComments));
 check("في قيم مبدئية", /on conflict \(label_ar\) do nothing/.test(categoriesSql));
 check("الأنواع مالهاش تكرار", /unique index if not exists idx_portfolio_categories_label_ar/.test(categoriesSql));
 

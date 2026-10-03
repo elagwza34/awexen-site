@@ -14,13 +14,17 @@ create unique index if not exists idx_portfolio_categories_label_ar
 alter table public.portfolio_categories enable row level security;
 
 -- الأداريين بس بيملوا القائمة. الزوار ميقدروش يقراها.
+--
+-- ملاحظة: بنفحص الدور من الـ JWT مباشرة بدل ما ننداء public.has_awexen_role،
+-- لأن الدالة دي مش مضمونة إنها متعملة على كل قواعد البيانات. نفس النمط
+-- اللي شغّال في سياسة contact_messages.
 drop policy if exists "admins manage portfolio categories" on public.portfolio_categories;
 
 create policy "admins manage portfolio categories"
 on public.portfolio_categories
 for all to authenticated
-using (public.has_awexen_role(array['owner','admin','editor']))
-with check (public.has_awexen_role(array['owner','admin','editor']));
+using (((select auth.jwt()) -> 'app_metadata' ->> 'role') in ('owner','admin','editor'))
+with check (((select auth.jwt()) -> 'app_metadata' ->> 'role') in ('owner','admin','editor'));
 
 grant select on public.portfolio_categories to anon, authenticated;
 grant insert, update, delete on public.portfolio_categories to authenticated;
