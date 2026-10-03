@@ -139,10 +139,12 @@ function fingerprint(value: AdminRow) {
   return JSON.stringify(value);
 }
 
-function Field({ field, value, onChange, onImageUpload, uploading }: {
+function Field({ field, value, onChange, onSync, onImageUpload, uploading }: {
   field: FieldDefinition;
   value: unknown;
   onChange: (value: unknown) => void;
+  /** بيكتب في حقل تاني غير الحالي (مفتاحه بييجي من بره). */
+  onSync?: (key: string, value: unknown) => void;
   onImageUpload?: (file: File) => void;
   uploading?: boolean;
 }) {
@@ -177,6 +179,9 @@ function Field({ field, value, onChange, onImageUpload, uploading }: {
         value={String(value ?? "")}
         required={field.required}
         onChange={onChange}
+        onPick={field.optionsSyncKey && onSync
+          ? (_ar, en) => onSync(field.optionsSyncKey!, en)
+          : undefined}
       />
     );
   }
@@ -599,6 +604,10 @@ export default function ResourceManager({ definition, draftOwnerId }: { definiti
                   onChange={(value) => {
                     setError(null);
                     setForm((current) => ({ ...current, [field.key]: value }));
+                  }}
+                  onSync={(key, value) => {
+                    setError(null);
+                    setForm((current) => ({ ...current, [key]: value }));
                   }}
                   onImageUpload={(file) => void uploadImage(field, file)}
                   uploading={uploadingField === field.key}

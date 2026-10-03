@@ -373,9 +373,49 @@ check("الزوار ميملوش الأنواع", /has_awexen_role\(array\['owne
 check("في قيم مبدئية", /on conflict \(label_ar\) do nothing/.test(categoriesSql));
 check("الأنواع مالهاش تكرار", /unique index if not exists idx_portfolio_categories_label_ar/.test(categoriesSql));
 
+// الأنواع الشائعة اللي طلبها الأداري، ولكل نوع مقابِل إنجليزي.
+// بنكتب النصوص بـ \u escapes لأن الـ Windows console بيموّج بعض الحركات.
+const AR = {
+  ecommerce: "\u0645\u062a\u062c\u0631 \u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a",
+  edu: "\u0645\u0646\u0635\u0629 \u062a\u0639\u0644\u064a\u0645\u064a\u0629",
+  corporate: "\u0645\u0648\u0642\u0639 \u062a\u0639\u0631\u064a\u0641\u064a",
+  services: "\u0645\u0648\u0642\u0639 \u062e\u062f\u0645\u0627\u062a",
+  mobile: "\u062a\u0637\u0628\u064a\u0642 \u0645\u0648\u0628\u0627\u064a\u0644",
+  dashboard: "\u0644\u0648\u062d\u0629 \u062a\u062d\u0643\u0645",
+  booking: "\u0646\u0638\u0627\u0645 \u062d\u062c\u0648\u0632\u0627\u062a",
+  blog: "\u0645\u062f\u0648\u0646\u0629",
+  brand: "\u0647\u0648\u064a\u0629 \u0628\u0635\u0631\u064a\u0629",
+  uiux: "\u062a\u0635\u0645\u064a\u0645 \u0648\u0627\u062c\u0647\u0627\u062a",
+  marketing: "\u062a\u0633\u0648\u064a\u0642 \u0631\u0642\u0645\u064a",
+  digital: "\u0645\u0634\u0631\u0648\u0639 \u0631\u0642\u0645\u064a",
+};
+const EN_BY_AR = {
+  [AR.ecommerce]: "E-commerce",
+  [AR.edu]: "Educational Platform",
+  [AR.corporate]: "Corporate Website",
+  [AR.services]: "Services Website",
+  [AR.mobile]: "Mobile App",
+  [AR.dashboard]: "Admin Dashboard",
+  [AR.booking]: "Booking System",
+  [AR.blog]: "Blog",
+  [AR.brand]: "Brand Identity",
+  [AR.uiux]: "UI/UX Design",
+  [AR.marketing]: "Digital Marketing",
+  [AR.digital]: "Digital Project",
+};
+for (const [ar, en] of Object.entries(EN_BY_AR)) {
+  check(`type ${en} present`, categoriesSql.includes(`'${ar}', '${en}'`));
+}
+check("starter rows are at least twelve", (categoriesSql.match(/\(\s*'/g) ?? []).length >= 12);
+
 const managedSelectSrc = readFileSync(resolve(here, "..", "src", "admin", "ManagedSelect.tsx"), "utf8");
 const managedOptionsSrc = readFileSync(resolve(here, "..", "src", "admin", "ManagedOptions.tsx"), "utf8");
 const resourceDefs = readFileSync(resolve(here, "..", "src", "admin", "resourceDefinitions.ts"), "utf8");
+
+// The English field fills itself from the matching row on pick.
+check("category synced to english", /optionsSyncKey: "category_en"/.test(resourceDefs));
+check("onPick carries both labels", /onPick\?: \(labelAr: string, labelEn: string\) => void/.test(managedSelectSrc));
+check("pick finds the row", /rows\.find\(\(row\) => row\.label_ar === labelAr\)/.test(managedSelectSrc));
 check("التصنيف بقى managed-select", /key: "category_ar"[\s\S]{0,200}type: "managed-select"/.test(resourceDefs));
 check("التصنيف مربوط بجدول الأنواع", /optionsTable: "portfolio_categories"/.test(resourceDefs));
 check("الـ drop-down بيقرأ من الجدول", /\.from\(table\)/.test(managedSelectSrc));

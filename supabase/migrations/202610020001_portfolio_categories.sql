@@ -26,11 +26,19 @@ grant select on public.portfolio_categories to anon, authenticated;
 grant insert, update, delete on public.portfolio_categories to authenticated;
 grant usage, select on sequence public.portfolio_categories_id_seq to authenticated;
 
--- قيم مبدئية: نفس التصنيفات اللي الموقع بيستخدمها دلوقتي.
+-- قيم مبدئية: الأنواع الشائعة في سوق العمل العربي.
+-- sort_order بيحدد ترتيب ظهورها في الدروب داون.
 insert into public.portfolio_categories (label_ar, label_en, sort_order) values
-  ('مشروع رقمي', 'Digital Project', 10),
-  ('متجر إلكتروني', 'E-commerce', 20),
-  ('موقع تعريفي', 'Corporate Site', 30),
-  ('تطبيق موبايل', 'Mobile App', 40),
-  ('هوية بصرية', 'Brand Identity', 50)
+  ('متجر إلكتروني', 'E-commerce', 10),
+  ('منصة تعليمية', 'Educational Platform', 20),
+  ('موقع تعريفي', 'Corporate Website', 30),
+  ('موقع خدمات', 'Services Website', 40),
+  ('تطبيق موبايل', 'Mobile App', 50),
+  ('لوحة تحكم', 'Admin Dashboard', 60),
+  ('نظام حجوزات', 'Booking System', 70),
+  ('مدونة', 'Blog', 80),
+  ('هوية بصرية', 'Brand Identity', 90),
+  ('تصميم واجهات', 'UI/UX Design', 100),
+  ('تسويق رقمي', 'Digital Marketing', 110),
+  ('مشروع رقمي', 'Digital Project', 120)
 on conflict (label_ar) do nothing;

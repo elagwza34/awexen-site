@@ -14,6 +14,11 @@ export type ManagedSelectProps = {
   value: string;
   required?: boolean;
   onChange: (value: string) => void;
+  /**
+   * بيتنادى لما الاختيار يتغير، عشان الحقول التانية (زي الإنجليزي)
+   * تقدر تتملى أوتوماتيك من نفس الاختيار.
+   */
+  onPick?: (labelAr: string, labelEn: string) => void;
 };
 
 /**
@@ -30,8 +35,10 @@ export default function ManagedSelect({
   value,
   required,
   onChange,
+  onPick,
 }: ManagedSelectProps) {
   const [rows, setRows] = useState<Option[]>([]);
+  const [syncing, setSyncing] = useState(false);
 
   const load = useCallback(async () => {
     if (!supabase) return;
@@ -47,6 +54,19 @@ export default function ManagedSelect({
     void load();
   }, [load]);
 
+  // لما يختار عنصر، بنمشي للقيمة الإنجليزية المقابلة له مرة واحدة.
+  // بنعمل sync مؤقت عشان لو المستخدم عدّل الإنجليزي بإيده بعد كده
+  // مايتكتبش فوقه تاني لما الـ load يخلص.
+  const handlePick = (labelAr: string) => {
+    onChange(labelAr);
+    if (!onPick) return;
+    const match = rows.find((row) => row.label_ar === labelAr);
+    if (!match?.label_en) return;
+    setSyncing(true);
+    onPick(labelAr, match.label_en);
+    window.setTimeout(() => setSyncing(false), 0);
+  };
+
   return (
     <div>
       <select
@@ -54,7 +74,7 @@ export default function ManagedSelect({
         aria-label={label}
         required={required}
         value={value ?? ""}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => handlePick(event.target.value)}
         className="w-full rounded-xl border border-white/10 bg-ink-950 px-3 py-2.5 text-[12px] text-white outline-none focus:border-brand-500"
       >
         <option value="">— اختر —</option>
@@ -62,12 +82,13 @@ export default function ManagedSelect({
           <option key={row.id} value={row.label_ar}>{row.label_ar}</option>
         ))}
       </select>
+      {syncing && <p className="mt-1 text-[10px] text-white/35">الاسم بالإنجليزي اتملّى تلقائيًا.</p>}
       <ManagedOptions
         table={table}
         labelKey={labelKey}
         valueKey={valueKey}
         label={managerLabel ?? "إدارة العناصر"}
-        onPick={(ar) => onChange(ar)}
+        onPick={handlePick}
         onChanged={load}
       />
     </div>

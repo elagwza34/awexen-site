@@ -43,6 +43,8 @@ export type FieldDefinition = {
   optionsValueKey?: string;
   /** نص الزر اللي بيظهر فوق قائمة الخيارات. */
   optionsManagerLabel?: string;
+  /** الحقل التاني اللي يتملى أوتوماتيك بالإنجليزي لما تختار عنصر. */
+  optionsSyncKey?: string;
   wide?: boolean;
 };
 

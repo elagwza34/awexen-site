@@ -48,7 +48,7 @@ export const resources = {
       { key: "status", label: "الحالة", type: "select", options: publishOptions },
       { key: "description_ar", label: "وصف المشروع بالعربية", type: "textarea", required: true, wide: true },
       { key: "description_en", label: "Project description in English", type: "textarea", required: true, wide: true },
-      { key: "category_ar", label: "الطلب بالعربية", type: "managed-select", required: true, optionsTable: "portfolio_categories", optionsLabelKey: "label_ar", optionsValueKey: "label_en", optionsManagerLabel: "أنواع المواقع" },
+      { key: "category_ar", label: "الطلب بالعربية", type: "managed-select", required: true, optionsTable: "portfolio_categories", optionsLabelKey: "label_ar", optionsValueKey: "label_en", optionsManagerLabel: "أنواع المواقع", optionsSyncKey: "category_en" },
       { key: "category_en", label: "Category in English", required: true },
       { key: "client_name_ar", label: "اسم العميل بالعربية" },
       { key: "client_name_en", label: "Client name in English" },
