@@ -439,6 +439,7 @@ const cmsEditor = readFileSync(resolve(here, "..", "src", "admin", "cms", "Secti
 const cmsPreview = readFileSync(resolve(here, "..", "src", "admin", "cms", "PagePreview.tsx"), "utf8");
 const cmsContext = readFileSync(resolve(here, "..", "src", "context", "CmsContext.tsx"), "utf8");
 const cmsLib = readFileSync(resolve(here, "..", "src", "lib", "cms.ts"), "utf8");
+const appShell = readFileSync(resolve(here, "..", "src", "App.tsx"), "utf8");
 
 check("CMS table exists", /create table if not exists public\.page_sections/.test(cmsMigration));
 check("CMS table has RLS on", /alter table public\.page_sections enable row level security/.test(cmsMigration));
@@ -497,6 +498,24 @@ check(
   /onLoad=\{send\}/.test(cmsPreview) && /awexen:cms-preview-ready/.test(cmsPreview),
 );
 check("preview page announces readiness", /awexen:cms-preview-ready/.test(cmsContext));
+
+// regresión: أي حدث auth كان يعمل setCheckingSession(true) في App.tsx، وده
+// بيفكّ AdminDashboard بالكامل ويمسح كل useState جواه — فـ"تعديل" كان بيفتح
+// ويقفل في نفس اللحظة. الفحص بيشيل التعليقات الأول (اللي بتذكر
+// setCheckingSession في الشرح) عشان مايعملش false positive.
+check(
+  "admin route does not tear down on every auth event",
+  !/setCheckingSession\(true\)/.test(appShell.replace(/\/\/[^\n]*/g, "")),
+);
+check(
+  "admin route keeps the resolved access while revalidating",
+  !/setAccess\(null\)/.test(appShell),
+);
+check(
+  "preview iframe cannot navigate the dashboard",
+  /sandbox="[^"]*allow-scripts/.test(cmsPreview) &&
+    !/sandbox="[^"]*allow-top-navigation/.test(cmsPreview),
+);
 
 check("CMS editor builds fields from the schema", /schema\.fields\.map/.test(cmsEditor));
 check("CMS editor validates required fields", /field\.required/.test(cmsEditor));

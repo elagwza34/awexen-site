@@ -90,7 +90,9 @@ function AwexenAdminRoute() {
       setHasSession(Boolean(session));
       setSessionUserId(session?.user.id ?? "");
       setSessionEmail(session?.user.email ?? "");
-      setAccess(null);
+      // بنمسح الخطأ بس. access والـ hasSession existing لازم يفضلوا
+      // زي ما هما أثناء إعادة التحقق، عشان ما يظهرش شاشة الخطأ
+      // ولا الـ login في نص ثانية على كل حدث auth.
       setAccessError(false);
       if (!session) {
         lockAdminSession();
@@ -117,7 +119,11 @@ function AwexenAdminRoute() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCheckingSession(true);
+      // مهم: ما نعملش setCheckingSession(true) هنا.
+      // أي حدث auth (حتى INITIAL_SESSION أو TOKEN_REFRESHED) كان بيفكّ
+      // AdminDashboard بالكامل ويرجّع الشاشة البيضاء، وده بيمسح كل
+      // useState جواه — فـ"تعديل" كان بيفتح ويقفل في نفس اللحظة.
+      // بعد أول تحقق بنحدّث في الخلفية من غير إعادة رسم للشاشة البيضاء.
       window.setTimeout(() => void checkSession(session), 0);
     });
 

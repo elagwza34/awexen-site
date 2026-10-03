@@ -70,6 +70,12 @@ export default function PagePreview({ route, viewport, sectionKey, draft }: Prop
           // لأن الصفحة ممكن تعلن جهوزيتها قبل ما يبقى الـ contentWindow متاح.
           onLoad={send}
           className="h-[520px] w-full border-0"
+          // allow-same-origin ماشي مع allow-scripts زي ما المتصفح عايز،
+          // بس من غير allow-top-navigation: من غير كده أي redirect جوه
+          // الصفحة المعروضة يقدر يغيّر الداشبورد نفسه. ده كان بيخلي
+          // أي خطأ في الصفحة يطلع المستخدم كله من الداشبورد.
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          referrerPolicy="no-referrer"
         />
       </div>
     </div>
