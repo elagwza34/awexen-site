@@ -52,6 +52,7 @@ export default function PMSSection() {
 
       <div className="container-x relative">
         <SectionHeading
+          section="pms"
           dark
           badge={pick("PMS — نظام إدارة المنتجات", "PMS — Product Management System")}
           title={pick("أدر منتجاتك", "Run your products")}

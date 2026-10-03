@@ -195,42 +195,50 @@ export default function Hero() {
           <Reveal delay={90}>
             {/* قابل للتحرير بصريًا — داخل الـCMS preview بس. العنوان الرئيسي
                 جوه العنوان، والـhighlight يفضل زي ما هو دلوقتي. */}
-            <CmsEditable elementId="hero.title" as="span">
+            <CmsEditable section="hero" element="title">
               <h1 className="mt-7 text-balance text-[clamp(2.15rem,7vw,5.25rem)] font-black leading-[1.16] tracking-tight text-white">
                 {cms.text("title", t("hero.title1"))}
                 <br />
-                <span className="text-gradient-brand">
-                  {cms.text("subtitle", t("hero.highlight"))}
-                </span>
+                <CmsEditable section="hero" element="subtitle">
+                  <span className="text-gradient-brand">
+                    {cms.text("subtitle", t("hero.highlight"))}
+                  </span>
+                </CmsEditable>
               </h1>
             </CmsEditable>
           </Reveal>
 
           <Reveal delay={170}>
-            <p className="mt-6 max-w-[620px] text-pretty text-[15px] leading-8 text-ink-300 sm:text-[17px]">
-              {cms.text("description", t("hero.desc"))}
-            </p>
+            <CmsEditable section="hero" element="description">
+              <p className="mt-6 max-w-[620px] text-pretty text-[15px] leading-8 text-ink-300 sm:text-[17px]">
+                {cms.text("description", t("hero.desc"))}
+              </p>
+            </CmsEditable>
           </Reveal>
 
           <Reveal delay={240}>
             <div className="mt-9 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
-              <Link
-                to={primary?.link || "/quote"}
-                {...(primary?.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
-                className="group inline-flex w-full items-center justify-center gap-3 rounded-xl bg-brand-500 px-7 py-3.5 text-[15px] font-bold text-white shadow-[var(--shadow-brand)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 sm:w-auto"
-              >
-                {primary?.text[lang === "ar" ? "ar" : "en"] || t("nav.startProject")}
-                <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-x-1" />
-              </Link>
-              {(!primary || secondary) && (
-                <AnchorLink
-                  to={secondary?.link || "#portfolio"}
-                  {...(secondary?.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
-                  className="group inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/[0.04] px-7 py-3.5 text-[15px] font-semibold text-white backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500 sm:w-auto"
+              <CmsEditable section="hero" element="primaryButton">
+                <Link
+                  to={primary?.link || "/quote"}
+                  {...(primary?.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
+                  className="group inline-flex w-full items-center justify-center gap-3 rounded-xl bg-brand-500 px-7 py-3.5 text-[15px] font-bold text-white shadow-[var(--shadow-brand)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 sm:w-auto"
                 >
-                  <PlayCircle className="h-[18px] w-[18px]" />
-                  {secondary?.text[lang === "ar" ? "ar" : "en"] || t("hero.ctaPrimary")}
-                </AnchorLink>
+                  {primary?.text[lang === "ar" ? "ar" : "en"] || t("nav.startProject")}
+                  <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-x-1" />
+                </Link>
+              </CmsEditable>
+              {(!primary || secondary) && (
+                <CmsEditable section="hero" element="secondaryButton">
+                  <AnchorLink
+                    to={secondary?.link || "#portfolio"}
+                    {...(secondary?.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
+                    className="group inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/[0.04] px-7 py-3.5 text-[15px] font-semibold text-white backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500 sm:w-auto"
+                  >
+                    <PlayCircle className="h-[18px] w-[18px]" />
+                    {secondary?.text[lang === "ar" ? "ar" : "en"] || t("hero.ctaPrimary")}
+                  </AnchorLink>
+                </CmsEditable>
               )}
             </div>
           </Reveal>

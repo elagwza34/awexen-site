@@ -34,6 +34,7 @@ export default function Services() {
 
       <div className="container-x relative">
         <SectionHeading
+          section="services"
           badge={t("services.badge")}
           title={t("services.title")}
           highlight={t("services.highlight")}

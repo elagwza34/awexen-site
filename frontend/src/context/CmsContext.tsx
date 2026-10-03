@@ -18,7 +18,7 @@ import {
   readStyle,
   readText,
 } from "../cms/types";
-import { buildElementStyle } from "../cms/style";
+import { buildElementStyle, elementClass } from "../cms/style";
 import type { CmsButton, CmsContent, CmsImage, CmsLang, CmsLinkItem, LocalizedText } from "../cms/types";
 
 /**
@@ -69,8 +69,17 @@ const CmsEditingContext = createContext(false);
 
 export const CmsEditingProvider = CmsEditingContext.Provider;
 
-/** بيتقرأ جوه الـiframe عشان يقرر يرسم طبقة الاختيار ولا لا. */
+/** Reads whether the current document is the CMS preview. */
 export const useCmsEditing = () => useContext(CmsEditingContext);
+
+/* --- selection: the element the admin last clicked in the preview --- */
+
+const CmsSelectionContext = createContext<string | null>(null);
+
+export const CmsSelectionProvider = CmsSelectionContext.Provider;
+
+/** The selected element id, e.g. "hero.title". */
+export const useCmsSelection = () => useContext(CmsSelectionContext);
 
 export function CmsSectionsProvider({
   pageSlug,
@@ -163,10 +172,42 @@ export function CmsSectionsProvider({
     return new URLSearchParams(window.location.search).get("cmsPreview") === "1";
   }, []);
 
+  /**
+   * Which element the admin selected in the preview.
+   *
+   * The dashboard sends it down and we mirror it in a second postMessage, so
+   * the selected element gets a stronger outline inside the preview.
+   */
+  const [selectedElement, setSelectedElement] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!editing) return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data as { type?: string; elementId?: string | null } | null;
+      if (data?.type !== "awexen:cms-selection") return;
+      setSelectedElement(data.elementId ?? null);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [editing]);
+
+  // Keep the preview in sync when the panel changes the selection.
+  useEffect(() => {
+    if (!editing) return;
+    if (!window.parent || window.parent === window) return;
+    window.parent.postMessage(
+      { type: "awexen:cms-selection", elementId: selectedElement },
+      window.location.origin,
+    );
+  }, [editing, selectedElement]);
+
   return (
-    <CmsEditingProvider value={editing}>
-      <CmsContext.Provider value={value}>{children}</CmsContext.Provider>
-    </CmsEditingProvider>
+    <CmsSelectionProvider value={selectedElement}>
+      <CmsEditingProvider value={editing}>
+        <CmsContext.Provider value={value}>{children}</CmsContext.Provider>
+      </CmsEditingProvider>
+    </CmsSelectionProvider>
   );
 }
 
@@ -237,16 +278,22 @@ export function useElementStyle(section: string, element: string) {
   return useMemo(() => readStyle(content?.[`${element}__style`]), [content, element]);
 }
 
-/** The style as ready-to-spread CSSProperties. */
+/** The style as ready-to-spread CSSProperties, scoped to this element. */
 export function useCmsStyle(section: string, element: string) {
   const style = useElementStyle(section, element);
-  return useMemo(() => buildElementStyle(style).inline, [style]);
+  return useMemo(
+    () => buildElementStyle(style, elementClass(section, element)).inline,
+    [style, section, element],
+  );
 }
 
 /** CSS variables for the element, injected into the preview. */
 export function useElementVars(section: string, element: string) {
   const style = useElementStyle(section, element);
-  return useMemo(() => buildElementStyle(style).vars, [style]);
+  return useMemo(
+    () => buildElementStyle(style, elementClass(section, element)).vars,
+    [style, section, element],
+  );
 }
 
 /** Reads an element text with a fallback, same as cms.text but explicit. */

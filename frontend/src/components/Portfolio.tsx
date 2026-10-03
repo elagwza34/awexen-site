@@ -12,6 +12,7 @@ export default function Portfolio() {
     <section id="portfolio" className="relative bg-white section-y">
       <div className="container-x">
         <SectionHeading
+          section="portfolio"
           badge={t("portfolio.badge")}
           title={t("portfolio.title1")}
           highlight={t("portfolio.highlight")}

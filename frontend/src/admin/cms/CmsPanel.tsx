@@ -19,13 +19,10 @@ import {
   type CmsSectionRow,
 } from "../../lib/cms";
 import { getSectionSchema } from "../../cms/sectionSchemas";
-import {
-  readLocalized,
-  type CmsContent,
-  type CmsFieldValue,
-} from "../../cms/types";
+import type { CmsContent } from "../../cms/types";
 import SectionEditor from "./SectionEditor";
 import PagePreview from "./PagePreview";
+import ElementPanel from "./ElementPanel";
 
 /**
  * حاجز أخطاء حوالين لوحة الـ CMS.
@@ -69,46 +66,6 @@ class CmsErrorBoundary extends Component<{ children: ReactNode }, { error: Error
  * بتقرأ من page_sections وبتحفظ في نفس الجدول، والصفحة العامة بتتحدث
  * فورًا لأن الحفظ بيبطل الكاش وبيبعت حدث إعادة جلب.
  */
-/**
- * لوحة خصائص عنصر مختار. Phase 2A بتغطي العنوان بس (عربي/إنجليزي).
- * الأنماط والأزرار هتيجي في phase بعدين.
- */
-function ElementPanel({
-  draft,
-  onChange,
-}: {
-  draft: CmsContent;
-  onChange: (key: string, value: CmsFieldValue) => void;
-}) {
-  const current = readLocalized(draft.title);
-  return (
-    <div className="mt-4 space-y-3 rounded-xl border border-brand-500/25 bg-brand-500/[0.04] p-3">
-      <p className="text-[11px] font-bold text-white/70">العنوان الرئيسي</p>
-      <label className="block">
-        <span className="text-[9.5px] font-bold text-white/45">العربية</span>
-        <input
-          value={current.ar}
-          onChange={(event) =>
-            onChange("title", { ...current, ar: event.target.value })
-          }
-          className="admin-input mt-1"
-        />
-      </label>
-      <label className="block">
-        <span className="text-[9.5px] font-bold text-white/45">English</span>
-        <input
-          dir="ltr"
-          value={current.en}
-          onChange={(event) =>
-            onChange("title", { ...current, en: event.target.value })
-          }
-          className="admin-input mt-1"
-        />
-      </label>
-    </div>
-  );
-}
-
 export default function CmsPanel() {
   const [pages, setPages] = useState<CmsPageRow[]>([]);
   const [pageId, setPageId] = useState("");
@@ -121,6 +78,19 @@ export default function CmsPanel() {
   const [draft, setDraft] = useState<CmsContent | null>(null);
   /** معرّف العنصر اللي الأداري دوس عليه في الـpreview، زي "hero.title". */
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
+
+  /**
+   * Mirror the selection into the preview so the chosen element gets the
+   * stronger outline there as well.
+   */
+  useEffect(() => {
+    const frame = document.querySelector<HTMLIFrameElement>('iframe[title="معاينة الصفحة"]');
+    if (!frame?.contentWindow) return;
+    frame.contentWindow.postMessage(
+      { type: "awexen:cms-selection", elementId: selectedElement },
+      window.location.origin,
+    );
+  }, [selectedElement]);
 
   const loadPages = useCallback(async () => {
     try {
@@ -363,14 +333,34 @@ export default function CmsPanel() {
                         draft={draft}
                         onSelectElement={setSelectedElement}
                       />
-                      {selectedElement === `${row.section_key}.title` && (
-                        <ElementPanel
-                          draft={draft ?? ((row.content as CmsContent) ?? {})}
-                          onChange={(key, value) =>
-                            setDraft((current) => ({ ...(current ?? {}), [key]: value }))
-                          }
-                        />
+                      {selectedElement && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedElement(null)}
+                          className="mt-2 text-[10px] font-bold text-white/40 hover:text-white/70"
+                        >
+                          إلغاء تحديد العنصر
+                        </button>
                       )}
+                      {(() => {
+                        const prefix = `${row.section_key}.`;
+                        if (!selectedElement?.startsWith(prefix)) return null;
+                        const elementKey = selectedElement.slice(prefix.length);
+                        return (
+                          <>
+                            <ElementPanel
+                              elementKey={elementKey}
+                              draft={draft ?? ((row.content as CmsContent) ?? {})}
+                              onChange={(key, value) =>
+                                setDraft((current) => ({ ...(current ?? {}), [key]: value }))
+                              }
+                            />
+                            <p className="mt-2 text-[9.5px] text-white/35">
+                              التعديلات هنا محلية. اضغط «حفظ» للتثبيت، أو «إلغاء» للتراجع.
+                            </p>
+                          </>
+                        );
+                      })()}
                     </div>
                     </CmsErrorBoundary>
                   </div>

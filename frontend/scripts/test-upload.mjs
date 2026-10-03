@@ -442,6 +442,25 @@ const cmsLib = readFileSync(resolve(here, "..", "src", "lib", "cms.ts"), "utf8")
 const appShell = readFileSync(resolve(here, "..", "src", "App.tsx"), "utf8");
 const cmsEditable = readFileSync(resolve(here, "..", "src", "admin", "cms", "CmsEditable.tsx"), "utf8");
 const heroSource = readFileSync(resolve(here, "..", "src", "components", "Hero.tsx"), "utf8");
+const cmsStyle = readFileSync(resolve(here, "..", "src", "cms", "style.ts"), "utf8");
+const propertyControls = readFileSync(resolve(here, "..", "src", "admin", "cms", "PropertyControls.tsx"), "utf8");
+const elementPanel = readFileSync(resolve(here, "..", "src", "admin", "cms", "ElementPanel.tsx"), "utf8");
+const uiSource = readFileSync(resolve(here, "..", "src", "components", "ui.tsx"), "utf8");
+// Every public component, so section coverage can be asserted in one place.
+const componentsSource = [
+  "Hero",
+  "Brands",
+  "Services",
+  "Portfolio",
+  "Process",
+  "WhyUs",
+  "LatestInsights",
+  "Pricing",
+  "PMSSection",
+  "CTA",
+]
+  .map((name) => readFileSync(resolve(here, "..", "src", "components", `${name}.tsx`), "utf8"))
+  .join("\n");
 
 check("CMS table exists", /create table if not exists public\.page_sections/.test(cmsMigration));
 check("CMS table has RLS on", /alter table public\.page_sections enable row level security/.test(cmsMigration));
@@ -548,8 +567,11 @@ check(
   /elementId/.test(cmsEditable) && /awexen:cms-select/.test(cmsEditable),
 );
 check(
-  "CmsEditable has a stable hero.title identity",
-  /elementId: string/.test(cmsEditable) && /data-cms-element/.test(cmsEditable),
+  "CmsEditable has a stable section.element identity",
+  /elementId: string/.test(cmsEditable) === false &&
+    /section: string/.test(cmsEditable) &&
+    /element: string/.test(cmsEditable) &&
+    /data-cms-element/.test(cmsEditable),
 );
 // The critical one: no wrapper, no outline, no listener on the public site.
 check(
@@ -563,7 +585,7 @@ check(
 );
 check(
   "Hero title is wrapped in CmsEditable",
-  /<CmsEditable elementId="hero\.title"/.test(heroSource),
+  /<CmsEditable section="hero" element="title"/.test(heroSource),
 );
 check(
   "Hero title keeps its CMS fallback",
@@ -574,13 +596,14 @@ check(
   /awexen:cms-select/.test(cmsPreview) && /onSelectElement/.test(cmsPreview),
 );
 check(
-  "panel opens the editor for the selected title",
-  /selectedElement === `\$\{row\.section_key\}\.title`/.test(cmsPanel),
+  "panel opens the editor for the selected element",
+  /selectedElement\?\.startsWith\(prefix\)/.test(cmsPanel) &&
+    /<ElementPanel/.test(cmsPanel),
 );
 check(
-  "panel edits the bilingual title in the draft",
-  /onChange\("title", \{ \.\.\.current, ar: event\.target\.value \}\)/.test(cmsPanel) &&
-    /onChange\("title", \{ \.\.\.current, en: event\.target\.value \}\)/.test(cmsPanel),
+  "panel edits the bilingual text through ElementPanel",
+  /onChange\(\{ \.\.\.value, ar: event\.target\.value \}\)/.test(elementPanel) &&
+    /onChange\(\{ \.\.\.value, en: event\.target\.value \}\)/.test(elementPanel),
 );
 check(
   "panel persists through the existing saveSection path",
@@ -599,6 +622,112 @@ check(
     (source) => !/[\uFFFD]/.test(source) && !/[\u4e00-\u9fff]/.test(source),
   ),
 );
+
+/* --- Full visual editor: elements, styles, controls --- */
+
+// Editing mode safety
+check(
+  "CmsEditable renders children untouched outside the preview",
+  /if \(!editing\) return <>\{children\}<\/>;/.test(cmsEditable),
+);
+check(
+  "editing mode only turns on inside the preview route",
+  /get\("cmsPreview"\) === "1"/.test(cmsContext) &&
+    !/cmsPreview"\)\s*\n?\s*:\s*true/.test(cmsContext),
+);
+check(
+  "editing mode guards the click handler too",
+  /if \(!editing\) return;/.test(cmsEditable),
+);
+
+// Element identity and selection
+check(
+  "elements get a stable section.element id",
+  /const elementId = `\$\{section\}\.\$\{element\}`/.test(cmsEditable) &&
+    /"data-cms-element": elementId/.test(cmsEditable),
+);
+check(
+  "selection is mirrored into the preview",
+  /awexen:cms-selection/.test(cmsContext) &&
+    /awexen:cms-selection/.test(cmsPanel),
+);
+check(
+  "selection opens the matching element editor",
+  /selectedElement\.slice\(prefix\.length\)/.test(cmsPanel),
+);
+
+// Style safety
+check(
+  "unsafe colours are rejected before reaching CSS",
+  /export function isSafeColor/.test(cmsStyle) &&
+    /#\[0-9a-f\]\{3,8\}/.test(cmsStyle) &&
+    /rgba\?/.test(cmsStyle) &&
+    /if \(value && isSafeColor\(value\)\) inline\[property\]/.test(cmsStyle),
+);
+check(
+  "colour input is bounded to a safe length",
+  /trimmed\.length > 40/.test(cmsStyle),
+);
+check(
+  "metrics are clamped to their bounds",
+  /clampMetric/.test(cmsStyle) && /Math\.min\(metric\.max, Math\.max\(metric\.min, value\)\)/.test(cmsStyle),
+);
+check(
+  "style scope is per element so overrides cannot leak",
+  /scope: string/.test(cmsStyle) && /vars\[`\$\{scope\}\$\{varName\}`\]/.test(cmsStyle),
+);
+
+// Property controls
+check(
+  "editor exposes colour pickers",
+  /type="color"/.test(propertyControls),
+);
+check(
+  "editor exposes bounded metric sliders",
+  /type="range"/.test(propertyControls) && /min=\{metric\.min\}/.test(propertyControls),
+);
+check(
+  "editor exposes responsive mobile overrides",
+  /setMobile/.test(propertyControls),
+);
+check(
+  "editor exposes button presets that are not locks",
+  /PRESET_STYLE/.test(elementPanel) && /detectPreset/.test(elementPanel),
+);
+check(
+  "editor handles text, button and image kinds",
+  /elementKindOf/.test(elementPanel) && /ButtonFields/.test(elementPanel) && /ImageFields/.test(elementPanel),
+);
+check(
+  "editor can hide an element",
+  /style\.visible !== false/.test(elementPanel) && /visible === false/.test(cmsStyle),
+);
+
+// Save and cancel still reuse the existing flow
+check(
+  "saving still goes through saveSection",
+  /saveSection\(\{ id: row\.id, content: content as Record<string, unknown> \}\)/.test(cmsPanel),
+);
+check(
+  "saving still invalidates cache and broadcasts",
+  /invalidateCache\(CMS_PREFIX\)/.test(cmsLib) && /broadcastContentChange\(\)/.test(cmsLib),
+);
+check(
+  "cancel still clears the draft",
+  /onDraft\?\.\(null\);[\s\S]{0,80}onCancel\(\);/.test(cmsEditor),
+);
+
+// Section coverage
+check(
+  "shared SectionHeading is CMS aware",
+  /section\?: string/.test(uiSource) && /useSection\(section \?\? ""\)/.test(uiSource),
+);
+for (const key of ["hero", "brands", "cta", "whyus"]) {
+  check(`section ${key} exposes editable elements`, new RegExp(`section="${key}"`).test(componentsSource));
+}
+for (const key of ["process", "services", "portfolio", "pricing", "latest", "pms"]) {
+  check(`section ${key} is wired through SectionHeading`, componentsSource.includes(`section="${key}"`));
+}
 
 check("CMS editor builds fields from the schema", /schema\.fields\.map/.test(cmsEditor));
 check("CMS editor validates required fields", /field\.required/.test(cmsEditor));
@@ -812,5 +941,7 @@ for (const r of results) {
   console.log(`${mark === "PASS" ? "✔" : "✘"} ${r.label}${r.detail ? `  (${r.detail})` : ""}`);
 }
 const failed = results.filter((r) => !r.pass);
+// Print failures with an ASCII marker so they survive a non-UTF8 console.
+for (const item of failed) console.log(`FAIL ${item.label}`);
 console.log(failed.length ? `\n${failed.length} بند فاشل.\n` : "\nكل البنود ناجحة ✔\n");
 process.exit(failed.length ? 1 : 0);

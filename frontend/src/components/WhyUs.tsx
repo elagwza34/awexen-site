@@ -2,10 +2,13 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { whyFeatures } from "../data/site";
 import { useLanguage } from "../context/LanguageContext";
+import { useSection } from "../context/CmsContext";
+import CmsEditable from "../admin/cms/CmsEditable";
 import { Badge, Icon, Reveal, Spotlight } from "./ui";
 
 export default function WhyUs() {
   const { lang, t } = useLanguage();
+  const cms = useSection("whyus");
   const englishFeatures = [
     { title: "We start with the business need", desc: "We define the user, goal, content, and integrations before choosing technology or drawing the interface." },
     { title: "Review before delivery", desc: "We test mobile, desktop, forms, links, and speed, then document notes before launch." },
@@ -28,14 +31,18 @@ export default function WhyUs() {
             <Badge>{t("why.badge")}</Badge>
           </Reveal>
           <Reveal delay={80}>
-            <h2 className="mt-5 text-balance text-[clamp(1.65rem,3.8vw,2.6rem)] font-extrabold leading-[1.3]">
-              {t("why.title")} <span className="text-gradient-brand">{t("why.highlight")}</span>
-            </h2>
+            <CmsEditable section="whyus" element="title">
+              <h2 className="mt-5 text-balance text-[clamp(1.65rem,3.8vw,2.6rem)] font-extrabold leading-[1.3]">
+                {cms.text("title", t("why.title"))} <span className="text-gradient-brand">{cms.text("subtitle", t("why.highlight"))}</span>
+              </h2>
+            </CmsEditable>
           </Reveal>
           <Reveal delay={150}>
-            <p className="mt-5 text-[15px] leading-8 text-ink-500">
-              {t("why.desc")}
-            </p>
+            <CmsEditable section="whyus" element="description">
+              <p className="mt-5 text-[15px] leading-8 text-ink-500">
+                {cms.text("description", t("why.desc"))}
+              </p>
+            </CmsEditable>
           </Reveal>
 
           <Reveal delay={210}>

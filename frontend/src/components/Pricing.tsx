@@ -55,6 +55,7 @@ export default function Pricing() {
 
       <div className="container-x relative">
         <SectionHeading
+          section="pricing"
           badge={lang === "ar" ? "الأسعار" : "Pricing"}
           title={lang === "ar" ? "الخطط" : "Plans &"}
           highlight={lang === "ar" ? "والأسعار" : "pricing"}

@@ -6,8 +6,11 @@ export type CmsLang = Lang;
 /** نص بيترجمه الأداري في اللغتين. */
 export type LocalizedText = { ar: string; en: string };
 
-/** قيمة واحدة: إما واحدة للكل، أو مختلفة لكل breakpoint. */
-export type Responsive<T> = { base?: T; mobile?: T };
+/**
+ * One metric value: a plain number, or a separate value per breakpoint.
+ * A plain number means "the same everywhere".
+ */
+export type Responsive<T> = T | { base?: T; mobile?: T };
 
 /** صورة مع نص بديل للـ accessibility، زي ما طلبت. */
 export type CmsImage = {

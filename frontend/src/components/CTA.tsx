@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, Clock3, Mail, MessageCircle, Phone, ShieldCheck } from "lucide-react";
 import { useSection, useSectionButtons } from "../context/CmsContext";
+import CmsEditable from "../admin/cms/CmsEditable";
 import { useContent } from "../context/ContentContext";
 import { useLanguage } from "../context/LanguageContext";
 import { Reveal } from "./ui";
@@ -37,24 +38,30 @@ export default function CTA() {
                 {t("cta.badge")}
               </span>
 
-              <h2 className="mt-6 text-balance text-[clamp(1.8rem,4.5vw,2.85rem)] font-black leading-[1.28] text-white">
-                {cms.text("title", t("cta.title1"))}{" "}
-                <span className="text-gradient-brand">{cms.text("subtitle", t("cta.highlight"))}</span>
-              </h2>
+              <CmsEditable section="cta" element="title">
+                <h2 className="mt-6 text-balance text-[clamp(1.8rem,4.5vw,2.85rem)] font-black leading-[1.28] text-white">
+                  {cms.text("title", t("cta.title1"))}{" "}
+                  <span className="text-gradient-brand">{cms.text("subtitle", t("cta.highlight"))}</span>
+                </h2>
+              </CmsEditable>
 
-              <p className="mt-5 max-w-xl text-pretty text-[15px] leading-8 text-ink-300">
-                {cms.text("description", t("cta.desc"))}
-              </p>
+              <CmsEditable section="cta" element="description">
+                <p className="mt-5 max-w-xl text-pretty text-[15px] leading-8 text-ink-300">
+                  {cms.text("description", t("cta.desc"))}
+                </p>
+              </CmsEditable>
 
               <div className="mt-9 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
-                <Link
-                  to={primaryCta?.link || "/quote"}
-                  {...(primaryCta?.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
-                  className="group inline-flex w-full items-center justify-center gap-3 rounded-xl bg-brand-500 px-8 py-4 text-[15px] font-bold text-white shadow-[var(--shadow-brand)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 sm:w-auto"
-                >
-                  {primaryCta?.text[langCode] || t("cta.button")}
-                  <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-x-1.5" />
-                </Link>
+                <CmsEditable section="cta" element="primaryButton">
+                  <Link
+                    to={primaryCta?.link || "/quote"}
+                    {...(primaryCta?.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
+                    className="group inline-flex w-full items-center justify-center gap-3 rounded-xl bg-brand-500 px-8 py-4 text-[15px] font-bold text-white shadow-[var(--shadow-brand)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 sm:w-auto"
+                  >
+                    {primaryCta?.text[langCode] || t("cta.button")}
+                    <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-x-1.5" />
+                  </Link>
+                </CmsEditable>
                 <a
                   href="tel:01092400443"
                   className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/5 px-8 py-4 text-[15px] font-semibold text-white backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500 sm:w-auto"

@@ -807,3 +807,37 @@
     size: A4;
   }
 }
+
+/*
+ * Editor affordances, applied only while CMS editing mode is on.
+ *
+ * There is no wrapper element: CmsEditable renders a plain span in the
+ * public site and only adds the data attribute in the preview. The hint is
+ * drawn on the editable element itself via attribute selectors, so the
+ * section layout is never affected and nothing extra reaches a visitor.
+ */
+[data-cms-element] {
+  cursor: pointer;
+  position: relative;
+}
+
+[data-cms-element]::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 2px dashed rgba(249, 115, 22, 0.4);
+  border-radius: 6px;
+  pointer-events: none;
+  transition: border-color 120ms ease;
+}
+
+[data-cms-element]:hover::after {
+  border-style: solid;
+  border-color: rgba(249, 115, 22, 0.8);
+}
+
+[data-cms-element][data-cms-selected="true"]::after {
+  border-style: solid;
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.25);
+}

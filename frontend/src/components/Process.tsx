@@ -23,6 +23,7 @@ export default function Process() {
 
       <div className="container-x relative">
         <SectionHeading
+          section="process"
           badge={t("process.badge")}
           title={t("process.title")}
           highlight={t("process.highlight")}

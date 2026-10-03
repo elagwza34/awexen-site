@@ -1,5 +1,7 @@
 import { useContent } from "../context/ContentContext";
 import { useLanguage } from "../context/LanguageContext";
+import { useSection } from "../context/CmsContext";
+import CmsEditable from "../admin/cms/CmsEditable";
 import { Reveal } from "./ui";
 
 function Row({ reverse = false }: { reverse?: boolean }) {
@@ -41,19 +43,24 @@ function Row({ reverse = false }: { reverse?: boolean }) {
 
 export default function Brands() {
   const { t } = useLanguage();
+  const cms = useSection("brands");
   return (
     <section className="relative overflow-hidden bg-white py-16 sm:py-20">
       <div className="container-x">
         <div className="flex flex-col items-center gap-3 text-center">
           <Reveal>
-            <h2 className="text-[clamp(1.4rem,3vw,2rem)] font-extrabold">
-              {t("brands.title")}
-            </h2>
+            <CmsEditable section="brands" element="title">
+              <h2 className="text-[clamp(1.4rem,3vw,2rem)] font-extrabold">
+                {cms.text("title", t("brands.title"))}
+              </h2>
+            </CmsEditable>
           </Reveal>
           <Reveal delay={90}>
-            <p className="text-[15px] text-ink-400">
-              {t("brands.desc")}
-            </p>
+            <CmsEditable section="brands" element="description">
+              <p className="text-[15px] text-ink-400">
+                {cms.text("description", t("brands.desc"))}
+              </p>
+            </CmsEditable>
           </Reveal>
         </div>
       </div>

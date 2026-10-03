@@ -6,6 +6,8 @@ import {
   useState,
 } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useSection } from "../context/CmsContext";
+import CmsEditable from "../admin/cms/CmsEditable";
 import {
   Search,
   Target,
@@ -217,6 +219,7 @@ export function SectionHeading({
   desc,
   dark = false,
   align = "center",
+  section,
 }: {
   badge?: string;
   title: string;
@@ -224,7 +227,34 @@ export function SectionHeading({
   desc?: string;
   dark?: boolean;
   align?: "center" | "start";
+  /**
+   * Section key. When given, the heading reads title, highlight and desc
+   * from the CMS and falls back to the props above. Making the heading
+   * CMS-aware here covers six sections at once.
+   */
+  section?: string;
 }) {
+  const cms = useSection(section ?? "");
+  const heading = section ? cms.text("title", title) : title;
+  const sub = section ? cms.text("subtitle", highlight ?? "") : highlight;
+  const body = section ? cms.text("description", desc ?? "") : desc;
+  const headingClass = cn(
+    "text-balance text-[clamp(1.75rem,4vw,2.75rem)] font-extrabold leading-[1.28]",
+    dark && "text-white",
+  );
+  const bodyClass = cn(
+    "max-w-2xl text-pretty text-[15px] leading-8 sm:text-base",
+    dark ? "text-ink-300" : "text-ink-500",
+  );
+
+  const headingNode = (
+    <h2 className={headingClass}>
+      {heading}{" "}
+      {sub && <span className="text-gradient-brand">{sub}</span>}
+    </h2>
+  );
+  const bodyNode = <p className={bodyClass}>{body}</p>;
+
   return (
     <div
       className={cn(
@@ -240,26 +270,23 @@ export function SectionHeading({
         </Reveal>
       )}
       <Reveal delay={80}>
-        <h2
-          className={cn(
-            "text-balance text-[clamp(1.75rem,4vw,2.75rem)] font-extrabold leading-[1.28]",
-            dark && "text-white",
-          )}
-        >
-          {title}{" "}
-          {highlight && <span className="text-gradient-brand">{highlight}</span>}
-        </h2>
+        {section ? (
+          <CmsEditable section={section} element="title">
+            {headingNode}
+          </CmsEditable>
+        ) : (
+          headingNode
+        )}
       </Reveal>
-      {desc && (
+      {body && (
         <Reveal delay={150}>
-          <p
-            className={cn(
-              "max-w-2xl text-pretty text-[15px] leading-8 sm:text-base",
-              dark ? "text-ink-300" : "text-ink-500",
-            )}
-          >
-            {desc}
-          </p>
+          {section ? (
+            <CmsEditable section={section} element="description">
+              {bodyNode}
+            </CmsEditable>
+          ) : (
+            bodyNode
+          )}
         </Reveal>
       )}
     </div>

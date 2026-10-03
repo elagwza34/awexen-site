@@ -28,6 +28,7 @@ export default function LatestInsights() {
     <section className="bg-ink-50 py-20 sm:py-24">
       <div className="container-x">
         <SectionHeading
+          section="latest"
           badge={t("latest.badge")}
           title={t("latest.title")}
           highlight={t("latest.highlight")}
