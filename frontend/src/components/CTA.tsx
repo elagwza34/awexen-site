@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, Clock3, Mail, MessageCircle, Phone, ShieldCheck } from "lucide-react";
+import { useSection, useSectionButtons } from "../context/CmsContext";
 import { useContent } from "../context/ContentContext";
 import { useLanguage } from "../context/LanguageContext";
 import { Reveal } from "./ui";
@@ -12,7 +13,11 @@ const assurances = [
 
 export default function CTA() {
   const { settings } = useContent();
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
+  const cms = useSection("cta");
+  const cmsButtons = useSectionButtons("cta").filter((button) => button.enabled);
+  const primaryCta = cmsButtons[0];
+  const langCode = lang === "ar" ? "ar" : "en";
 
   return (
     <section id="contact" className="relative bg-white pb-20 pt-4 sm:pb-28">
@@ -33,20 +38,21 @@ export default function CTA() {
               </span>
 
               <h2 className="mt-6 text-balance text-[clamp(1.8rem,4.5vw,2.85rem)] font-black leading-[1.28] text-white">
-                {t("cta.title1")}{" "}
-                <span className="text-gradient-brand">{t("cta.highlight")}</span>
+                {cms.text("title", t("cta.title1"))}{" "}
+                <span className="text-gradient-brand">{cms.text("subtitle", t("cta.highlight"))}</span>
               </h2>
 
               <p className="mt-5 max-w-xl text-pretty text-[15px] leading-8 text-ink-300">
-                {t("cta.desc")}
+                {cms.text("description", t("cta.desc"))}
               </p>
 
               <div className="mt-9 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
                 <Link
-                  to="/quote"
+                  to={primaryCta?.link || "/quote"}
+                  {...(primaryCta?.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
                   className="group inline-flex w-full items-center justify-center gap-3 rounded-xl bg-brand-500 px-8 py-4 text-[15px] font-bold text-white shadow-[var(--shadow-brand)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 sm:w-auto"
                 >
-                  {t("cta.button")}
+                  {primaryCta?.text[langCode] || t("cta.button")}
                   <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-x-1.5" />
                 </Link>
                 <a

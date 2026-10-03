@@ -1,3 +1,4 @@
+import { CmsSectionsProvider } from "../context/CmsContext";
 import Hero from "../components/Hero";
 import Brands from "../components/Brands";
 import Services from "../components/Services";
@@ -11,7 +12,7 @@ import LatestInsights from "../components/LatestInsights";
 
 export default function Home() {
   return (
-    <>
+    <CmsSectionsProvider pageSlug="home">
       <Hero />
       <Brands />
       <Services />
@@ -22,6 +23,6 @@ export default function Home() {
       <Pricing />
       <PMSSection />
       <CTA />
-    </>
+    </CmsSectionsProvider>
   );
 }

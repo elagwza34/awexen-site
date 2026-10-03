@@ -430,6 +430,71 @@ check("فيه إمكانية حذف عنصر", /\.from\(table\)\.delete\(\)/.tes
 check("الخطأ بيتعرض للمستخدم", /role="alert"/.test(managedOptionsSrc));
 check("الزرار بيتعطّل وقت الإضافة", /disabled=\{busy \|\| !draftLabel\.trim\(\)\}/.test(managedOptionsSrc));
 
+// ---- CMS: أقسام الصفحات ----
+const cmsMigration = readFileSync(resolve(migrationsDir, "202610030001_cms_sections.sql"), "utf8");
+const cmsTypes = readFileSync(resolve(here, "..", "src", "cms", "types.ts"), "utf8");
+const cmsRegistry = readFileSync(resolve(here, "..", "src", "cms", "sectionSchemas.ts"), "utf8");
+const cmsPanel = readFileSync(resolve(here, "..", "src", "admin", "cms", "CmsPanel.tsx"), "utf8");
+const cmsEditor = readFileSync(resolve(here, "..", "src", "admin", "cms", "SectionEditor.tsx"), "utf8");
+const cmsPreview = readFileSync(resolve(here, "..", "src", "admin", "cms", "PagePreview.tsx"), "utf8");
+const cmsContext = readFileSync(resolve(here, "..", "src", "context", "CmsContext.tsx"), "utf8");
+
+check("CMS table exists", /create table if not exists public\.page_sections/.test(cmsMigration));
+check("CMS table has RLS on", /alter table public\.page_sections enable row level security/.test(cmsMigration));
+check("CMS public read is visible only", /is_visible[\s\S]{0,200}status = 'published'/.test(cmsMigration));
+check("CMS writes use the jwt role", /auth\.jwt\(\)\)\s*->\s*'app_metadata'\s*->>\s*'role'\)\s*in\s*\('owner','admin','editor'\)/.test(cmsMigration));
+check("CMS never calls the missing functions", !/has_awexen_role|is_awexen_admin/.test(cmsMigration.replace(/--[^\n]*/g, "")));
+check("CMS has select/update/insert/delete policies", [
+  "admins read all sections",
+  "admins insert sections",
+  "admins update sections",
+  "admins delete sections",
+].every((name) => cmsMigration.includes(name)));
+check("CMS migration ends with a schema notify", /notify pgrst, 'reload schema'/.test(cmsMigration));
+check("CMS seeds the home page", /'home'/.test(cmsMigration) && /page_sections/.test(cmsMigration));
+
+check("CMS types are localized", /export type LocalizedText = \{ ar: string; en: string \}/.test(cmsTypes));
+check("CMS image carries alt", /alt: LocalizedText/.test(cmsTypes));
+check("CMS button has link and newTab", /newTab: boolean/.test(cmsTypes) && /enabled: boolean/.test(cmsTypes));
+check("CMS content is jsonb typed", /export type CmsContent = Record<string, CmsFieldValue>/.test(cmsTypes));
+check("CMS fallback helper exists", /export function readText/.test(cmsTypes));
+
+check("CMS registry covers every home section", [
+  "hero", "brands", "services", "portfolio", "process", "whyus", "latest", "pricing", "pms", "cta",
+].every((key) => cmsRegistry.includes(`${key}: {`)));
+check("CMS registry has navbar and footer", /NAVBAR_SCHEMA/.test(cmsRegistry) && /FOOTER_SCHEMA/.test(cmsRegistry));
+check("CMS registry is a single map", /export const SECTION_SCHEMAS: Record<string, SectionSchema>/.test(cmsRegistry));
+
+check("CMS panel lists pages", /loadCmsPages/.test(cmsPanel));
+check("CMS panel lists sections", /loadPageSections/.test(cmsPanel));
+check("CMS panel has reorder buttons", /aria-label="تحريك لأعلى"/.test(cmsPanel) && /aria-label="تحريك لأسفل"/.test(cmsPanel));
+check("CMS panel has visibility toggle", /isVisible: !row\.is_visible/.test(cmsPanel));
+check("CMS panel is in the dashboard", /site-content/.test(cmsPanel) || readFileSync(resolve(here, "..", "src", "pages", "AdminDashboard.tsx"), "utf8").includes('active === "site-content"'));
+
+check("CMS editor builds fields from the schema", /schema\.fields\.map/.test(cmsEditor));
+check("CMS editor validates required fields", /field\.required/.test(cmsEditor));
+check("CMS editor has arabic and english tabs", /"ar", "en"/.test(cmsEditor));
+check("CMS editor uploads images", /uploadPublicImage/.test(cmsEditor));
+check("CMS editor edits buttons", /field\.kind === "buttons"/.test(cmsEditor));
+check("CMS editor edits links", /field\.kind === "links"/.test(cmsEditor));
+
+check("CMS preview is an iframe of the real route", /<iframe/.test(cmsPreview) && /src=\{src\}/.test(cmsPreview));
+check("CMS preview has three viewports", /desktop/.test(cmsPreview) && /tablet/.test(cmsPreview) && /mobile/.test(cmsPreview));
+check("CMS preview sends the unsaved draft", /awexen:cms-preview/.test(cmsPreview));
+check("CMS context listens for the preview draft", /awexen:cms-preview/.test(cmsContext));
+check("CMS context refetches on content change", /awexen-content-updated/.test(cmsContext));
+
+check("CMS save invalidates the cache", /invalidateCache\(CMS_PREFIX\)/.test(cmsSource));
+check("CMS cache helper is exported", /export function invalidateCache/.test(cmsSource));
+check("CMS broadcast helper is exported", /export function broadcastContentChange/.test(cmsSource));
+
+const homeSrc = readFileSync(resolve(here, "..", "src", "pages", "Home.tsx"), "utf8");
+check("Home is wrapped by the cms provider", /CmsSectionsProvider pageSlug="home"/.test(homeSrc));
+const heroSrc = readFileSync(resolve(here, "..", "src", "components", "Hero.tsx"), "utf8");
+check("Hero reads the cms with a fallback", /cms\.text\("title", t\("hero\.title1"\)\)/.test(heroSrc));
+check("Hero keeps its markup when the cms is empty", /t\("hero\.title1"\)/.test(heroSrc));
+check("Hero buttons come from the cms", /useSectionButtons\("hero"\)/.test(heroSrc));
+
 const quoteInboxSrc = readFileSync(resolve(here, "..", "src", "admin", "QuoteInbox.tsx"), "utf8");
 check("صندوق الطلبات بيقرأ quote_requests", /\.from\("quote_requests"\)/.test(quoteInboxSrc));
 check("صندوق الطلبات بيقدر يحدّث الحالة", /\.update\(\{ status/.test(quoteInboxSrc));
@@ -467,8 +532,11 @@ check("الصفحة الحالية مميّزة في الهيدر", /activeLabel
 
 // The primary calls to action must lead to the quote page, not the old
 // generic contact form, otherwise the new page gets no traffic.
-check("الهيرو بيودّي للطلب", /to="\/quote"/.test(readFileSync(resolve(here, "..", "src", "components", "Hero.tsx"), "utf8")));
-check("الـ CTA بيودّي للطلب", /to="\/quote"/.test(readFileSync(resolve(here, "..", "src", "components", "CTA.tsx"), "utf8")));
+// The primary calls to action must lead to the quote page by default, not the
+// old generic contact form, otherwise the new page gets no traffic. The link
+// is now a CMS override with "/quote" as the fallback.
+check("الهيرو بيودّي للطلب", /\/quote/.test(readFileSync(resolve(here, "..", "src", "components", "Hero.tsx"), "utf8")));
+check("الـ CTA بيودّي للطلب", /\/quote/.test(readFileSync(resolve(here, "..", "src", "components", "CTA.tsx"), "utf8")));
 check("الفوتر فيه رابط الطلب", /to: "\/quote"/.test(readFileSync(resolve(here, "..", "src", "components", "Footer.tsx"), "utf8")));
 
 

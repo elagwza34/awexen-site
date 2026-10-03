@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, PlayCircle, Star, TrendingUp, Zap } from "lucide-react";
+import { useSection, useSectionButtons } from "../context/CmsContext";
 import { useContent } from "../context/ContentContext";
 import { useLanguage } from "../context/LanguageContext";
 import { AnchorLink, CountUp, Reveal } from "./ui";
@@ -140,12 +141,22 @@ function ProductMockup() {
 export default function Hero() {
   const { stats } = useContent();
   const { lang, t } = useLanguage();
+  const cms = useSection("hero");
+  const cmsButtons = useSectionButtons("hero");
   const englishStatLabels = [
     "Hours to initial reply",
     "Available installments",
     "Declared installment increase",
     "Arabic-first experience",
   ];
+
+  // الزرارات: لو الـ CMS فيه أزرار محفوظة بنستخدمها، وإلا التانية المارد.
+  // الشكل بيفضل زي ما هو في الحالتين.
+  const heroButtons = cmsButtons.length
+    ? cmsButtons.filter((button) => button.enabled).slice(0, 2)
+    : [];
+  const primary = heroButtons[0];
+  const secondary = heroButtons[1];
 
   return (
     <section
@@ -182,34 +193,40 @@ export default function Hero() {
 
           <Reveal delay={90}>
             <h1 className="mt-7 text-balance text-[clamp(2.15rem,7vw,5.25rem)] font-black leading-[1.16] tracking-tight text-white">
-              {t("hero.title1")}
+              {cms.text("title", t("hero.title1"))}
               <br />
-              <span className="text-gradient-brand">{t("hero.highlight")}</span>
+              <span className="text-gradient-brand">
+                {cms.text("subtitle", t("hero.highlight"))}
+              </span>
             </h1>
           </Reveal>
 
           <Reveal delay={170}>
             <p className="mt-6 max-w-[620px] text-pretty text-[15px] leading-8 text-ink-300 sm:text-[17px]">
-              {t("hero.desc")}
+              {cms.text("description", t("hero.desc"))}
             </p>
           </Reveal>
 
           <Reveal delay={240}>
             <div className="mt-9 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
               <Link
-                to="/quote"
+                to={primary?.link || "/quote"}
+                {...(primary?.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
                 className="group inline-flex w-full items-center justify-center gap-3 rounded-xl bg-brand-500 px-7 py-3.5 text-[15px] font-bold text-white shadow-[var(--shadow-brand)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 sm:w-auto"
               >
-                {t("nav.startProject")}
+                {primary?.text[lang === "ar" ? "ar" : "en"] || t("nav.startProject")}
                 <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-x-1" />
               </Link>
-              <AnchorLink
-                to="#portfolio"
-                className="group inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/[0.04] px-7 py-3.5 text-[15px] font-semibold text-white backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500 sm:w-auto"
-              >
-                <PlayCircle className="h-[18px] w-[18px]" />
-                {t("hero.ctaPrimary")}
-              </AnchorLink>
+              {(!primary || secondary) && (
+                <AnchorLink
+                  to={secondary?.link || "#portfolio"}
+                  {...(secondary?.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
+                  className="group inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/[0.04] px-7 py-3.5 text-[15px] font-semibold text-white backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500 sm:w-auto"
+                >
+                  <PlayCircle className="h-[18px] w-[18px]" />
+                  {secondary?.text[lang === "ar" ? "ar" : "en"] || t("hero.ctaPrimary")}
+                </AnchorLink>
+              )}
             </div>
           </Reveal>
 

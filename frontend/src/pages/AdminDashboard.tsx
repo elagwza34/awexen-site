@@ -10,6 +10,7 @@ import {
   House,
   Inbox,
   Images,
+  LayoutTemplate,
   FileCheck2,
   FileText,
   LayoutDashboard,
@@ -26,6 +27,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import QuoteInbox from "../admin/QuoteInbox";
+import CmsPanel from "../admin/cms/CmsPanel";
 import ResourceManager from "../admin/ResourceManager";
 import KnowledgeManager from "../admin/KnowledgeManager";
 import InboxManager from "../admin/InboxManager";
@@ -56,6 +58,7 @@ const navItems: Array<{
   { key: "quotes", label: "طلبات عرض السعر", icon: FileText, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "newsletter", label: "القائمة البريدية", icon: Send, roles: ["owner", "admin", "editor", "support"], group: "المبيعات" },
   { key: "clients", label: "إدارة العملاء", icon: UsersRound, roles: ["owner", "admin", "support"], group: "المبيعات" },
+  { key: "site-content", label: "محتوى الموقع", icon: LayoutTemplate, roles: ["owner", "admin", "editor"], group: "المحتوى" },
   { key: "pages", label: "الصفحات", icon: FilePlus2, roles: ["owner", "admin", "editor"], group: "المحتوى" },
   { key: "portfolio", label: "معرض الأعمال", icon: Images, roles: ["owner", "admin", "editor"], group: "المحتوى" },
   { key: "blog", label: "المدونة", icon: BookOpenText, roles: ["owner", "admin", "editor"], group: "المحتوى" },
@@ -223,6 +226,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
         <main className="min-w-0 rounded-xl border border-white/[0.07] bg-[#0d111b] p-4 sm:p-5">
           {active === "overview" && <OverviewPanel role={role} goTo={safeGoTo} />}
           {active === "portfolio" && <ResourceManager definition={resources.portfolio} draftOwnerId={userId} />}
+          {active === "site-content" && <CmsPanel />}
           {active === "pages" && <ResourceManager definition={resources.pages} draftOwnerId={userId} />}
           {active === "blog" && <ResourceManager definition={resources.blog} draftOwnerId={userId} />}
           {active === "jobs" && <ResourceManager definition={resources.jobs} draftOwnerId={userId} />}
