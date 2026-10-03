@@ -309,7 +309,29 @@ check("الصفحة مسجلة في الراوت", /path="\/quote"/.test(appSrc)
 check("الصفحة lazy loaded", /import\("\.\/pages\/Quote"\)/.test(appSrc));
 
 // Visitors may only insert; only admins may read.
-const quoteSql = readFileSync(resolve(here, "..", "..", "backend", "sql", "contact_messages_table.sql"), "utf8");
+// لازم تكون نسخة الـ migration تحت supabase/migrations عشان db push يطبّقها،
+// مش بس في backend/sql اللي الـ CI مش بيفحصها.
+const migrationsDir = resolve(here, "..", "..", "supabase", "migrations");
+const migrationSql = readFileSync(resolve(migrationsDir, "202610010001_quote_requests.sql"), "utf8");
+check("الـ migration موجود في supabase/migrations", migrationSql.length > 0);
+check("الـ migration بيعمل الجدول", /create table if not exists public\.quote_requests/.test(migrationSql));
+check("الـ migration بيفعّل RLS", /alter table public\.quote_requests enable row level security/.test(migrationSql));
+check("الـ migration فيه سياسات update وdelete", /for update[\s\S]*?for delete/.test(migrationSql));
+check("الـ migration فيه أعمدة اللوحة", /quoted_amount/.test(migrationSql) && /quote_sent_at/.test(migrationSql));
+check("الـ migration idempotent", /add column if not exists status/.test(migrationSql));
+check("الـ migration مش مفعّل trigger الإيميل", !/^\s*create trigger quote_notify_after_insert/m.test(migrationSql));
+
+// ترتيب الاعتماد: دالة مراجعة المدفوعات لازم تتعمل قبل ما الـ migration يستخدمها.
+const lmsIdentitySql = readFileSync(resolve(migrationsDir, "202608280001_lms_identity_security.sql"), "utf8");
+const definesReviewFn = /create or replace function public\.lms_can_review_payments/.test(lmsIdentitySql);
+check("دالة مراجعة المدفوعات معرّفة في migration أسبق", definesReviewFn && "202608280001" < "202610010001");
+check("الـ migration بيسمّي الدالة المعرّفة", definesReviewFn && /public\.lms_can_review_payments\(\)/.test(migrationSql));
+
+// الـ CI لازم يطبّق الـ migrations المعلّقة.
+const deployWorkflow = readFileSync(resolve(here, "..", "..", ".github", "workflows", "deploy.yml"), "utf8");
+check("الـ CI بيدفع الـ migrations", /supabase db push --linked/.test(deployWorkflow));
+// الفحوصات دي بتفحص الـ migration نفسها، لأنها الملف اللي CI هيطبقه.
+const quoteSql = migrationSql;
 check("جدول الطلبات موجود", /create table if not exists public\.quote_requests/.test(quoteSql));
 check("الجدول مفعّل عليه RLS", /alter table public\.quote_requests enable row level security/.test(quoteSql));
 check("سياسة إدراج للزوار", /Allow public insert to quote_requests/.test(quoteSql));

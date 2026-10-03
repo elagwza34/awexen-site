@@ -59,6 +59,28 @@ npx.cmd supabase secrets set OPENROUTER_API_KEY=YOUR_NEW_KEY OPENROUTER_MODEL=op
 
 بدون Custom SMTP، خدمة Supabase الافتراضية لا تصلح لبريد مستخدمي الإنتاج وقد ترفض العناوين غير التابعة لفريق المشروع.
 
+## 4.1 إشعار البريد عند وصول طلب عرض سعر (اختياري)
+
+إشعار الطلبات على `info@awexen.com` **معطّل افتراضيًا**. الكود كله جاهز في
+`backend/sql/contact_messages_table.sql` آخر الملف، لكنه مكتوب كتعليق
+لأن رابط مزود البريد سر ولا يتحفظ في المستودع.
+
+التفعيل يدوي:
+
+1. Supabase → **Database → Extensions** → فعّل `pg_net`.
+2. نفّذ من **SQL Editor** كتل `quote_notify_email` و trigger
+   `quote_notify_after_insert` الموجودة في آخر الملف.
+3. سجّل رابط الـ endpoint في جدول الإعدادات:
+
+```sql
+insert into global.app_settings (key, value) values
+  ('quote_notify_url', 'https://api.resend.com/emails')
+on conflict (key) do update set value = excluded.value, updated_at = now();
+```
+
+الجدول مقفول بـ RLS ومفيش أي سياسة تفتحه لـ `anon` أو `authenticated`،
+فالقراءة متاحة لـ `postgres` بس.
+
 ## 5. بناء Hostinger
 
 القيم العامة المطلوبة وقت بناء React:

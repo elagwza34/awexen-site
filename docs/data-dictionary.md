@@ -22,7 +22,7 @@
 | الكيان | الغرض | أهم القيود |
 |---|---|---|
 | contact_messages | رسائل صفحة `/contact` | زائر يُدرج فقط؛ القراءة للإدارة عبر `lms_can_review_payments()` |
-| quote_requests | طلبات عرض السعر من `/quote` | زائر يُدرج فقط؛ 22 حقل تفاصيل المشروع |
+| quote_requests | طلبات عرض السعر من `/quote` | زائر يُدرج فقط؛ 22 حقل تفاصيل المشروع + حالة وعرض سعر |
 | newsletter_subscribers | اشتراكات النشرة البريدية | بريد فريد غير حساس لحالة الأحرف |
 
 ## طلبات عرض السعر (`quote_requests`)
@@ -38,9 +38,18 @@ nullable عشان تتوسّع الأسئلة بلا migration جديد:
 | التقني | `hosting` · `domain` · `seo` · `analytics` · `maintenance` |
 | التجاري | `budget` · `reference` · `notes` |
 
-الزائر يملك `insert` فقط، والقراءة محجوزة على `lms_can_review_payments()` —
-لأن الطلبات فيها بيانات اتصال العملاء. `scripts/test-upload.mjs` بيتحقق من
-السياسات دي ومن أن كل حقل في الفورم متخزّن فعلاً.
+أعمدة تديرها الإدارة من اللوحة: `status` (`new` / `reviewed` / `quoted` /
+`accepted` / `rejected`) · `quoted_amount` · `admin_notes` · `quote_sent_at` ·
+`updated_at`.
+
+الزائر يملك `insert` فقط. الإدارة بتقرأ وتعدّل وتحذف عبر
+`lms_can_review_payments()` — لأن الطلبات فيها بيانات اتصال العملاء.
+`scripts/test-upload.mjs` بيتحقق من السياسات دي ومن أن كل حقل في الفورم
+متخزّن فعلاً.
+
+الجدول بيتطبّق من `supabase/migrations/202610010001_quote_requests.sql`
+عبر `supabase db push` في CI. النسخة في `backend/sql/` للمراجعة فقط،
+وللتشغيل اليدوي من SQL Editor.
 
 التقدم الوزني:
 
