@@ -219,6 +219,151 @@ const contentCache = new Map<string, CacheEntry<unknown>>();
 const inFlight = new Map<string, Promise<unknown>>();
 const CONTENT_TTL_MS = 60_000;
 
+/**
+ * يمسح كل المفاتيح اللي بتبدأ بـ prefix من كاش المحتوى.
+ *
+ * لازم يتندى بعد كل حفظ من الـ CMS، وإلا الصفحة العامة هتفضل
+ * تخدم القديم لحد ما الـ TTL (60 ثانية) يخلص. كده التحديث فوري.
+ *
+ * سبب وجود الـ prefix: بنقدر نمسح "page_sections" لوحدها من غير
+ * ما نمسس المقالات أو الكورسات.
+ */
+export function invalidateCache(prefix: string) {
+  for (const key of contentCache.keys()) {
+    if (key.startsWith(prefix)) contentCache.delete(key);
+  }
+}
+
+/** يمسح الكاش كله — للحالات اللي الـ prefix مش واضح فيها. */
+export function invalidateAllContent() {
+  contentCache.clear();
+}
+
+/** بنبعت الحدث ده بعد الحفظ عشان ContentContext يعمل sync تاني. */
+export function broadcastContentChange() {
+  window.dispatchEvent(new Event("awexen-content-updated"));
+}
+
+// ---------------------------------------------------------------------------
+// طبقة الـ CMS: أقسام الصفحات
+// ---------------------------------------------------------------------------
+
+const CMS_PREFIX = "page_sections";
+
+export type CmsPageRow = { id: string; slug: string; title: string; status: string; sort_order: number };
+
+export type CmsSectionRow = {
+  id: string;
+  page_id: string;
+  section_key: string;
+  type: string;
+  name: string;
+  sort_order: number;
+  is_visible: boolean;
+  content: Record<string, unknown>;
+  updated_at: string;
+  updated_by: string | null;
+};
+
+/**
+ * بيحمل أقسام صفحة واحدة. بنمرر الـ page_id (مش الـ slug) عشان الفلترة
+ * تبقى في قاعدة البيانات نفسها مش في المتصفح.
+ * المرشحين غير المرئيين بيرجعوا هنا كمان، لأن الـ dashboard محتاج يشوفهم.
+ */
+export async function loadPageSections(pageId: string, options?: { includeHidden?: boolean }): Promise<CmsSectionRow[]> {
+  const includeHidden = options?.includeHidden ?? false;
+  return cached(`${CMS_PREFIX}:${pageId}:${includeHidden ? "all" : "public"}`, async () => {
+    if (!supabase) return [];
+    let query = supabase
+      .from("page_sections")
+      .select("id,page_id,section_key,type,name,sort_order,is_visible,content,updated_at,updated_by")
+      .eq("page_id", pageId)
+      .order("sort_order", { ascending: true });
+    // الزائر مسموح له يقرأ الظاهر والمنشور بس (سياسة RLS).
+    // الأداري بدوس includeHidden عشان يشوف المخفي ويرجعه.
+    if (!includeHidden) query = query.eq("is_visible", true);
+    const { data, error } = await query;
+    if (error || !data) return [];
+    return data as CmsSectionRow[];
+  }, 30_000);
+}
+
+export async function loadCmsPages(): Promise<CmsPageRow[]> {
+  return cached("cms_pages", async () => {
+    if (!supabase) return [];
+    const { data, error } = await supabase
+      .from("content_pages")
+      .select("id,slug,title,status,sort_order")
+      .order("sort_order", { ascending: true });
+    if (error || !data) return [];
+    return data as CmsPageRow[];
+  }, 30_000);
+}
+
+/**
+ * بيحفظ قسم واحد: المحتوى، الاسم، والظهور.
+ * بعد النجاح بنمسح كاش الأقسام وبنبعت الحدث، فالتحديث بيبقى فوري
+ * من غير build ولا deploy.
+ */
+export async function saveSection(input: {
+  id: string;
+  name?: string;
+  content?: Record<string, unknown>;
+  isVisible?: boolean;
+  sortOrder?: number;
+}): Promise<void> {
+  if (!supabase) throw new Error("اتصال Supabase غير مهيأ.");
+  const patch: Record<string, unknown> = {};
+  if (input.name !== undefined) patch.name = input.name;
+  if (input.content !== undefined) patch.content = input.content;
+  if (input.isVisible !== undefined) patch.is_visible = input.isVisible;
+  if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder;
+
+  const { error } = await supabase.from("page_sections").update(patch).eq("id", input.id);
+  if (error) throw new Error(error.message);
+
+  invalidateCache(CMS_PREFIX);
+  invalidateCache("cms_pages");
+  broadcastContentChange();
+}
+
+/** بيغيّر ترتيب قسم وبيبدّل مكانه مع جاره. */
+export async function reorderSection(sectionId: string, direction: "up" | "down"): Promise<void> {
+  if (!supabase) throw new Error("اتصال Supabase غير مهيأ.");
+  const { data, error } = await supabase
+    .from("page_sections")
+    .select("id,page_id,sort_order")
+    .eq("id", sectionId)
+    .maybeSingle();
+  if (error || !data) throw new Error(error?.message ?? "القسم غير موجود.");
+
+  const neighbourFilter = direction === "up" ? "lt" : "gt";
+  const { data: neighbour, error: neighbourError } = await supabase
+    .from("page_sections")
+    .select("id,sort_order")
+    .eq("page_id", data.page_id)
+    .filter("sort_order", neighbourFilter, data.sort_order)
+    .order("sort_order", { ascending: direction === "up" })
+    .limit(1)
+    .maybeSingle();
+  if (neighbourError) throw new Error(neighbourError.message);
+  if (!neighbour) return;
+
+  const { error: swapError } = await supabase
+    .from("page_sections")
+    .upsert(
+      [
+        { id: data.id, sort_order: neighbour.sort_order },
+        { id: neighbour.id, sort_order: data.sort_order },
+      ],
+      { onConflict: "id" },
+    );
+  if (swapError) throw new Error(swapError.message);
+
+  invalidateCache(CMS_PREFIX);
+  broadcastContentChange();
+}
+
 function cached<T>(key: string, load: () => Promise<T>, ttl = CONTENT_TTL_MS): Promise<T> {
   const hit = contentCache.get(key);
   if (hit && hit.expiresAt > Date.now()) return Promise.resolve(hit.value as T);
