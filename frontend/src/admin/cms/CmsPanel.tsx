@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Component, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -22,6 +22,43 @@ import { getSectionSchema } from "../../cms/sectionSchemas";
 import type { CmsContent } from "../../cms/types";
 import SectionEditor from "./SectionEditor";
 import PagePreview from "./PagePreview";
+
+/**
+ * حاجز أخطاء حوالين لوحة الـ CMS.
+ *
+ * من غيره، أي exception وقت رسم المحرر بيرمي شجرة React كلها، والمتصفح
+ * بيرسم الصفحة من الأول — وده كان بيبان للمستخدم كأنه "الصفحة حملت تاني"
+ * بدل ما يشوف رسالة الخطأ. هنا بنعرض السبب الحقيقي ونسمّح بإعادة المحاولة.
+ */
+class CmsErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: { componentStack?: string }) {
+    console.error("[cms] render error", error, info.componentStack);
+  }
+
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="space-y-3 rounded-xl border border-red-500/25 bg-red-500/5 p-4 text-right">
+        <p className="text-[13px] font-black text-red-200">تعذر فتح محرّر القسم.</p>
+        <p className="text-[11px] leading-6 text-red-200/70">{this.state.error.message}</p>
+        <button
+          type="button"
+          onClick={() => this.setState({ error: null })}
+          className="admin-button-secondary"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          إعادة المحاولة
+        </button>
+      </div>
+    );
+  }
+}
 
 /**
  * لوحة محتوى الموقع: صفحات ← أقسام ← محرر.
@@ -235,6 +272,7 @@ export default function CmsPanel() {
 
                 {isEditing && (
                   <div className="border-t border-white/8 p-4">
+                    <CmsErrorBoundary>
                     <SectionEditor
                       sectionKey={row.section_key}
                       initial={(row.content as CmsContent) ?? {}}
@@ -279,6 +317,7 @@ export default function CmsPanel() {
                         draft={draft}
                       />
                     </div>
+                    </CmsErrorBoundary>
                   </div>
                 )}
               </div>

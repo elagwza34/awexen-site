@@ -517,6 +517,15 @@ check(
     !/sandbox="[^"]*allow-top-navigation/.test(cmsPreview),
 );
 
+// regresión: من غير حاجز أخطاء، أي استثناء وقت رسم المحرر كان بيرمي شجرة
+// React كلها، والمتصفح بيعيد رسم الصفحة — وده اللي كان بيبان كـ"تحميل صفحة".
+check(
+  "CMS editor is wrapped in an error boundary",
+  /class CmsErrorBoundary/.test(cmsPanel) &&
+    /<CmsErrorBoundary>/.test(cmsPanel) &&
+    /getDerivedStateFromError/.test(cmsPanel),
+);
+
 check("CMS editor builds fields from the schema", /schema\.fields\.map/.test(cmsEditor));
 check("CMS editor validates required fields", /field\.required/.test(cmsEditor));
 check("CMS editor has arabic and english tabs", /"ar", "en"/.test(cmsEditor));
