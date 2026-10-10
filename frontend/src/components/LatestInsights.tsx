@@ -5,6 +5,7 @@ import { fallbackPosts, loadBlogPosts, type BlogPost } from "../lib/cms";
 import { Reveal, SectionHeading } from "./ui";
 import { openKnowledgeChat } from "../lib/uiEvents";
 import { useLanguage } from "../context/LanguageContext";
+import { FEATURES } from "../lib/features";
 
 export default function LatestInsights() {
   const [posts, setPosts] = useState<BlogPost[]>(fallbackPosts);
@@ -14,7 +15,10 @@ export default function LatestInsights() {
     void loadBlogPosts().then(setPosts);
   }, []);
 
-  const paths = lang === "en" ? [
+  // "Learn by building" is a courses entry, so it only shows while the
+  // courses platform is launched. Filtering keeps the grid balanced by
+  // dropping the card entirely rather than leaving a dead link.
+  const rawPaths = lang === "en" ? [
     { to: "/courses", title: "Learn by building", desc: "Focused courses that end with a reviewable project.", icon: GraduationCap },
     { to: "/jobs", title: "Work with us", desc: "Explore open roles or send your profile to our hiring team.", icon: BriefcaseBusiness },
     { to: "", title: "Ask Awexen", desc: "Answers grounded only in approved content.", icon: MessageCircleQuestion },
@@ -23,6 +27,7 @@ export default function LatestInsights() {
     { to: "/jobs", title: "اعمل معنا", desc: "تابع الأدوار المتاحة أو أرسل ملفك لفريق التوظيف.", icon: BriefcaseBusiness },
     { to: "", title: "اسأل Awexen", desc: "إجابة من المحتوى المعتمد فقط، بلا تخمين.", icon: MessageCircleQuestion },
   ];
+  const paths = FEATURES.courses ? rawPaths : rawPaths.filter((p) => p.to !== "/courses");
 
   return (
     <section className="bg-ink-50 py-20 sm:py-24">

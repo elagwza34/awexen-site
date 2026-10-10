@@ -7,6 +7,7 @@ import { supabase } from "../lib/supabase";
 import { Logo } from "./ui";
 import { useSection } from "../context/CmsContext";
 import CmsEditable from "../admin/cms/CmsEditable";
+import { visibleLinks } from "../lib/features";
 
 /* ------------------------------ Social icons ---------------------------- */
 function TikTok({ className }: { className?: string }) {
@@ -51,7 +52,7 @@ const socials = [
 const columns = [
   {
     title: { ar: "روابط سريعة", en: "Quick Links" },
-    links: [
+    links: visibleLinks([
       { label: { ar: "الرئيسية", en: "Home" }, to: "/" },
       { label: { ar: "جميع الخدمات", en: "All Services" }, to: "/services" },
       { label: { ar: "معرض الأعمال", en: "Portfolio" }, to: "/portfolio" },
@@ -59,7 +60,7 @@ const columns = [
       { label: { ar: "من نحن", en: "About Us" }, to: "/about" },
       { label: { ar: "اطلب عرض سعر", en: "Get a quote" }, to: "/quote" },
       { label: { ar: "تواصل معنا", en: "Contact Us" }, to: "/contact" },
-    ],
+    ]),
   },
   {
     title: { ar: "خدماتنا", en: "Our Services" },
@@ -73,11 +74,11 @@ const columns = [
   },
   {
     title: { ar: "المعرفة والفرص", en: "Knowledge & Opportunities" },
-    links: [
+    links: visibleLinks([
       { label: { ar: "المدونة", en: "Blog" }, to: "/blog" },
       { label: { ar: "الكورسات", en: "Courses" }, to: "/courses" },
       { label: { ar: "الوظائف", en: "Jobs" }, to: "/jobs" },
-    ],
+    ]),
   },
 ];
 

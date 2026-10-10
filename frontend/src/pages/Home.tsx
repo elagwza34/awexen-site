@@ -1,5 +1,6 @@
 import { CmsSectionsProvider } from "../context/CmsContext";
 import { CmsStyleSheet } from "../context/CmsStyleSheet";
+import { FEATURES } from "../lib/features";
 import Hero from "../components/Hero";
 import Brands from "../components/Brands";
 import Services from "../components/Services";
@@ -23,7 +24,7 @@ export default function Home() {
         <WhyUs />
         <LatestInsights />
         <Pricing />
-        <PMSSection />
+        {FEATURES.pms && <PMSSection />}
         <CTA />
       </CmsStyleSheet>
     </CmsSectionsProvider>

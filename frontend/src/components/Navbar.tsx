@@ -8,8 +8,9 @@ import { supabase } from "../lib/supabase";
 import { Icon, Logo } from "./ui";
 import { cn } from "../utils/cn";
 import CmsEditable from "../admin/cms/CmsEditable";
+import { FEATURES, visibleLinks } from "../lib/features";
 
-const mobileLinks = [
+const mobileLinks = visibleLinks([
   { key: "nav.portfolio", to: "/portfolio" },
   { key: "nav.pms", to: "/pms" },
   { key: "nav.pricing", to: "/#pricing" },
@@ -18,14 +19,14 @@ const mobileLinks = [
   { key: "nav.jobs", to: "/jobs" },
   { key: "nav.about", to: "/about" },
   { key: "nav.contact", to: "/contact" },
-];
+]);
 
-const knowledgeLinks = [
+const knowledgeLinks = visibleLinks([
   { key: "nav.blog", to: "/blog" },
   { key: "nav.courses", to: "/courses" },
   { key: "nav.jobs", to: "/jobs" },
   { key: "nav.pricing", to: "/#pricing" },
-];
+]);
 
 const companyLinks = [
   { key: "nav.about", to: "/about" },
@@ -226,6 +227,7 @@ export default function Navbar() {
                 </Link>
               </li>
 
+              {FEATURES.pms && (
               <li>
                 <Link
                   to="/pms"
@@ -237,6 +239,7 @@ export default function Navbar() {
                   {t("nav.pms")}
                 </Link>
               </li>
+            )}
 
               <li className="relative">
                 <details className="group">
@@ -285,13 +288,15 @@ export default function Navbar() {
                 <Languages className="h-4 w-4 text-brand-400" />
                 <span dir="ltr">{lang === "ar" ? "EN" : "AR"}</span>
               </button>
-              <Link
-                to={dashboardPath ?? "/login"}
-                className="hidden items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-[13px] font-bold text-white/75 transition hover:border-brand-400/40 hover:bg-white/5 hover:text-white lg:inline-flex"
-              >
-                {dashboardPath ? <LayoutDashboard className="h-4 w-4 text-brand-400" /> : <LogIn className="h-4 w-4 text-brand-400" />}
-                {dashboardPath ? t("nav.dashboard") : t("nav.signup")}
-              </Link>
+              {FEATURES.showLoginButton && (
+                <Link
+                  to={dashboardPath ?? "/login"}
+                  className="hidden items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-[13px] font-bold text-white/75 transition hover:border-brand-400/40 hover:bg-white/5 hover:text-white lg:inline-flex"
+                >
+                  {dashboardPath ? <LayoutDashboard className="h-4 w-4 text-brand-400" /> : <LogIn className="h-4 w-4 text-brand-400" />}
+                  {dashboardPath ? t("nav.dashboard") : t("nav.signup")}
+                </Link>
+              )}
               <CmsEditable section="navbar" element="cta">
               <Link
                 to="/contact"
@@ -431,14 +436,16 @@ export default function Navbar() {
               <Languages className="h-4 w-4 text-brand-400" />
               <span dir="ltr">{lang === "ar" ? "EN" : "AR"}</span>
             </button>
-            <Link
-              to={dashboardPath ?? "/login"}
-              onClick={() => setDrawer(false)}
-              className="mb-2 flex items-center justify-center gap-2 rounded-xl border border-white/15 px-5 py-3 text-[14px] font-bold text-white/80"
-            >
-              {dashboardPath ? <LayoutDashboard className="h-4 w-4 text-brand-400" /> : <LogIn className="h-4 w-4 text-brand-400" />}
-              {dashboardPath ? t("nav.dashboard") : t("nav.signup")}
-            </Link>
+            {FEATURES.showLoginButton && (
+              <Link
+                to={dashboardPath ?? "/login"}
+                onClick={() => setDrawer(false)}
+                className="mb-2 flex items-center justify-center gap-2 rounded-xl border border-white/15 px-5 py-3 text-[14px] font-bold text-white/80"
+              >
+                {dashboardPath ? <LayoutDashboard className="h-4 w-4 text-brand-400" /> : <LogIn className="h-4 w-4 text-brand-400" />}
+                {dashboardPath ? t("nav.dashboard") : t("nav.signup")}
+              </Link>
+            )}
             <Link
               to="/contact"
               onClick={() => setDrawer(false)}
