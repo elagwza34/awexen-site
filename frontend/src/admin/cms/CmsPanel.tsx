@@ -6,6 +6,7 @@ import {
   EyeOff,
   Loader2,
   Monitor,
+  Pencil,
   RefreshCw,
   Smartphone,
   Tablet,
@@ -23,6 +24,7 @@ import type { CmsContent } from "../../cms/types";
 import SectionEditor from "./SectionEditor";
 import PagePreview from "./PagePreview";
 import ElementPanel from "./ElementPanel";
+import VisualEditor from "./VisualEditor";
 
 /**
  * حاجز أخطاء حوالين لوحة الـ CMS.
@@ -78,6 +80,8 @@ export default function CmsPanel() {
   const [draft, setDraft] = useState<CmsContent | null>(null);
   /** معرّف العنصر اللي الأداري دوس عليه في الـpreview، زي "hero.title". */
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
+  /** لما يبقى مفتوح، المحرر البصري بياخد الشاشة كلها. */
+  const [visualEditor, setVisualEditor] = useState<string | null>(null);
 
   /**
    * Mirror the selection into the preview so the chosen element gets the
@@ -136,6 +140,28 @@ export default function CmsPanel() {
       <div className="grid min-h-36 place-items-center">
         <Loader2 className="h-5 w-5 animate-spin text-white/40" />
       </div>
+    );
+  }
+
+  // المحرر البصري بياخد الشاشة كلها، فمفيش داعي نرسم اللوحة تحته.
+  if (visualEditor) {
+    return (
+      <VisualEditor
+        route={route}
+        sections={sections}
+        sectionKey={visualEditor}
+        onSectionChange={setVisualEditor}
+        draft={draft}
+        onDraftChange={setDraft}
+        onSave={async (id, content) => {
+          await saveSection({ id, content: content as Record<string, unknown> });
+          await loadSections();
+        }}
+        onClose={() => {
+          setDraft(null);
+          setVisualEditor(null);
+        }}
+      />
     );
   }
 
@@ -270,6 +296,18 @@ export default function CmsPanel() {
                       className="admin-button-secondary"
                     >
                       {isEditing ? "إغلاق" : "تعديل"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraft(null);
+                        setSelectedElement(null);
+                        setVisualEditor(row.section_key);
+                      }}
+                      className="admin-button-primary"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      تعديل بصري
                     </button>
                   </div>
                 </div>

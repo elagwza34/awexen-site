@@ -450,6 +450,7 @@ const styleSheet = readFileSync(resolve(here, "..", "src", "context", "CmsStyleS
 const servicesSource = readFileSync(resolve(here, "..", "src", "components", "Services.tsx"), "utf8");
 const navbarSource = readFileSync(resolve(here, "..", "src", "components", "Navbar.tsx"), "utf8");
 const footerSource = readFileSync(resolve(here, "..", "src", "components", "Footer.tsx"), "utf8");
+const visualEditorSource = readFileSync(resolve(here, "..", "src", "admin", "cms", "VisualEditor.tsx"), "utf8");
 // Every public component, so section coverage can be asserted in one place.
 const componentsSource = [
   "Hero",
@@ -819,6 +820,41 @@ check(
   "footer keeps its original design",
   /<Logo dark \/>/.test(footerSource) &&
     /footer\.allRights/.test(footerSource),
+);
+
+/* --- Full canvas editor (Elementor style) --- */
+
+check(
+  "visual editor renders a full screen canvas",
+  /fixed inset-0/.test(visualEditorSource) && /<PagePreview/.test(visualEditorSource),
+);
+check(
+  "visual editor puts properties in a side panel",
+  /<aside/.test(visualEditorSource) && /<ElementPanel/.test(visualEditorSource),
+);
+check(
+  "visual editor switches sections from its top bar",
+  /onSectionChange/.test(visualEditorSource) && /sections\.map/.test(visualEditorSource),
+);
+check(
+  "visual editor keeps the draft until save",
+  /onDraftChange/.test(visualEditorSource) && /saveSection/.test(cmsPanel),
+);
+check(
+  "visual editor offers desktop, tablet and mobile",
+  /Viewport = "desktop" \| "tablet" \| "mobile"/.test(visualEditorSource),
+);
+check(
+  "the panel opens the visual editor for a section",
+  /setVisualEditor\(row\.section_key\)/.test(cmsPanel),
+);
+check(
+  "the visual editor takes over the whole panel",
+  /if \(visualEditor\)/.test(cmsPanel) && /<VisualEditor/.test(cmsPanel),
+);
+check(
+  "closing the editor clears the draft",
+  /setDraft\(null\);\s*\n\s*setVisualEditor\(null\);/.test(cmsPanel),
 );
 
 check("CMS editor builds fields from the schema", /schema\.fields\.map/.test(cmsEditor));

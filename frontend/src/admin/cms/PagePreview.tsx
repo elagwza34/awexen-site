@@ -83,7 +83,8 @@ export default function PagePreview({
           // onLoad: محاولة إضافية للإرسال في اللحظة اللي يخلص فيها التحميل،
           // لأن الصفحة ممكن تعلن جهوزيتها قبل ما يبقى الـ contentWindow متاح.
           onLoad={send}
-          className="h-[520px] w-full border-0"
+          // h-full fills the canvas, and min-h keeps a short page usable.
+          className="h-full min-h-[520px] w-full border-0"
           // allow-same-origin ماشي مع allow-scripts زي ما المتصفح عايز،
           // بس من غير allow-top-navigation: من غير كده أي redirect جوه
           // الصفحة المعروضة يقدر يغيّر الداشبورد نفسه. ده كان بيخلي
