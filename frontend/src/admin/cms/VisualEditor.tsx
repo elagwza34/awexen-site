@@ -114,6 +114,13 @@ export default function VisualEditor({
           ))}
         </span>
 
+        {dirty && (
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-bold text-amber-200">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+            غير محفوظ
+          </span>
+        )}
+
         <button
           type="button"
           onClick={() => {

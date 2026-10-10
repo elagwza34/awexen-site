@@ -69,7 +69,7 @@ export default function CmsEditable({
       "data-cms-element": elementId,
       "data-cms-selected": selected === elementId ? "true" : undefined,
       onClick,
-      role: child.props.role ?? "button",
+      role: child.props.role,
       "aria-label": child.props["aria-label"] ?? `Editable element: ${elementId}`,
     } as Partial<unknown> & React.Attributes);
   }
@@ -83,8 +83,8 @@ export default function CmsEditable({
     "data-cms-element": elementId,
     "data-cms-selected": selected === elementId ? "true" : undefined,
     onClick,
-    role: "button",
-    tabIndex: -1,
+    role: "span",
+    tabIndex: 0,
     "aria-label": `Editable element: ${elementId}`,
   } as unknown as React.HTMLAttributes<HTMLSpanElement>;
 
