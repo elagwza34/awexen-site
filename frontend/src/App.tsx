@@ -39,6 +39,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogArticle = lazy(() => import("./pages/Blog").then((module) => ({ default: module.BlogArticle })));
@@ -231,7 +232,7 @@ function AppShell() {
   const isLearningRoute = pathname === "/learn" || pathname.startsWith("/learn/");
   const isInstructorRoute = pathname === "/instructor" || pathname.startsWith("/instructor/");
   const isLoginRoute = pathname === "/login";
-  const isStandaloneRoute = isAdminRoute || isLearningRoute || isInstructorRoute || isLoginRoute;
+  const isStandaloneRoute = isAdminRoute || isLearningRoute || isInstructorRoute || isLoginRoute || pathname === "/reset-password";
   const isLightPortal = isLearningRoute || isInstructorRoute;
 
   return (
@@ -287,6 +288,7 @@ function AppShell() {
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/awexen" element={<DashboardThemeProvider><AwexenAdminRoute /></DashboardThemeProvider>} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>

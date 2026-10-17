@@ -29,7 +29,7 @@ export default function AdminLogin({ activeSessionEmail, onAuthenticated }: Admi
     setResetSending(true);
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
-        redirectTo: `${window.location.origin}/awexen`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
       if (resetError) {
         setResetMessage("لا يمكننا إرسال رابط إعادة التعيين لهذا البريد. تأكد من صحة البريد وحاول مرة أخرى.");
