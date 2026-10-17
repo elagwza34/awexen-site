@@ -1,0 +1,22 @@
+# Cloudflare Pages cache rules
+# index.html يجب أن يُعاد التحقق منه في كل نشر حتى يرى المستخدمون التحديثات فورًا
+/index.html
+  Cache-Control: no-cache, must-revalidate
+
+# أصول البناء تحمل أسماء مبنية على الهاش (hash) من Vite، فهذه عناوين URL جديدة في كل publish
+# تخزينها سنة كاملة آمن ويحسن سرعة التحميل، وimmutable يمنع إعادة التحقق غير الضرورية
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# الملفات الثابتة للموقع تُحدث نادرًا
+/robots.txt
+  Cache-Control: public, max-age=3600
+
+/sitemap.xml
+  Cache-Control: public, max-age=3600
+
+/site.webmanifest
+  Cache-Control: public, max-age=3600
+
+/favicon.svg
+  Cache-Control: public, max-age=31536000, immutable

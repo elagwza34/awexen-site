@@ -28,7 +28,7 @@
 
   # index.html بيشير للـ chunks اللي كل واحد فيهم hash مختلف،
   # فلازم يتقرأ كل مرة عشان أي نشر جديد يظهر فورًا من غير كاش قديم.
-  <FilesMatch "^\.html$">
+  <FilesMatch "index\.html$">
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
 
