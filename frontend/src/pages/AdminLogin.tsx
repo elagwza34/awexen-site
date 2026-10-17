@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, Lock, LogIn, ShieldAlert } from "lucide-react";
+import { ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, Lock, LogIn, Mail, ShieldAlert } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { loadDashboardAccess } from "../lib/roleRouting";
 import { lockAdminSession } from "../lib/adminSession";
@@ -16,6 +16,32 @@ export default function AdminLogin({ activeSessionEmail, onAuthenticated }: Admi
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [forgotPassword, setForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSending, setResetSending] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+
+  const handleResetPassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setResetMessage(null);
+    if (!supabase || !resetEmail.trim()) return;
+    setResetSending(true);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
+        redirectTo: `${window.location.origin}/awexen`,
+      });
+      if (resetError) {
+        setResetMessage("لا يمكننا إرسال رابط إعادة التعيين لهذا البريد. تأكد من صحة البريد وحاول مرة أخرى.");
+        return;
+      }
+      setResetMessage("تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني. افتح البريد واضغط على الرابط لتعيين كلمة مرور جديدة.");
+    } catch {
+      setResetMessage("تعذر إرسال رابط إعادة التعيين. حاول مرة أخرى لاحقًا.");
+    } finally {
+      setResetSending(false);
+    }
+  };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -153,9 +179,68 @@ export default function AdminLogin({ activeSessionEmail, onAuthenticated }: Admi
           </button>
         </form>
 
-        <p className="mt-5 text-center text-[10px] leading-5 text-white/35">
-          قد يملأ مدير كلمات المرور الحقول تلقائيًا، لكن الموقع لن يرسلها أو يفتح اللوحة إلا عند الضغط على زر الدخول.
-        </p>
+        {forgotPassword ? (
+          <div className="mt-6 space-y-3 rounded-xl border border-brand-500/20 bg-brand-500/[0.06] p-4">
+            <form onSubmit={handleResetPassword} className="space-y-3">
+              <label className="block space-y-2 text-[13px] font-bold text-white/80">
+                بريدك الإلكتروني لإعادة تعيين كلمة المرور
+                <input
+                  dir="ltr"
+                  type="email"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  required
+                  value={resetEmail}
+                  onChange={(event) => setResetEmail(event.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-[14px] text-white outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={resetSending || !resetEmail.trim()}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3.5 text-[15px] font-bold text-white transition-all hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {resetSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                {resetSending ? "جارٍ الإرسال..." : "إرسال رابط إعادة التعيين"}
+              </button>
+            </form>
+            {resetMessage && (
+              <div role="status" className={`text-[11px] leading-6 px-3 py-2 rounded-lg ${resetMessage?.startsWith("تم") ? "bg-emerald-500/8 text-emerald-300" : "bg-red-500/8 text-red-300"}`}>
+                {resetMessage}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setForgotPassword(false);
+                setResetMessage(null);
+                setResetEmail("");
+              }}
+              className="text-[11px] underline underline-offset-4 text-white/50 hover:text-brand-300"
+            >
+              العودة إلى تسجيل الدخول
+            </button>
+          </div>
+        ) : (
+          <p className="mt-5 text-center text-[10px] leading-5 text-white/35">
+            قد يملأ مدير كلمات المرور الحقول تلقائيًا، لكن الموقع لن يرسلها أو يفتح اللوحة إلا عند الضغط على زر الدخول.
+          </p>
+        )}
+
+        {!forgotPassword && (
+          <p className="mt-3 text-center text-[10px] leading-5 text-white/45">
+            <button
+              type="button"
+              onClick={() => {
+                setForgotPassword(true);
+                setError(null);
+              }}
+              className="underline underline-offset-4 text-brand-300 hover:text-brand-200"
+            >
+              نسيت كلمة المرور؟
+            </button>
+          </p>
+        )}
       </div>
       </div>
     </section>

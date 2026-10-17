@@ -25,6 +25,7 @@ import {
   UserCog,
   UserRoundCheck,
   UsersRound,
+  RefreshCw,
 } from "lucide-react";
 import QuoteInbox from "../admin/QuoteInbox";
 import CmsPanel from "../admin/cms/CmsPanel";
@@ -150,6 +151,17 @@ export default function AdminDashboard({ userId }: { userId: string }) {
     }
   };
 
+  const clearCache = () => {
+    // مسح Cache Storage للمتصفح ثم إعادة تحميل الصفحة لجلب نسخة index.html الجديدة
+    // المنشورة حديثًا (رأسها no-cache, must-revalidate بعد آخر publish).
+    if (typeof window !== "undefined" && "caches" in window) {
+      void (caches as CacheStorage).keys().then((names) => {
+        for (const name of names) void (caches as CacheStorage).delete(name);
+      });
+    }
+    window.location.href = window.location.pathname + "?v=" + Date.now();
+  };
+
   return (
     <section dir="rtl" className={`admin-shell dashboard-${theme} min-h-screen bg-[#080b12] text-white`}>
       <header className="sticky top-0 z-40 border-b border-white/[0.07] bg-[#080b12]/95 backdrop-blur-xl">
@@ -163,6 +175,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
             <a href="/" target="_blank" rel="noreferrer" className="admin-button-secondary hidden sm:inline-flex">عرض الموقع</a>
             <span className="hidden max-w-44 truncate text-[9.5px] text-white/35 lg:block" dir="ltr">{email}</span>
             <span className="rounded-full border border-brand-500/20 bg-brand-500/[0.06] px-2.5 py-1 text-[9px] font-bold text-brand-200">{role}</span>
+            <button type="button" onClick={() => void clearCache()} className="admin-icon-button text-brand-300 hover:text-brand-200" aria-label="مسح الكاش وإعادة تحميل الصفحة"><RefreshCw className="h-3.5 w-3.5" /></button>
             <button type="button" onClick={() => void logout()} className="admin-icon-button text-red-300" aria-label="تسجيل الخروج"><LogOut className="h-3.5 w-3.5" /></button>
           </div>
         </div>
