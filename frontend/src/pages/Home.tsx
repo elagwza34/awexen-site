@@ -2,7 +2,7 @@ import { CmsSectionsProvider } from "../context/CmsContext";
 import { CmsStyleSheet } from "../context/CmsStyleSheet";
 import { FEATURES } from "../lib/features";
 import Hero from "../components/Hero";
-import Brands from "../components/Brands";
+import Clients from "../components/Clients";
 import Services from "../components/Services";
 import Portfolio from "../components/Portfolio";
 import Process from "../components/Process";
@@ -17,7 +17,7 @@ export default function Home() {
     <CmsSectionsProvider pageSlug="home">
       <CmsStyleSheet>
         <Hero />
-        <Brands />
+        <Clients />
         <Services />
         <Portfolio />
         <Process />
