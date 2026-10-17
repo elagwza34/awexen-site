@@ -1,57 +1,57 @@
 import { useEffect, useState } from "react";
 import { useSection } from "../context/CmsContext";
 import CmsEditable from "../admin/cms/CmsEditable";
-import { Reveal } from "./ui";
+import { Reveal, SmartImage } from "./ui";
 import { supabase } from "../lib/supabase";
 
-type ClientRow = {
+type TrustedLogoRow = {
   id: string;
   name: string;
-  company: string;
-  email: string;
-  phone: string;
-  stage: string;
-  service: string;
-  created_at: string;
-  is_active: boolean;
+  logo_url: string;
+  sort_order: number;
 };
 
 function Row({ reverse = false }: { reverse?: boolean }) {
-  const [clients, setClients] = useState<ClientRow[]>([]);
+  const [logos, setLogos] = useState<TrustedLogoRow[]>([]);
 
   useEffect(() => {
     if (!supabase) return;
     void supabase
-      .from("clients")
+      .from("trusted_logos")
       .select("*")
-      .order("created_at", { ascending: false })
+      .order("sort_order", { ascending: true })
       .then(({ data }) => {
-        if (data) setClients(data as ClientRow[]);
+        if (data) setLogos(data as TrustedLogoRow[]);
       });
   }, []);
 
-  const items = [...clients, ...clients, ...clients, ...clients];
+  const items = [...logos, ...logos, ...logos, ...logos];
 
   return (
     <div className="marquee-mask overflow-hidden" dir="ltr" aria-hidden="true">
       <div
-        className={`flex w-max items-center gap-4 ${
+        className={`flex w-max items-center gap-6 ${
           reverse ? "animate-marquee-rev" : "animate-marquee"
         }`}
       >
-        {items.map((c, i) => (
+        {items.map((logo, i) => (
           <div
-            key={`${c.id}-${i}`}
-            className="group flex h-[72px] min-w-[186px] items-center justify-center gap-3 rounded-2xl border border-ink-100 bg-white px-8 shadow-[var(--shadow-soft)] transition-all duration-400 hover:-translate-y-1 hover:border-brand-500/40"
+            key={`${logo.id}-${i}`}
+            className="group flex h-[72px] min-w-[200px] items-center justify-center rounded-2xl border border-ink-100 bg-white px-8 shadow-[var(--shadow-soft)] transition-all duration-400 hover:-translate-y-1 hover:border-brand-500/40"
           >
-            <span
-              className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500/10 text-brand-500 transition-colors duration-300 group-hover:bg-brand-500 group-hover:text-white"
-            >
-              {c.company.charAt(0)}
-            </span>
-            <span className="text-lg font-extrabold text-ink-700 transition-colors duration-300 group-hover:text-brand-600">
-              {c.company}
-            </span>
+            {logo.logo_url ? (
+              <SmartImage
+                src={logo.logo_url}
+                alt={logo.name || "عميل"}
+                label={logo.name || "عميل"}
+                fallbackClass="from-orange-500/80 to-amber-600/80"
+                className="h-[40px] w-auto object-contain"
+              />
+            ) : (
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500/10 text-brand-500">
+                {(logo.name ?? "د").charAt(0)}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -75,7 +75,7 @@ export default function Clients() {
           <Reveal delay={90}>
             <CmsEditable section="clients" element="description">
               <p className="text-[15px] text-ink-400">
-                {cms.text("description", "شراكات ناجحة ومشاريع Slivered معها")}
+                {cms.text("description", "شراكات ناجحة ومشاريع نفذناها معهم")}
               </p>
             </CmsEditable>
           </Reveal>

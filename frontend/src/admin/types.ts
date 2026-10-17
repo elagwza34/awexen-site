@@ -30,7 +30,7 @@ export type FieldDefinition = {
   key: string;
   label: string;
   type?: "text" | "textarea" | "number" | "url" | "image" | "date" | "datetime-local" | "select" | "managed-select" | "checkbox";
-  storageBucket?: "course-images" | "portfolio-media";
+  storageBucket?: "course-images" | "portfolio-media" | "client-logos";
   placeholder?: string;
   required?: boolean;
   nullable?: boolean;

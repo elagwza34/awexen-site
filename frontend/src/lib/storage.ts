@@ -8,7 +8,7 @@ function safeFileName(name: string) {
   return `${crypto.randomUUID()}.${extension}`;
 }
 
-export async function uploadPublicImage(file: File, bucket: "course-images" | "portfolio-media", folder: string) {
+export async function uploadPublicImage(file: File, bucket: "course-images" | "portfolio-media" | "client-logos", folder: string) {
   if (!supabase) throw new Error("اتصال Supabase غير مهيأ حاليًا.");
   if (!allowedImageTypes.has(file.type)) throw new Error("استخدم صورة JPG أو PNG أو WebP أو AVIF.");
   if (file.size > maximumImageSize) throw new Error("حجم الصورة يجب ألا يتجاوز 8 ميجابايت.");

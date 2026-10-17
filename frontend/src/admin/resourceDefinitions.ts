@@ -232,4 +232,23 @@ export const resources = {
       { key: "source_url", label: "رابط المصدر الخارجي — اختياري", type: "url", nullable: true, wide: true },
     ],
   },
+  trusted_logos: {
+    table: "trusted_logos",
+    title: "لوجوهات العملاء الموثوقة",
+    singular: "لوجو",
+    description: "أضف لوجوهات العملاء الذين تثق بهم وأظهرهم في قسم «عملاء نفتخر بها» على الصفحة الرئيسية.",
+    titleKey: "name",
+    orderBy: "sort_order",
+    orderAscending: true,
+    defaults: {
+      name: "",
+      logo_url: "",
+      sort_order: 0,
+    },
+    fields: [
+      { key: "name", label: "اسم العميل (للإشارة الداخلية والنص البديل)", required: true },
+      { key: "logo_url", label: "صورة اللوجو", type: "image", storageBucket: "client-logos", required: true, wide: true },
+      { key: "sort_order", label: "الترتيب", type: "number", min: 0 },
+    ],
+  },
 } satisfies Record<string, ResourceDefinition>;
