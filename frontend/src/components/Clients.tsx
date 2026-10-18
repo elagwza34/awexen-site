@@ -39,12 +39,37 @@ function Row({ reverse = false }: { reverse?: boolean }) {
   }, [supabase]);
 
   useEffect(() => {
+    // جلب مباشر من جدول trusted_logos عند تحميل المكون
     void fetchLogos();
 
-    // إعادة جلب اللوجوهات عند حفظ تعديلات من لوحة الإدارة (مثل إضافة لوجوهات جديدة)
+    // اشتراك فوري: أي لوجو يُضاف أو يُعدل أو يُحذف من لوحة الإدارة يظهر فوراً هنا
+    if (supabase) {
+      const channel = supabase
+        .channel("trusted-logos-changes")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "trusted_logos",
+          },
+          () => void fetchLogos()
+        )
+        .subscribe();
+
+      // إعادة جلب اللوجوهات عند حفظ تعديلات من لوحة الإدارة (مثل إضافة لوجوهات جديدة)
+      window.addEventListener("awexen-content-updated", fetchLogos);
+
+      return () => {
+        window.removeEventListener("awexen-content-updated", fetchLogos);
+        supabase?.removeChannel(channel);
+      };
+    }
+
+    // لو supabase غير مهيأ، نعتمد على الحدث وحده
     window.addEventListener("awexen-content-updated", fetchLogos);
     return () => window.removeEventListener("awexen-content-updated", fetchLogos);
-  }, [fetchLogos]);
+  }, [supabase, fetchLogos]);
 
   const items = [...logos, ...logos, ...logos, ...logos];
 
