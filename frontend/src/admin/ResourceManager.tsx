@@ -139,13 +139,15 @@ function fingerprint(value: AdminRow) {
   return JSON.stringify(value);
 }
 
-function Field({ field, value, onChange, onSync, onImageUpload, uploading }: {
+function Field({ field, value, onChange, onSync, onImageUpload, onImagesUpload, uploading }: {
   field: FieldDefinition;
   value: unknown;
   onChange: (value: unknown) => void;
   /** بيكتب في حقل تاني غير الحالي (مفتاحه بييجي من بره). */
   onSync?: (key: string, value: unknown) => void;
   onImageUpload?: (file: File) => void;
+  /** برفع صور متعددة ويبني من كل صورة سطر منفصل في الجدول. */
+  onImagesUpload?: (files: File[]) => void;
   uploading?: boolean;
 }) {
   const inputId = useId();
@@ -199,8 +201,13 @@ function Field({ field, value, onChange, onSync, onImageUpload, uploading }: {
   }
 
   if (field.type === "image") {
-    const selectFile = (file: File | undefined) => {
-      if (file && !uploading) onImageUpload?.(file);
+    const selectFiles = (files: File[]) => {
+      if (uploading) return;
+      if (files.length > 1) {
+        onImagesUpload?.(files);
+      } else if (files.length === 1) {
+        onImageUpload?.(files[0]);
+      }
     };
 
     return (
@@ -226,7 +233,7 @@ function Field({ field, value, onChange, onSync, onImageUpload, uploading }: {
           onDrop={(event) => {
             event.preventDefault();
             setDragging(false);
-            selectFile(event.dataTransfer.files?.[0]);
+            selectFiles(Array.from(event.dataTransfer.files ?? []));
           }}
           className={`flex min-h-28 items-center justify-center rounded-xl border border-dashed px-4 py-5 text-center transition ${uploading ? "cursor-wait border-brand-500/25 bg-brand-500/[0.03] opacity-70" : dragging ? "cursor-copy border-brand-400 bg-brand-500/15" : "cursor-pointer border-brand-500/35 bg-brand-500/[0.05] hover:border-brand-400 hover:bg-brand-500/10"}`}
           aria-busy={uploading}
@@ -242,9 +249,10 @@ function Field({ field, value, onChange, onSync, onImageUpload, uploading }: {
             type="file"
             accept="image/jpeg,image/png,image/webp,image/avif"
             disabled={uploading}
+            multiple
             className="sr-only"
             onChange={(event) => {
-              selectFile(event.target.files?.[0]);
+              selectFiles(Array.from(event.target.files ?? []));
               event.target.value = "";
             }}
           />
@@ -543,6 +551,59 @@ export default function ResourceManager({ definition, draftOwnerId }: { definiti
     }
   };
 
+  /** يرفع صوراً متعددة ويبني من كل صورة سطراً منفصلاً في الجدول (مثل لوجوهات العملاء). */
+  const uploadImages = async (field: FieldDefinition, files: File[]) => {
+    if (!supabase || !field.storageBucket || uploadingField) return;
+    setUploadingField(field.key);
+    setError(null);
+
+    let successCount = 0;
+    let failCount = 0;
+
+    try {
+      const maxSort = rows.reduce((max, row) => {
+        const v = Number(row["sort_order"] ?? 0);
+        return v > max ? v : max;
+      }, 0);
+
+      const hasNameField = definition.fields.some((f) => f.key === "name");
+      const hasSortField = definition.fields.some((f) => f.key === "sort_order");
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          const url = await uploadPublicImage(file, field.storageBucket, `${definition.table}-bulk`);
+
+          const payload: AdminRow = { [field.key]: url };
+          if (hasNameField) {
+            payload.name = file.name.replace(/\.[^/.]+$/, "");
+          }
+          if (hasSortField) {
+            payload.sort_order = maxSort + 1 + i;
+          }
+
+          const { error } = await supabase.from(definition.table).insert(payload);
+          if (error) throw error;
+          successCount++;
+        } catch (err) {
+          failCount++;
+          console.error(`فشل رفع ${file.name}:`, err);
+        }
+      }
+
+      await load();
+    } finally {
+      setUploadingField("");
+    }
+
+    if (failCount > 0) {
+      setError(`تم رفع ${successCount} عنصرًا بنجاح وفشل ${failCount}.`);
+    } else if (successCount > 0) {
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 1800);
+    }
+  };
+
   const openStoredFile = async (path: string) => {
     if (!supabase) return;
     const { data, error: signedUrlError } = await supabase.storage.from("knowledge-files").createSignedUrl(path, 60);
@@ -610,6 +671,7 @@ export default function ResourceManager({ definition, draftOwnerId }: { definiti
                     setForm((current) => ({ ...current, [key]: value }));
                   }}
                   onImageUpload={(file) => void uploadImage(field, file)}
+                  onImagesUpload={(files) => void uploadImages(field, files)}
                   uploading={uploadingField === field.key}
                 />
               </div>
