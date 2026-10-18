@@ -24,7 +24,7 @@ async function fetchTrustedLogos(): Promise<TrustedLogo[]> {
 function LogoCard({ logo }: { logo: TrustedLogo }) {
   const [failed, setFailed] = useState(false);
   return (
-    <div className="flex h-[180px] min-w-[240px] shrink-0 items-center justify-center px-2">
+    <div className="flex h-[150px] min-w-[230px] shrink-0 items-center justify-center px-2">
       {failed || !logo.logo_url ? (
         <span className="text-xl font-extrabold text-ink-700">{logo.name || "عميل"}</span>
       ) : (
@@ -34,7 +34,7 @@ function LogoCard({ logo }: { logo: TrustedLogo }) {
           loading="lazy"
           decoding="async"
           onError={() => setFailed(true)}
-          className="h-[128px] w-auto max-w-[260px] object-contain"
+          className="h-[100px] w-auto max-w-[220px] object-contain"
         />
       )}
     </div>

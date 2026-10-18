@@ -761,11 +761,11 @@
 }
 
 .trusted-marquee {
-  animation: trusted-marquee-move 120s linear infinite;
+  animation: trusted-marquee-move 200s linear infinite;
 }
 
 .trusted-marquee-rev {
-  animation: trusted-marquee-move-rev 140s linear infinite;
+  animation: trusted-marquee-move-rev 240s linear infinite;
 }
 
 .trusted-logos-marquee:hover .trusted-marquee,
