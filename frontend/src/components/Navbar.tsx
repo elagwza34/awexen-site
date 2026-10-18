@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowLeft, ChevronDown, Languages, LayoutDashboard, LogIn, Menu, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, Languages, LayoutDashboard, LogIn, Menu, X } from "lucide-react";
 import { useContent } from "../context/ContentContext";
 import { useLanguage } from "../context/LanguageContext";
 import { loadDashboardAccess } from "../lib/roleRouting";
@@ -302,7 +302,7 @@ export default function Navbar() {
                 to="/contact"
                 className="hidden items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-[14px] font-bold text-white shadow-lg shadow-brand-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 hover:shadow-[var(--shadow-brand)] sm:inline-flex"
               >
-                <Sparkles className="h-4 w-4" />
+                <ArrowLeft className="h-4 w-4" />
                 {t("nav.startProject")}
               </Link>
             </CmsEditable>
@@ -451,7 +451,7 @@ export default function Navbar() {
               onClick={() => setDrawer(false)}
               className="flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-5 py-3.5 font-bold text-white shadow-lg shadow-brand-500/25"
             >
-              <Sparkles className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4" />
               {t("nav.startProject")}
             </Link>
           </div>

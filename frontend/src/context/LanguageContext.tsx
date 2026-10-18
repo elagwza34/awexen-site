@@ -34,7 +34,7 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
   "nav.bookConsult": { ar: "احجز استشارة", en: "Book a Call" },
   "nav.signup": { ar: "تسجيل جديد / دخول", en: "Sign up / Login" },
   "nav.dashboard": { ar: "لوحة التحكم", en: "Dashboard" },
-  "nav.startProject": { ar: "ابدأ من هنا", en: "Start here" },
+  "nav.startProject": { ar: "ابدأ الأن  ", en: "Start here" },
   "nav.newProjectBanner": {
     ar: "عندك مشروع جديد؟ أرسل المطلوب وسنرتب معك النطاق والخطوات —",
     en: "Have a new project? Send us the details and we will arrange the domain and steps —",
