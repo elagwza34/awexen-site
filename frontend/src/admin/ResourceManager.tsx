@@ -592,6 +592,8 @@ export default function ResourceManager({ definition, draftOwnerId }: { definiti
       }
 
       await load();
+      // إشعار الواجهة العامة بإعادة جلب اللوجوهات
+      window.dispatchEvent(new Event("awexen-content-updated"));
     } finally {
       setUploadingField("");
     }
