@@ -1,148 +1,110 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSection } from "../context/CmsContext";
 import CmsEditable from "../admin/cms/CmsEditable";
-import { Reveal, SmartImage } from "./ui";
+import { Reveal } from "./ui";
 import { supabase } from "../lib/supabase";
 
-type TrustedLogoRow = {
+export type TrustedLogo = {
   id: string;
   name: string;
   logo_url: string;
   sort_order: number;
 };
 
-/** لوجوهات افتراضية — تظهر فوراً لحد ما اللوجوهات الحقيقية توصل من Supabase. */
-const FALLBACK_LOGOS: TrustedLogoRow[] = [
-  { id: "fallback-1", name: "عميل 1", logo_url: "", sort_order: 1 },
-  { id: "fallback-2", name: "عميل 2", logo_url: "", sort_order: 2 },
-  { id: "fallback-3", name: "عميل 3", logo_url: "", sort_order: 3 },
-  { id: "fallback-4", name: "عميل 4", logo_url: "", sort_order: 4 },
-];
+async function fetchTrustedLogos(): Promise<TrustedLogo[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("trusted_logos")
+    .select("id,name,logo_url,sort_order")
+    .order("sort_order", { ascending: true });
+  if (error || !data) return [];
+  return (data as TrustedLogo[]).filter((row) => row.logo_url);
+}
 
-function Row({ reverse = false }: { reverse?: boolean }) {
-  const [logos, setLogos] = useState<TrustedLogoRow[]>(FALLBACK_LOGOS);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+function LogoCard({ logo }: { logo: TrustedLogo }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <div className="group flex h-[72px] min-w-[200px] items-center justify-center rounded-2xl border border-ink-100 bg-white px-8 shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:border-brand-500/40">
+      {failed || !logo.logo_url ? (
+        <span className="text-sm font-extrabold text-ink-700">{logo.name || "عميل"}</span>
+      ) : (
+        <img
+          src={logo.logo_url}
+          alt={logo.name || "شعار عميل"}
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+          className="h-[40px] w-auto max-w-[150px] object-contain"
+        />
+      )}
+    </div>
+  );
+}
 
-  const fetchLogos = useCallback(async () => {
-    if (!supabase) {
-      // بدون اتصال: نعرض البديل فقط بدون خطأ ظاهر
-      setLoading(false);
-      return;
-    }
-    setError(null);
+function LogoMarquee({ logos, reverse = false }: { logos: TrustedLogo[]; reverse?: boolean }) {
+  if (logos.length === 0) return null;
+  const items = [...logos, ...logos, ...logos, ...logos];
+  return (
+    <div className="marquee-mask overflow-hidden" dir="ltr" aria-hidden={false} aria-label="شعارات العملاء">
+      <div className={`flex w-max items-center gap-6 ${reverse ? "animate-marquee-rev" : "animate-marquee"}`}>
+        {items.map((logo, i) => (
+          <LogoCard key={`${logo.id}-${i}`} logo={logo} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * سكشن لوجوهات العملاء الموثوقة — يسحب مباشرة من جدول trusted_logos.
+ * - لا يعتمد على SmartImage ولا على أي صلاحية غير القراءة العامة.
+ * - لو الجدول فاضي أو الطلب فشل: السكشن كله يختفي بدون أي أثر.
+ */
+export function TrustedLogos() {
+  const [logos, setLogos] = useState<TrustedLogo[]>([]);
+
+  const load = useCallback(async () => {
     try {
-      // مهلة 8 ثواني عشان الواجهة ما تعلقش على التحميل لو الطلب اتعطل
-      const query = supabase
-        .from("trusted_logos")
-        .select("*")
-        .order("sort_order", { ascending: true });
-      const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("انتهت مهلة جلب اللوجوهات — تحقق من الاتصال أو سياسات RLS.")), 8000)
-      );
-      const { data, error: supabaseError } = await Promise.race([query, timeout]);
-      if (supabaseError) throw supabaseError;
-      // لو الجدول فيه لوجوهات حقيقية نعرضها، غير كده نفضل على البديل
-      if (data && data.length > 0) setLogos(data as TrustedLogoRow[]);
-    } catch (err) {
-      // نفضل عارضين البديل بدل ما نكسر السكشن — ونخزن الخطأ للتشخيص فقط
-      try {
-        console.warn("[clients] logos fetch failed:", err);
-      } catch {
-        /* ignore */
-      }
-    } finally {
-      setLoading(false);
+      const rows = await Promise.race([
+        fetchTrustedLogos(),
+        new Promise<TrustedLogo[]>((resolve) => setTimeout(() => resolve([]), 8000)),
+      ]);
+      if (rows.length > 0) setLogos(rows);
+    } catch {
+      /* يفضل السكشن مخفياً بدل عرضه مكسوراً */
     }
   }, []);
 
   useEffect(() => {
-    // جلب مباشر من جدول trusted_logos عند تحميل المكون
-    void fetchLogos();
-
-    // اشتراك فوري: أي لوجو يُضاف أو يُعدل أو يُحذف من لوحة الإدارة يظهر فوراً هنا
-    let channel: { unsubscribe: () => void } | null = null;
+    void load();
+    let channel: { unsubscribe?: () => void } | null = null;
     try {
-      if (supabase) {
-        channel = supabase
-          .channel("trusted-logos-changes")
-          .on(
-            "postgres_changes",
-            {
-              event: "*",
-              schema: "public",
-              table: "trusted_logos",
-            },
-            () => void fetchLogos()
-          )
-          .subscribe() as unknown as { unsubscribe: () => void };
-      }
+      channel =
+        (supabase
+          ?.channel("trusted-logos-live")
+          .on("postgres_changes", { event: "*", schema: "public", table: "trusted_logos" }, () => void load())
+          .subscribe() as unknown as { unsubscribe?: () => void }) ?? null;
     } catch {
       channel = null;
     }
-
-    // إعادة جلب اللوجوهات عند حفظ تعديلات من لوحة الإدارة (مثل إضافة لوجوهات جديدة)
-    const onContentUpdated = () => {
-      try {
-        void fetchLogos();
-      } catch {
-        /* لا تكسر الصفحة لو فشل التحديث */
-      }
-    };
-    window.addEventListener("awexen-content-updated", onContentUpdated);
-
+    const onUpdate = () => void load();
+    window.addEventListener("awexen-content-updated", onUpdate);
     return () => {
-      window.removeEventListener("awexen-content-updated", onContentUpdated);
+      window.removeEventListener("awexen-content-updated", onUpdate);
       try {
-        if (channel && typeof channel.unsubscribe === "function") channel.unsubscribe();
-        else (supabase as unknown as { removeChannel?: (c: unknown) => void })?.removeChannel?.(channel);
+        channel?.unsubscribe?.();
       } catch {
-        /* تجاهل أخطاء التنظيف */
+        /* ignore */
       }
     };
-  }, [fetchLogos]);
+  }, [load]);
 
-  const items = [...logos, ...logos, ...logos, ...logos];
-
-  // خطأ التشخيص يظهر في الكونسول فقط — الواجهة تفضل عارضة اللوجوهات دائماً
-  if (error) {
-    try {
-      console.warn("[clients]", error);
-    } catch {
-      /* ignore */
-    }
-  }
-
-  void loading;
+  if (logos.length === 0) return null;
 
   return (
-    <div className="marquee-mask overflow-hidden" dir="ltr" aria-hidden="true">
-      <div
-        className={`flex w-max items-center gap-6 ${
-          reverse ? "animate-marquee-rev" : "animate-marquee"
-        }`}
-      >
-        {items.map((logo, i) => (
-          <div
-            key={`${logo.id}-${i}`}
-            className="group flex h-[72px] min-w-[200px] items-center justify-center rounded-2xl border border-ink-100 bg-white px-8 shadow-[var(--shadow-soft)] transition-all duration-400 hover:-translate-y-1 hover:border-brand-500/40"
-          >
-            {logo.logo_url ? (
-              <SmartImage
-                src={logo.logo_url}
-                alt={logo.name || "عميل"}
-                label={logo.name || "عميل"}
-                fallbackClass="from-orange-500/80 to-amber-600/80"
-                className="h-[40px] w-auto object-contain"
-              />
-            ) : (
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500/10 text-brand-500">
-                {(logo.name ?? "د").charAt(0)}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
+    <div className="mt-10 space-y-4">
+      <LogoMarquee logos={logos} />
+      <LogoMarquee logos={logos} reverse />
     </div>
   );
 }
@@ -170,10 +132,8 @@ export default function Clients() {
         </div>
       </div>
 
-      <div className="mt-10 space-y-4">
-        <Row />
-        <Row reverse />
-      </div>
+      <TrustedLogos />
     </section>
   );
 }
+
