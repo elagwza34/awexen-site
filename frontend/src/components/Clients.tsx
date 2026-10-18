@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSection } from "../context/CmsContext";
 import CmsEditable from "../admin/cms/CmsEditable";
 import { Reveal, SmartImage } from "./ui";
@@ -14,16 +14,22 @@ type TrustedLogoRow = {
 function Row({ reverse = false }: { reverse?: boolean }) {
   const [logos, setLogos] = useState<TrustedLogoRow[]>([]);
 
-  useEffect(() => {
+  const fetchLogos = useCallback(async () => {
     if (!supabase) return;
-    void supabase
+    const { data } = await supabase
       .from("trusted_logos")
       .select("*")
-      .order("sort_order", { ascending: true })
-      .then(({ data }) => {
-        if (data) setLogos(data as TrustedLogoRow[]);
-      });
-  }, []);
+      .order("sort_order", { ascending: true });
+    if (data) setLogos(data as TrustedLogoRow[]);
+  }, [supabase]);
+
+  useEffect(() => {
+    void fetchLogos();
+
+    // إعادة جلب اللوجوهات عند حفظ تعديلات من لوحة الإدارة (مثل إضافة لوجوهات جديدة)
+    window.addEventListener("awexen-content-updated", fetchLogos);
+    return () => window.removeEventListener("awexen-content-updated", fetchLogos);
+  }, [fetchLogos]);
 
   const items = [...logos, ...logos, ...logos, ...logos];
 
