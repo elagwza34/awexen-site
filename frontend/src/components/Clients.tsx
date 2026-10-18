@@ -36,40 +36,53 @@ function Row({ reverse = false }: { reverse?: boolean }) {
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     // جلب مباشر من جدول trusted_logos عند تحميل المكون
     void fetchLogos();
 
     // اشتراك فوري: أي لوجو يُضاف أو يُعدل أو يُحذف من لوحة الإدارة يظهر فوراً هنا
-    if (supabase) {
-      const channel = supabase
-        .channel("trusted-logos-changes")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "trusted_logos",
-          },
-          () => void fetchLogos()
-        )
-        .subscribe();
-
-      // إعادة جلب اللوجوهات عند حفظ تعديلات من لوحة الإدارة (مثل إضافة لوجوهات جديدة)
-      window.addEventListener("awexen-content-updated", fetchLogos);
-
-      return () => {
-        window.removeEventListener("awexen-content-updated", fetchLogos);
-        supabase?.removeChannel(channel);
-      };
+    let channel: { unsubscribe: () => void } | null = null;
+    try {
+      if (supabase) {
+        channel = supabase
+          .channel("trusted-logos-changes")
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "trusted_logos",
+            },
+            () => void fetchLogos()
+          )
+          .subscribe() as unknown as { unsubscribe: () => void };
+      }
+    } catch {
+      channel = null;
     }
 
-    // لو supabase غير مهيأ، نعتمد على الحدث وحده
-    window.addEventListener("awexen-content-updated", fetchLogos);
-    return () => window.removeEventListener("awexen-content-updated", fetchLogos);
-  }, [supabase, fetchLogos]);
+    // إعادة جلب اللوجوهات عند حفظ تعديلات من لوحة الإدارة (مثل إضافة لوجوهات جديدة)
+    const onContentUpdated = () => {
+      try {
+        void fetchLogos();
+      } catch {
+        /* لا تكسر الصفحة لو فشل التحديث */
+      }
+    };
+    window.addEventListener("awexen-content-updated", onContentUpdated);
+
+    return () => {
+      window.removeEventListener("awexen-content-updated", onContentUpdated);
+      try {
+        if (channel && typeof channel.unsubscribe === "function") channel.unsubscribe();
+        else (supabase as unknown as { removeChannel?: (c: unknown) => void })?.removeChannel?.(channel);
+      } catch {
+        /* تجاهل أخطاء التنظيف */
+      }
+    };
+  }, [fetchLogos]);
 
   const items = [...logos, ...logos, ...logos, ...logos];
 

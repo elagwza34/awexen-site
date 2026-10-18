@@ -1,4 +1,5 @@
 import {
+  Component,
   type ReactNode,
   type ImgHTMLAttributes,
   useEffect,
@@ -32,6 +33,43 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { cn } from "../utils/cn";
+
+/** حد أمان عام: أي كراش في أي مكون يعرض رسالة بدل الشاشة البيضاء. */
+export class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error) {
+    try {
+      console.error("[awexen] render error:", error);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#fff", padding: 24, textAlign: "center", direction: "rtl" }}>
+          <div>
+            <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>حدث خطأ مؤقت في تحميل الصفحة</h1>
+            <p style={{ color: "#666", marginBottom: 16 }}>يرجى تحديث الصفحة، ولو استمرت المشكلة امسح كاش المتصفح.</p>
+            <button
+              onClick={() => window.location.reload()}
+              style={{ background: "#ff5a0a", color: "#fff", border: 0, borderRadius: 10, padding: "10px 22px", fontWeight: 700, cursor: "pointer" }}
+            >
+              تحديث الصفحة
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 /* ============================ Motion helpers ============================ */
 
