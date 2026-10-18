@@ -24,7 +24,7 @@ async function fetchTrustedLogos(): Promise<TrustedLogo[]> {
 function LogoCard({ logo }: { logo: TrustedLogo }) {
   const [failed, setFailed] = useState(false);
   return (
-    <div className="flex h-[96px] min-w-[118px] shrink-0 items-center justify-center px-1.5 sm:h-[150px] sm:min-w-[230px] sm:px-2">
+    <div className="flex h-[88px] min-w-[118px] shrink-0 items-center justify-center px-1.5 sm:h-[120px] sm:min-w-[230px] sm:px-2">
       {failed || !logo.logo_url ? (
         <span className="text-base font-extrabold text-ink-700 sm:text-xl">{logo.name || "عميل"}</span>
       ) : (
@@ -34,7 +34,7 @@ function LogoCard({ logo }: { logo: TrustedLogo }) {
           loading="lazy"
           decoding="async"
           onError={() => setFailed(true)}
-          className="h-[52px] w-auto max-w-[104px] object-contain sm:h-[100px] sm:max-w-[220px]"
+          className="h-[48px] w-auto max-w-[104px] object-contain sm:h-[80px] sm:max-w-[220px]"
         />
       )}
     </div>
@@ -102,7 +102,7 @@ export function TrustedLogos() {
   if (logos.length === 0) return null;
 
   return (
-    <div className="mt-10">
+    <div className="mt-6">
       <LogoMarquee logos={logos} />
     </div>
   );
@@ -111,7 +111,7 @@ export function TrustedLogos() {
 export default function Clients() {
   const cms = useSection("clients");
   return (
-    <section className="relative overflow-hidden bg-white py-16 sm:py-20">
+    <section className="relative overflow-hidden bg-white py-10 sm:py-12">
       <div className="container-x">
         <div className="flex flex-col items-center gap-3 text-center">
           <Reveal>
