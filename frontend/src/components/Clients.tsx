@@ -24,9 +24,9 @@ async function fetchTrustedLogos(): Promise<TrustedLogo[]> {
 function LogoCard({ logo }: { logo: TrustedLogo }) {
   const [failed, setFailed] = useState(false);
   return (
-    <div className="group flex h-[72px] min-w-[200px] items-center justify-center rounded-2xl border border-ink-100 bg-white px-8 shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:border-brand-500/40">
+    <div className="flex h-[110px] min-w-[280px] items-center justify-center px-6">
       {failed || !logo.logo_url ? (
-        <span className="text-sm font-extrabold text-ink-700">{logo.name || "عميل"}</span>
+        <span className="text-base font-extrabold text-ink-700">{logo.name || "عميل"}</span>
       ) : (
         <img
           src={logo.logo_url}
@@ -34,7 +34,7 @@ function LogoCard({ logo }: { logo: TrustedLogo }) {
           loading="lazy"
           decoding="async"
           onError={() => setFailed(true)}
-          className="h-[40px] w-auto max-w-[150px] object-contain"
+          className="h-[64px] w-auto max-w-[220px] object-contain"
         />
       )}
     </div>
@@ -45,8 +45,8 @@ function LogoMarquee({ logos, reverse = false }: { logos: TrustedLogo[]; reverse
   if (logos.length === 0) return null;
   const items = [...logos, ...logos, ...logos, ...logos];
   return (
-    <div className="marquee-mask overflow-hidden" dir="ltr" aria-hidden={false} aria-label="شعارات العملاء">
-      <div className={`flex w-max items-center gap-6 ${reverse ? "animate-marquee-rev" : "animate-marquee"}`}>
+    <div className="trusted-logos-marquee overflow-hidden" dir="ltr" aria-hidden={false} aria-label="شعارات العملاء">
+      <div className={`flex w-max items-center gap-10 ${reverse ? "trusted-marquee-rev" : "trusted-marquee"}`}>
         {items.map((logo, i) => (
           <LogoCard key={`${logo.id}-${i}`} logo={logo} />
         ))}
