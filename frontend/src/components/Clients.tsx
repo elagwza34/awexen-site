@@ -41,12 +41,12 @@ function LogoCard({ logo }: { logo: TrustedLogo }) {
   );
 }
 
-function LogoMarquee({ logos, reverse = false }: { logos: TrustedLogo[]; reverse?: boolean }) {
+function LogoMarquee({ logos }: { logos: TrustedLogo[] }) {
   if (logos.length === 0) return null;
   const items = [...logos, ...logos, ...logos, ...logos, ...logos, ...logos];
   return (
     <div className="trusted-logos-marquee overflow-hidden" dir="ltr" aria-hidden={false} aria-label="شعارات العملاء">
-      <div className={`flex w-max items-center gap-1 ${reverse ? "trusted-marquee-rev" : "trusted-marquee"}`}>
+      <div className="flex w-max items-center gap-1 trusted-marquee">
         {items.map((logo, i) => (
           <LogoCard key={`${logo.id}-${i}`} logo={logo} />
         ))}
@@ -102,9 +102,8 @@ export function TrustedLogos() {
   if (logos.length === 0) return null;
 
   return (
-    <div className="mt-10 space-y-4">
+    <div className="mt-10">
       <LogoMarquee logos={logos} />
-      <LogoMarquee logos={logos} reverse />
     </div>
   );
 }
