@@ -132,11 +132,11 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
 
   // ---------- الواجهة الرئيسية ----------
   "hero.badge": { ar: "تصميم وبرمجة مواقع للشركات", en: "Web design and development for businesses" },
-  "hero.title1": { ar: "موقع يشرح شغلك", en: "A website that explains your business" },
-  "hero.highlight": { ar: "ويحوّل الزيارة إلى طلب واضح", en: "and turns visits into clear requests" },
+  "hero.title1": { ar: "أفضل طريقة لإنشاء وتصميم", en: "The best way to create and design" },
+  "hero.highlight": { ar: "موقع الكتروني لشركتك", en: "a website for your company" },
   "hero.desc": {
-    ar: "نخطط المحتوى، نصمم الواجهة، ونبرمج الموقع أو المتجر مع ربط النماذج والقياس. تعرف ما الذي سيُنفذ، ومتى تراجعه، وما الذي تدفع مقابله.",
-    en: "We plan the content, design the interface, and build your website or store with forms and analytics. You know what will be delivered, when to review it, and what you are paying for.",
+    ar: "ازالة رد اوليي خلال يوم عمل وعرض سعر بنطاق ومراحل واضحة",
+    en: "Initial reply within one business day, and a quote with clear scope and milestones.",
   },
   "hero.ctaPrimary": { ar: "شاهد مشاريع نفذناها", en: "View our projects" },
   "hero.ctaSecondary": { ar: "اختر الخدمة المناسبة", en: "Choose the right service" },

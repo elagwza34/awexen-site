@@ -37,10 +37,10 @@ export const navLinks = [
 ];
 
 export const stats = [
-  { value: "24", label: "ساعة للرد الأولي" },
-  { value: "3", label: "دفعات متاحة للتقسيط" },
-  { value: "30%", label: "زيادة معلنة للتقسيط" },
-  { value: "RTL", label: "تجربة عربية من البداية" },
+  { value: "24/7", label: "دعم فني" },
+  { value: "243+", label: "مشروع ناجح" },
+  { value: "+6", label: "سنوات الخبره" },
+  { value: "120+", label: "عميل" },
 ];
 
 export const brands = [

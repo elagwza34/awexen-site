@@ -145,10 +145,10 @@ export default function Hero() {
   const cms = useSection("hero");
   const cmsButtons = useSectionButtons("hero");
   const englishStatLabels = [
-    "Hours to initial reply",
-    "Available installments",
-    "Declared installment increase",
-    "Arabic-first experience",
+    "24/7 support",
+    "Successful projects",
+    "Years of experience",
+    "Clients",
   ];
 
   // الزرارات: لو الـ CMS فيه أزرار محفوظة بنستخدمها، وإلا التانية المارد.

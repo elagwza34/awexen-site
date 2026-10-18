@@ -64,7 +64,7 @@ export default function About() {
     "We work through short reviews and clear deliverables. You do not need technical jargon—only an accountable person from your team to review decisions and content on time.",
   ];
   const assurances = isArabic ? ["مسؤول واضح للتواصل والمتابعة", "نطاق ومواعيد مكتوبة قبل التنفيذ", "مراجعات مرحلية بدل انتظار النسخة النهائية", "مدة دعم محددة بعد الإطلاق"] : ["A clear owner for communication", "Written scope and timeline before delivery", "Milestone reviews instead of one final reveal", "A defined support period after launch"];
-  const statLabelsEn = ["Hours to first response", "Available installments", "Declared installment markup", "Arabic-first experience"];
+  const statLabelsEn = ["24/7 support", "Successful projects", "Years of experience", "Clients"];
 
   return (
     <>
