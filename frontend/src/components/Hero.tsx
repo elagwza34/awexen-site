@@ -196,7 +196,13 @@ export default function Hero() {
             {/* قابل للتحرير بصريًا — داخل الـCMS preview بس. العنوان الرئيسي
                 جوه العنوان، والـhighlight يفضل زي ما هو دلوقتي. */}
             <CmsEditable section="hero" element="title">
-              <h1 className="mt-7 text-balance text-[clamp(2.15rem,7vw,5.25rem)] font-black leading-[1.16] tracking-tight text-white">
+              <h1
+                className={`mt-7 text-[clamp(1.35rem,6.6vw,4.4rem)] font-black leading-[1.16] tracking-tight text-white ${
+                  lang === "ar"
+                    ? "w-[min(94vw,62rem)] whitespace-nowrap"
+                    : "text-balance"
+                }`}
+              >
                 {cms.text("title", t("hero.title1"))}
                 <br />
                 <CmsEditable section="hero" element="subtitle">
