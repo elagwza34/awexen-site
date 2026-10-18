@@ -11,28 +11,46 @@ type TrustedLogoRow = {
   sort_order: number;
 };
 
+/** لوجوهات افتراضية — تظهر فوراً لحد ما اللوجوهات الحقيقية توصل من Supabase. */
+const FALLBACK_LOGOS: TrustedLogoRow[] = [
+  { id: "fallback-1", name: "عميل 1", logo_url: "", sort_order: 1 },
+  { id: "fallback-2", name: "عميل 2", logo_url: "", sort_order: 2 },
+  { id: "fallback-3", name: "عميل 3", logo_url: "", sort_order: 3 },
+  { id: "fallback-4", name: "عميل 4", logo_url: "", sort_order: 4 },
+];
+
 function Row({ reverse = false }: { reverse?: boolean }) {
-  const [logos, setLogos] = useState<TrustedLogoRow[]>([]);
+  const [logos, setLogos] = useState<TrustedLogoRow[]>(FALLBACK_LOGOS);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const fetchLogos = useCallback(async () => {
     if (!supabase) {
-      setError("اتصال Supabase غير مهيأ. تأكد من تعيين VITE_SUPABASE_URL و VITE_SUPABASE_PUBLISHABLE_KEY.");
+      // بدون اتصال: نعرض البديل فقط بدون خطأ ظاهر
       setLoading(false);
       return;
     }
-    setLoading(true);
     setError(null);
     try {
-      const { data, error: supabaseError } = await supabase
+      // مهلة 8 ثواني عشان الواجهة ما تعلقش على التحميل لو الطلب اتعطل
+      const query = supabase
         .from("trusted_logos")
         .select("*")
         .order("sort_order", { ascending: true });
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("انتهت مهلة جلب اللوجوهات — تحقق من الاتصال أو سياسات RLS.")), 8000)
+      );
+      const { data, error: supabaseError } = await Promise.race([query, timeout]);
       if (supabaseError) throw supabaseError;
-      if (data) setLogos(data as TrustedLogoRow[]);
+      // لو الجدول فيه لوجوهات حقيقية نعرضها، غير كده نفضل على البديل
+      if (data && data.length > 0) setLogos(data as TrustedLogoRow[]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذر جلب اللوجوهات.");
+      // نفضل عارضين البديل بدل ما نكسر السكشن — ونخزن الخطأ للتشخيص فقط
+      try {
+        console.warn("[clients] logos fetch failed:", err);
+      } catch {
+        /* ignore */
+      }
     } finally {
       setLoading(false);
     }
@@ -86,43 +104,16 @@ function Row({ reverse = false }: { reverse?: boolean }) {
 
   const items = [...logos, ...logos, ...logos, ...logos];
 
+  // خطأ التشخيص يظهر في الكونسول فقط — الواجهة تفضل عارضة اللوجوهات دائماً
   if (error) {
-    return (
-      <div className="marquee-mask overflow-hidden" dir="ltr" aria-hidden="true">
-        <div className="flex w-max items-center gap-6">
-          <div className="group flex h-[72px] min-w-[200px] items-center justify-center rounded-2xl border border-red-500/25 bg-red-500/5 px-8">
-            <span className="text-[11px] text-red-400">{error}</span>
-          </div>
-        </div>
-      </div>
-    );
+    try {
+      console.warn("[clients]", error);
+    } catch {
+      /* ignore */
+    }
   }
 
-  if (loading) {
-    return (
-      <div className="marquee-mask overflow-hidden" dir="ltr" aria-hidden="true">
-        <div className={`flex w-max items-center gap-6 ${reverse ? "animate-marquee-rev" : "animate-marquee"}`}>
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="group flex h-[72px] min-w-[200px] items-center justify-center rounded-2xl border border-ink-100 bg-white px-8">
-              <span className="skeleton h-[40px] w-[120px] rounded-lg" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className="marquee-mask overflow-hidden" dir="ltr" aria-hidden="true">
-        <div className={`flex w-max items-center gap-6 ${reverse ? "animate-marquee-rev" : "animate-marquee"}`}>
-          <div className="group flex h-[72px] min-w-[200px] items-center justify-center rounded-2xl border border-ink-100 bg-white px-8">
-            <span className="text-[11px] text-ink-400">لا توجد لوجوهات مضافة بعد</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  void loading;
 
   return (
     <div className="marquee-mask overflow-hidden" dir="ltr" aria-hidden="true">
