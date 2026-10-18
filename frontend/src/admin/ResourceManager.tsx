@@ -292,6 +292,8 @@ export default function ResourceManager({ definition, draftOwnerId }: { definiti
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
   const [saved, setSaved] = useState(false);
   const [view, setView] = useState<"content" | "draft">("content");
   const [uploadingField, setUploadingField] = useState("");
@@ -496,6 +498,7 @@ export default function ResourceManager({ definition, draftOwnerId }: { definiti
   };
 
   const removeRow = async (row: AdminRow) => {
+
     if (!supabase || !row.id) return;
     const title = String(row[definition.titleKey] ?? "بدون عنوان");
     if (!await confirm({
@@ -519,6 +522,89 @@ export default function ResourceManager({ definition, draftOwnerId }: { definiti
     setRows((current) => current.filter((item) => String(item.id) !== String(row.id)));
     setSaved(true);
   };
+
+  const storagePathFromUrl = (url: string, bucket: string) => {
+    const marker = "/storage/v1/object/public/" + bucket + "/";
+    const idx = url.indexOf(marker);
+    if (idx === -1) return null;
+    return url.slice(idx + marker.length).split("?")[0] || null;
+  };
+
+  const cleanupRowFiles = async (rowsToClean: AdminRow[]) => {
+    if (!supabase) return;
+    const imageFields = definition.fields.filter((f) => f.type === "image" && f.storageBucket);
+    if (imageFields.length === 0) return;
+    for (const item of rowsToClean) {
+      for (const f of imageFields) {
+        const url = typeof item[f.key] === "string" ? String(item[f.key]) : "";
+        if (!url || !f.storageBucket) continue;
+        const fp = storagePathFromUrl(url, f.storageBucket);
+        if (!fp) continue;
+        try { await supabase.storage.from(f.storageBucket).remove([fp]); } catch { /* ignore */ }
+      }
+    }
+  };
+
+  const deleteSingle = async (row: AdminRow) => {
+    if (!supabase || deleting) return;
+    const ok = await confirm({
+      title: "حذف " + definition.singular,
+      description: "سيتم الحذف نهائيا مع الصورة",
+      confirmLabel: "حذف",
+      tone: "danger",
+    });
+    if (!ok) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      const res = await supabase.from(definition.table).delete().eq("id", row.id);
+      if (res.error) throw res.error;
+      await cleanupRowFiles([row]);
+      window.dispatchEvent(new Event("awexen-content-updated"));
+      setSelectedIds(new Set());
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "delete-failed");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const deleteSelected = async () => {
+    if (!supabase || deleting || selectedIds.size === 0) return;
+    const ok = await confirm({
+      title: "حذف المحدد",
+      description: "سيتم حذف العناصر المحددة نهائيا مع صورها",
+      confirmLabel: "حذف",
+      tone: "danger",
+    });
+    if (!ok) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      const targets = rows.filter((item) => selectedIds.has(String(item.id)));
+      const res = await supabase.from(definition.table).delete().in("id", [...selectedIds]);
+      if (res.error) throw res.error;
+      await cleanupRowFiles(targets);
+      window.dispatchEvent(new Event("awexen-content-updated"));
+      setSelectedIds(new Set());
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "delete-many-failed");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
 
   const moveToDraft = async (row: AdminRow) => {
     if (!supabase || !row.id || !definition.statusKey || !supportsDrafts) return;
@@ -629,6 +715,29 @@ export default function ResourceManager({ definition, draftOwnerId }: { definiti
         <div className="flex gap-2">
           <button type="button" onClick={() => void load()} disabled={loading} className="admin-button-secondary"><RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />تحديث</button>
           <button type="button" onClick={() => void openNew()} className="admin-button-primary"><Plus className="h-3.5 w-3.5" />إضافة {definition.singular}</button>
+          {!supportsDrafts && visibleRows.length > 0 && (
+            <label className="admin-button-ghost cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedIds.size === visibleRows.length && visibleRows.length > 0}
+                onChange={() => {
+                  if (selectedIds.size === visibleRows.length) setSelectedIds(new Set());
+                  else setSelectedIds(new Set(visibleRows.map((r) => String(r.id))));
+                }}
+                className="h-3.5 w-3.5 accent-red-500"
+              />
+              تحديد الكل
+            </label>
+          )}
+          {selectedIds.size > 0 && (
+            <>
+              <span className="text-[11.5px] font-bold text-red-200">تم تحديد {selectedIds.size}</span>
+              <button type="button" onClick={() => void deleteSelected()} disabled={deleting} className="admin-button-danger">
+                <Trash2 className="h-3.5 w-3.5" />حذف المحدد ({selectedIds.size})
+              </button>
+              <button type="button" onClick={() => setSelectedIds(new Set())} className="admin-button-ghost">الغاء التحديد</button>
+            </>
+          )}
         </div>
       </div>
 
@@ -701,7 +810,16 @@ export default function ResourceManager({ definition, draftOwnerId }: { definiti
             const publicPath = slug && definition.table === "portfolio_projects" ? `/portfolio/${slug}` : slug && definition.table === "blog_posts" ? `/blog/${slug}` : slug && definition.table === "jobs" ? `/jobs/${slug}` : slug && definition.table === "courses" ? `/courses/${slug}` : slug && definition.table === "content_pages" ? `/pages/${slug}` : null;
             return (
               <div key={String(row.id)} className="flex flex-col gap-3 border-b border-white/8 bg-white/[0.018] px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-start gap-2.5">
+                  {!supportsDrafts && (
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(String(row.id))}
+                      onChange={() => toggleSelect(String(row.id))}
+                      className="mt-1 h-4 w-4 shrink-0 accent-red-500"
+                    />
+                  )}
+                  <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="truncate text-[12.5px] font-bold text-white">{String(row[definition.titleKey] ?? "بدون عنوان")}</h3>
                     {status && <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9.5px] text-white/55">{status}</span>}
@@ -709,10 +827,12 @@ export default function ResourceManager({ definition, draftOwnerId }: { definiti
                   {definition.subtitleKey && <p className="mt-1 truncate text-[10.5px] text-white/35">{String(row[definition.subtitleKey] ?? "")}</p>}
                   {Boolean(row.file_name) && <p dir="ltr" className="mt-1 truncate text-left text-[9.5px] text-brand-300/65">PDF: {String(row.file_name)}</p>}
                 </div>
+                  </div>
                 <div className="flex shrink-0 items-center gap-1.5">
                   {publicPath && status === "published" && <a href={publicPath} target="_blank" rel="noreferrer" className="admin-icon-button" aria-label="فتح الصفحة"><ExternalLink className="h-3.5 w-3.5" /></a>}
                   {typeof row.file_path === "string" && row.file_path && <button type="button" onClick={() => void openStoredFile(row.file_path as string)} className="admin-icon-button" aria-label="فتح ملف PDF"><FileDown className="h-3.5 w-3.5" /></button>}
                   <button type="button" onClick={() => void openEdit(row)} className="admin-icon-button" aria-label="تعديل"><Pencil className="h-3.5 w-3.5" /></button>
+                  {!supportsDrafts && <button type="button" onClick={() => void deleteSingle(row)} disabled={deleting} className="admin-icon-button text-red-300 hover:bg-red-500/10"><Trash2 className="h-3.5 w-3.5" /></button>}
                   {supportsDrafts && status !== "draft" && <button type="button" onClick={() => void moveToDraft(row)} className="admin-icon-button text-red-300 hover:bg-red-500/10" aria-label="نقل إلى المسودات" title="نقل إلى المسودات بدون حذف"><Trash2 className="h-3.5 w-3.5" /></button>}
                   {supportsDrafts && status === "draft" && <button type="button" onClick={() => void removeRow(row)} className="admin-icon-button text-red-300 hover:bg-red-500/10" aria-label="حذف نهائي" title="حذف المسودة نهائيًا"><Trash2 className="h-3.5 w-3.5" /></button>}
                 </div>
