@@ -353,6 +353,8 @@ check("الويبهوك مش مفعّل تلقائيًا", !/create trigger quot
 const adminSrc = readFileSync(resolve(here, "..", "src", "pages", "AdminDashboard.tsx"), "utf8");
 check("اللوحة بتعرض الطلبات", /active === "quotes"/.test(adminSrc));
 check("اللوحة بتقرأ الجدول الصح", /active === "quotes".*QuoteInbox/s.test(adminSrc));
+check("الموثوقات تظهر في الشريط الجانبي", /active === "trusted_logos"/.test(adminSrc));
+check("الموثوقات بتديرهم ResourceManager", /active === "trusted_logos".*ResourceManager/s.test(adminSrc));
 
 // استعلام quote_requests انتقل لمكوّن مخصص بعد ما بقى فيه
 // خط مختصر وتعديل وحذف وعرض سعر، فبنتحقق منه في مكانه.

@@ -63,6 +63,7 @@ const navItems: Array<{
   { key: "pages", label: "الصفحات", icon: FilePlus2, roles: ["owner", "admin", "editor"], group: "المحتوى" },
   { key: "portfolio", label: "معرض الأعمال", icon: Images, roles: ["owner", "admin", "editor"], group: "المحتوى" },
   { key: "blog", label: "المدونة", icon: BookOpenText, roles: ["owner", "admin", "editor"], group: "المحتوى" },
+  { key: "trusted_logos", label: "لوجوهات العملاء الموثوقة", icon: Images, roles: ["owner", "admin", "editor"], group: "المحتوى" },
   { key: "jobs", label: "الوظائف", icon: BriefcaseBusiness, roles: ["owner", "admin", "hr"], group: "التوظيف والتدريب" },
   { key: "applications", label: "طلبات التوظيف", icon: UserRoundCheck, roles: ["owner", "admin", "hr"], group: "التوظيف والتدريب" },
   { key: "courses", label: "الكورسات", icon: GraduationCap, roles: ["owner", "admin", "editor"], group: "التوظيف والتدريب" },
@@ -247,6 +248,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
           {active === "lms" && <LmsManager role={role} />}
           {active === "approvals" && <LmsApprovals role={role} view="courses" />}
           {active === "clients" && <ResourceManager definition={resources.clients} draftOwnerId={userId} />}
+          {active === "trusted_logos" && <ResourceManager definition={resources.trusted_logos} draftOwnerId={userId} />}
           {active === "knowledge" && <KnowledgeManager userId={userId} />}
 
           {active === "messages" && (

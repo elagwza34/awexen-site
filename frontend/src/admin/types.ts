@@ -10,6 +10,7 @@ export type SectionKey =
   | "quotes"
   | "newsletter"
   | "clients"
+  | "trusted_logos"
   | "jobs"
   | "applications"
   | "courses"
