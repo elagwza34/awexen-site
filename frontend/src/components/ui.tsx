@@ -171,7 +171,7 @@ export function CountUp({
   }, [inView, value, duration]);
 
   return (
-    <span ref={ref} className={className}>
+    <span ref={ref} dir="ltr" className={className}>
       {display}
     </span>
   );

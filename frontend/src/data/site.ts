@@ -38,9 +38,9 @@ export const navLinks = [
 
 export const stats = [
   { value: "24/7", label: "دعم فني" },
-  { value: "243+", label: "مشروع ناجح" },
+  { value: "+243", label: "مشروع ناجح" },
   { value: "+6", label: "سنوات الخبره" },
-  { value: "120+", label: "عميل" },
+  { value: "+120", label: "عميل" },
 ];
 
 export const brands = [
