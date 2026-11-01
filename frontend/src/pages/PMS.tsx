@@ -248,7 +248,7 @@ export default function PMS() {
             <ArrowLeft className="h-[18px] w-[18px] transition-transform group-hover:-translate-x-1 rtl:group-hover:translate-x-1" />
           </a>
           <Link
-            to="/contact"
+            to="/quote"
             className="inline-flex items-center gap-2.5 rounded-xl border border-white/15 bg-white/5 px-7 py-3.5 text-[15px] font-semibold text-white backdrop-blur transition-all hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500"
           >
             <MessageCircle className="h-[18px] w-[18px]" />
