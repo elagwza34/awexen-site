@@ -185,7 +185,7 @@ export default function ServiceDetail() {
               </ul>
 
               <Link
-                to="/contact"
+                to="/quote"
                 className="relative mt-7 flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3.5 text-[15px] font-bold text-white transition-colors hover:bg-brand-400"
               >
                 <Sparkles className="h-4 w-4" />
