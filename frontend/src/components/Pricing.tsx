@@ -1,12 +1,8 @@
-import { useEffect, useState } from "react";
 import { Check, Crown, MessageCircle, ShieldCheck } from "lucide-react";
 import { useContent } from "../context/ContentContext";
 import { Reveal, SectionHeading, Spotlight } from "./ui";
 import { cn } from "../utils/cn";
-import { loadPricingSettings, type PricingSettings } from "../lib/cms";
 import { useLanguage } from "../context/LanguageContext";
-
-type Mode = "once" | "split";
 
 const WHATSAPP_NUMBER = "201092400443";
 
@@ -31,16 +27,6 @@ const englishPlans = [
 export default function Pricing() {
   const { plans } = useContent();
   const { lang } = useLanguage();
-  const [mode, setMode] = useState<Mode>("once");
-  const [pricing, setPricing] = useState<PricingSettings>({
-    installments_enabled: true,
-    installment_markup_percent: 30,
-    installment_count: 3,
-  });
-
-  useEffect(() => {
-    void loadPricingSettings().then(setPricing);
-  }, []);
 
   const numericPrice = (raw: string) => {
     const n = parseFloat(raw.replace(/[^\d.]/g, ""));
@@ -62,46 +48,6 @@ export default function Pricing() {
           desc={lang === "ar" ? "اختر الباقة التي تناسب احتياجاتك. جميع الباقات تتضمن جودتنا المميزة والدعم." : "Choose the package that fits your needs. Every plan includes our delivery quality and support."}
         />
 
-        {/* مبدّل طريقة الدفع */}
-        <Reveal delay={180}>
-          <div className="mt-9 flex flex-col items-center gap-3">
-            <div
-              role="tablist"
-              aria-label={lang === "ar" ? "طريقة الدفع" : "Payment method"}
-              className="inline-flex rounded-full border border-ink-200 bg-ink-50 p-1"
-            >
-              {(
-                [
-                  { k: "once", label: lang === "ar" ? "دفعة واحدة" : "One payment" },
-                  ...(pricing.installments_enabled
-                    ? [{ k: "split", label: lang === "ar" ? `على ${pricing.installment_count} دفعات` : `${pricing.installment_count} installments` } as const]
-                    : []),
-                ] as const
-              ).map((o) => (
-                <button
-                  key={o.k}
-                  role="tab"
-                  aria-selected={mode === o.k}
-                  onClick={() => setMode(o.k)}
-                  className={cn(
-                    "rounded-full px-5 py-2 text-[13.5px] font-bold transition-all duration-300",
-                    mode === o.k
-                      ? "bg-ink-900 text-white shadow-sm"
-                      : "text-ink-500 hover:text-ink-800",
-                  )}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-            <p className="text-[12.5px] text-ink-400">
-              {mode === "once"
-                ? (lang === "ar" ? "السعر الأساسي عند السداد الكامل" : "Base price when paid in full")
-                : (lang === "ar" ? `إجمالي التقسيط يشمل زيادة ${pricing.installment_markup_percent}% على السعر الأساسي` : `The installment total includes a ${pricing.installment_markup_percent}% increase over the base price`)}
-            </p>
-          </div>
-        </Reveal>
-
         <div className="mt-12 grid items-stretch gap-6 lg:grid-cols-3">
           {plans.map((p, i) => {
             const localizedPlan = lang === "en" ? englishPlans[i] : null;
@@ -110,19 +56,9 @@ export default function Pricing() {
             const planFeatures = localizedPlan?.features ?? p.features;
             const currency = lang === "en" ? "EGP" : p.currency;
             const basePrice = numericPrice(p.price);
-            const installmentTotal = basePrice === null
-              ? null
-              : basePrice * (1 + pricing.installment_markup_percent / 100);
-            const installmentValue = installmentTotal === null
-              ? null
-              : installmentTotal / pricing.installment_count;
-            const displayedPrice = mode === "once"
-              ? basePrice === null ? p.price : formatPrice(basePrice)
-              : installmentValue === null ? p.price : formatPrice(installmentValue);
+            const displayedPrice = basePrice === null ? p.price : formatPrice(basePrice);
             const paymentDetails =
-              mode === "once"
-                ? (lang === "ar" ? `دفعة واحدة: ${displayedPrice} ${currency}` : `One payment: ${displayedPrice} ${currency}`)
-                : (lang === "ar" ? `${pricing.installment_count} دفعات: ${displayedPrice} ${currency} لكل دفعة\nالإجمالي بعد زيادة ${pricing.installment_markup_percent}%: ${installmentTotal === null ? p.price : formatPrice(installmentTotal)} ${currency}` : `${pricing.installment_count} installments: ${displayedPrice} ${currency} each\nTotal after ${pricing.installment_markup_percent}% increase: ${installmentTotal === null ? p.price : formatPrice(installmentTotal)} ${currency}`);
+              lang === "ar" ? `دفعة واحدة: ${displayedPrice} ${currency}` : `One payment: ${displayedPrice} ${currency}`;
             const whatsappMessage = lang === "ar" ? [
               "مرحباً، أرغب في الاستفسار عن إحدى خطط Awexen:",
               "",
@@ -205,20 +141,8 @@ export default function Pricing() {
                       )}
                     >
                       {currency}
-                      {mode === "split" && (lang === "ar" ? " / دفعة" : " / installment")}
                     </span>
                   </div>
-
-                  {mode === "split" && (
-                    <p
-                      className={cn(
-                        "mt-1.5 text-[12px]",
-                        p.featured ? "text-ink-400" : "text-ink-400",
-                      )}
-                    >
-                      {lang === "ar" ? "الإجمالي بعد زيادة" : "Total after"} {pricing.installment_markup_percent}%: {installmentTotal === null ? p.price : formatPrice(installmentTotal)} {currency}
-                    </p>
-                  )}
 
                   <div
                     className={cn(
@@ -278,11 +202,9 @@ export default function Pricing() {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[13px] text-ink-400">
             {(lang === "ar" ? [
               "السعر النهائي يعتمد على نطاق المشروع المعتمد",
-              `التقسيط يضيف ${pricing.installment_markup_percent}% بوضوح قبل الاتفاق`,
               "لا يبدأ التنفيذ قبل اعتماد العرض ومراحل الدفع",
             ] : [
               "The final price depends on the approved project scope",
-              `Installments add ${pricing.installment_markup_percent}% transparently before agreement`,
               "Work starts after approving the quote and payment stages",
             ]).map((item) => (
               <span key={item} className="inline-flex items-center gap-2">
