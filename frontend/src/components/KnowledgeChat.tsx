@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bot, Loader2, MessageCircleQuestion, Send, ShieldCheck, X } from "lucide-react";
 import { loadKnowledge, matchKnowledge, saveAiInquiry, type KnowledgeEntry } from "../lib/cms";
+import { askAwexen } from "../lib/askAwexen";
 import { OPEN_KNOWLEDGE_CHAT_EVENT } from "../lib/uiEvents";
 import { cn } from "../utils/cn";
 
@@ -82,19 +83,39 @@ export default function KnowledgeChat() {
     setBusy(true);
 
     const matched = matchKnowledge(cleanQuestion, knowledge);
-    const answer = matched
-      ? matched.answer
-      : knowledge.length === 0
-        ? "قاعدة المعرفة لم تُجهّز بعد. سجّلت سؤالك ليظهر للإدارة، ويمكنك التواصل عبر واتساب للحصول على رد مباشر."
-        : "لم أجد إجابة معتمدة لهذا السؤال. سجّلته للمراجعة بدل تقديم معلومة غير مؤكدة.";
+    let answer: string;
+    let matchedId: number | string | null = matched?.id ?? null;
+    let matchedAnswer: string | null = matched?.answer ?? null;
+    let status = matched ? "answered" : "needs_review";
+
+    if (matched) {
+      answer = matched.answer;
+    } else {
+      // محاولة استخدام المساعد الذكي (AI) لتقديم إجابة.
+      try {
+        const ai = await askAwexen(cleanQuestion, knowledge);
+        if (ai?.answer) {
+          answer = ai.answer;
+          status = "answered";
+        } else {
+          answer = knowledge.length === 0
+            ? "قاعدة المعرفة لم تُجهّز بعد. سجّلت سؤالك ليظهر للإدارة، ويمكنك التواصل عبر واتساب للحصول على رد مباشر."
+            : "لم أجد إجابة معتمدة لهذا السؤال. سجّلته للمراجعة بدل تقديم معلومة غير مؤكدة.";
+        }
+      } catch {
+        answer = knowledge.length === 0
+          ? "قاعدة المعرفة لم تُجهّز بعد. سجّلت سؤالك ليظهر للإدارة، ويمكنك التواصل عبر واتساب للحصول على رد مباشر."
+          : "لم أجد إجابة معتمدة لهذا السؤال. سجّلته للمراجعة بدل تقديم معلومة غير مؤكدة.";
+      }
+    }
 
     await saveAiInquiry({
       name: name || null,
       email: email || null,
       question: cleanQuestion,
-      matched_knowledge_id: matched?.id ?? null,
-      answer: matched?.answer ?? null,
-      status: matched ? "answered" : "needs_review",
+      matched_knowledge_id: matchedId,
+      answer: matchedAnswer,
+      status,
     });
 
     setMessages((current) => [
