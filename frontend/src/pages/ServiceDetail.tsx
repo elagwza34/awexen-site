@@ -79,13 +79,15 @@ export default function ServiceDetail() {
         ]}
       >
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            to="/contact"
+          <a
+            href={`https://wa.me/201092400443?text=${encodeURIComponent(`مرحباً، أرغب في طلب خدمة: ${service.title}`)}`}
+            target="_blank"
+            rel="noreferrer"
             className="group inline-flex items-center gap-3 rounded-xl bg-brand-500 px-7 py-3.5 text-[15px] font-bold text-white shadow-xl shadow-brand-600/25 transition-all hover:-translate-y-0.5 hover:bg-brand-400"
           >
             اطلب الخدمة الآن
-            <ArrowLeft className="h-[18px] w-[18px] transition-transform group-hover:-translate-x-1" />
-          </Link>
+            <MessageCircle className="h-[18px] w-[18px]" />
+          </a>
           <a
             href="https://wa.me/201092400443"
             target="_blank"
