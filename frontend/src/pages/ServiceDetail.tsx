@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useContent } from "../context/ContentContext";
+import { useLanguage } from "../context/LanguageContext";
 import { Icon, Reveal, SectionHeading } from "../components/ui";
 import PageHero from "../components/PageHero";
 import { cn } from "../utils/cn";
@@ -58,6 +59,7 @@ export default function ServiceDetail() {
   const { services, loading } = useContent();
   const service = services.find((s) => s.slug === slug);
   const [openFaq, setOpenFaq] = useState(0);
+  const { lang } = useLanguage();
 
   if (!service) {
     if (loading) return <div className="min-h-[60vh]" />;
@@ -374,8 +376,42 @@ export default function ServiceDetail() {
                     ))}
                   </ul>
 
-                  <Link
-                    to="/contact"
+                  <a
+                    href={`https://wa.me/201092400443?text=${encodeURIComponent(
+                      lang === "ar"
+                        ? [
+                          "مرحباً، أرغب في طلب باقة من شركة أوكسين:",
+                          "",
+                          `الخدمة: ${service.title}`,
+                          `الباقة: ${p.name}`,
+                          `السعر: ${p.price} ${p.currency ?? ""}`,
+                          "",
+                          "تفاصيل الباقة:",
+                          p.desc,
+                          "",
+                          "المميزات:",
+                          ...p.features.map((f) => `• ${f}`),
+                          "",
+                          "أرغب في معرفة خطوات البدء والتفاصيل المتاحة.",
+                        ].join("\n")
+                        : [
+                          "Hello, I would like to request a package from Awexen:",
+                          "",
+                          `Service: ${service.title}`,
+                          `Package: ${p.name}`,
+                          `Price: ${p.price} ${p.currency ?? ""}`,
+                          "",
+                          "Package details:",
+                          p.desc,
+                          "",
+                          "Features:",
+                          ...p.features.map((f) => `• ${f}`),
+                          "",
+                          "I would like to know the starting steps and available details.",
+                        ].join("\n")
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
                     className={cn(
                       "relative mt-8 inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[15px] font-bold transition-all",
                       p.featured
@@ -383,8 +419,9 @@ export default function ServiceDetail() {
                         : "border-2 border-ink-900 text-ink-900 hover:border-brand-500 hover:bg-brand-500 hover:text-white",
                     )}
                   >
-                    اطلب الباقة
-                  </Link>
+                    <MessageCircle className="h-4 w-4" />
+                    {lang === "ar" ? "اطلب الباقة عبر واتساب" : "Request package on WhatsApp"}
+                  </a>
                 </article>
               </Reveal>
             ))}
