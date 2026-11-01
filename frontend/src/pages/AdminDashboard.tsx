@@ -57,6 +57,7 @@ const navItems: Array<{
   { key: "overview", label: "الرئيسية", icon: House, roles: allRoles, group: "عام" },
   { key: "messages", label: "رسائل التواصل", icon: Mail, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "quotes", label: "طلبات عرض السعر", icon: FileText, roles: ["owner", "admin", "support"], group: "المبيعات" },
+  { key: "initiative", label: "طلبات المبادرة", icon: Sparkles, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "newsletter", label: "القائمة البريدية", icon: Send, roles: ["owner", "admin", "editor", "support"], group: "المبيعات" },
   { key: "clients", label: "إدارة العملاء", icon: UsersRound, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "site-content", label: "محتوى الموقع", icon: LayoutTemplate, roles: ["owner", "admin", "editor"], group: "المحتوى" },
@@ -258,6 +259,26 @@ export default function AdminDashboard({ userId }: { userId: string }) {
             ]} />
           )}
           {active === "quotes" && <QuoteInbox />}
+          {active === "initiative" && (
+            <InboxManager
+              table="initiative_applications"
+              title="طلبات المبادرة"
+              description="طلبات مبادرة تصميم موقع إلكتروني مجانًا لبيزنس واحد."
+              titleKey="name"
+              previewKeys={["business_type", "email"]}
+              fields={[
+                { key: "name", label: "الاسم", kind: "text" },
+                { key: "email", label: "البريد الإلكتروني", kind: "email" },
+                { key: "phone", label: "الهاتف", kind: "phone" },
+                { key: "business_type", label: "نوع البيزنس", wide: true },
+                { key: "target_audience", label: "الجمهور المستهدف", wide: true },
+                { key: "biggest_challenge", label: "أكبر تحدي", wide: true },
+                { key: "how_website_helps", label: "كيف يساعد الموقع", wide: true },
+                { key: "status", label: "الحالة", kind: "text" },
+                { key: "admin_notes", label: "ملاحظات الإدارة", wide: true },
+              ]}
+            />
+          )}
           {active === "newsletter" && (
             <InboxManager table="newsletter_subscribers" title="القائمة البريدية" description="عناوين البريد المسجلة من نموذج النشرة الأسبوعية في الموقع." titleKey="email" previewKeys={["source"]} fields={[
               { key: "email", label: "البريد", kind: "email" }, { key: "source", label: "مصدر الاشتراك" },

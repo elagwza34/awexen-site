@@ -31,6 +31,7 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
   "nav.jobs": { ar: "الوظائف", en: "Jobs" },
   "nav.about": { ar: "من نحن", en: "About Us" },
   "nav.contact": { ar: "تواصل معنا", en: "Contact Us" },
+  "nav.initiative": { ar: "مبادرة تصميم موقع", en: "Website Initiative" },
   "nav.bookConsult": { ar: "احجز استشارة", en: "Book a Call" },
   "nav.signup": { ar: "تسجيل جديد / دخول", en: "Sign up / Login" },
   "nav.dashboard": { ar: "لوحة التحكم", en: "Dashboard" },

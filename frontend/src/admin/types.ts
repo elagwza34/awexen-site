@@ -8,6 +8,7 @@ export type SectionKey =
   | "blog"
   | "messages"
   | "quotes"
+  | "initiative"
   | "newsletter"
   | "clients"
   | "trusted_logos"

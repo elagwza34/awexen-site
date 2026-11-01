@@ -19,6 +19,7 @@ const mobileLinks = visibleLinks([
   { key: "nav.jobs", to: "/jobs" },
   { key: "nav.about", to: "/about" },
   { key: "nav.contact", to: "/contact" },
+  { key: "nav.initiative", to: "/initiative" },
 ]);
 
 const knowledgeLinks = visibleLinks([
