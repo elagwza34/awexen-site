@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bot, Loader2, MessageCircleQuestion, Send, ShieldCheck, X } from "lucide-react";
 import { loadKnowledge, matchKnowledge, saveAiInquiry, type KnowledgeEntry } from "../lib/cms";
 import { askAwexen } from "../lib/askAwexen";
 import { OPEN_KNOWLEDGE_CHAT_EVENT } from "../lib/uiEvents";
 import { cn } from "../utils/cn";
+import { useContent } from "../context/ContentContext";
 
 type ChatMessage = {
   id: number;
@@ -19,6 +20,7 @@ const welcomeMessage: ChatMessage = {
 };
 
 export default function KnowledgeChat() {
+  const { services, projects, settings } = useContent();
   const [open, setOpen] = useState(false);
   const [knowledge, setKnowledge] = useState<KnowledgeEntry[]>([]);
   const [loadingKnowledge, setLoadingKnowledge] = useState(true);
@@ -29,6 +31,42 @@ export default function KnowledgeChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([welcomeMessage]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+
+  // تحويل محتوى الموقع (خدمات، مشاريع، إعدادات) إلى معرفة قابلة للبحث.
+  const siteKnowledge = useMemo<KnowledgeEntry[]>(() => {
+    const entries: KnowledgeEntry[] = [];
+    let counter = 0;
+    const push = (title: string, topic: string, question: string, answer: string, source_url: string | null = null) => {
+      if (!answer.trim()) return;
+      entries.push({
+        id: `site-${counter++}`,
+        title: title.slice(0, 300),
+        topic: topic.slice(0, 300),
+        question: question.slice(0, 1000),
+        answer: answer.slice(0, 3800),
+        source_url,
+        source_type: "url",
+        status: "published",
+        priority: 0,
+      });
+    };
+
+    for (const s of services ?? []) {
+      push(s.title, "خدمات", s.title, [s.short, s.heroDesc, ...(s.overview ?? []), ...(s.features ?? []).map((f) => `${f.title}: ${f.desc}`), ...(s.faqs ?? []).map((f) => `${f.q} — ${f.a}`)].filter(Boolean).join("\n"));
+      for (const f of s.faqs ?? []) {
+        push(s.title, "أسئلة شائعة", f.q, f.a);
+      }
+    }
+    for (const p of projects ?? []) {
+      push(p.title, "معرض الأعمال", p.title, [p.desc, p.challenge, p.solution, p.results].filter(Boolean).join("\n"));
+    }
+    if (settings) {
+      push("معلومات التواصل", "إعدادات", "معلومات التواصل", [settings.name, settings.email, settings.phones, settings.address, settings.hours].filter(Boolean).join(" | "));
+    }
+    return entries;
+  }, [services, projects, settings]);
+
+  const allKnowledge = useMemo(() => [...siteKnowledge, ...knowledge], [siteKnowledge, knowledge]);
 
   // بنجيب المعرفة أول مرة المستخدم يفتح المحادثة بس.
   // كانت بتطلب ai_knowledge كاملة مع كل صفحة، ودي كانت أكبر مصدر ضغط على الـ origin.
@@ -82,7 +120,7 @@ export default function KnowledgeChat() {
     setQuestion("");
     setBusy(true);
 
-    const matched = matchKnowledge(cleanQuestion, knowledge);
+    const matched = matchKnowledge(cleanQuestion, allKnowledge);
     let answer: string;
     let matchedId: number | string | null = matched?.id ?? null;
     let matchedAnswer: string | null = matched?.answer ?? null;
@@ -93,17 +131,17 @@ export default function KnowledgeChat() {
     } else {
       // محاولة استخدام المساعد الذكي (AI) لتقديم إجابة.
       try {
-        const ai = await askAwexen(cleanQuestion, knowledge);
+        const ai = await askAwexen(cleanQuestion, allKnowledge);
         if (ai?.answer) {
           answer = ai.answer;
           status = "answered";
         } else {
-          answer = knowledge.length === 0
+          answer = allKnowledge.length === 0
             ? "قاعدة المعرفة لم تُجهّز بعد. سجّلت سؤالك ليظهر للإدارة، ويمكنك التواصل عبر واتساب للحصول على رد مباشر."
             : "لم أجد إجابة معتمدة لهذا السؤال. سجّلته للمراجعة بدل تقديم معلومة غير مؤكدة.";
         }
       } catch {
-        answer = knowledge.length === 0
+        answer = allKnowledge.length === 0
           ? "قاعدة المعرفة لم تُجهّز بعد. سجّلت سؤالك ليظهر للإدارة، ويمكنك التواصل عبر واتساب للحصول على رد مباشر."
           : "لم أجد إجابة معتمدة لهذا السؤال. سجّلته للمراجعة بدل تقديم معلومة غير مؤكدة.";
       }
