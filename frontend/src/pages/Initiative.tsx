@@ -100,7 +100,7 @@ function RadioOption({ option, value, onChange, disabled }: { option: { label: s
   return (
     <label
       htmlFor={`radio-${option.value}`}
-      className={RADIO_CLASS + (isSelected ? " border-brand-500 bg-brand-500/10 text-white" : "")}
+      className={RADIO_CLASS + (isSelected ? " border-brand-500 bg-brand-500 text-white shadow-sm" : "")}
     >
       <input
         id={`radio-${option.value}`}
@@ -240,6 +240,7 @@ const COPY_AR = {
     min_length: (n: number) => `برجاء إدخال ما لا يقل عن ${n} أحرف`,
     max_length: (n: number) => `برجاء عدم تجاوز ${n} حرف`,
     url_invalid: "برجاء إدخال رابط صحيح يبدأ بـ http أو https",
+    url_only: "هذا الحقل مخصص للروابط فقط (يبدأ بـ http أو https)",
     select_required: "برجاء اختيار خيار من القائمة",
     radio_required: "برجاء اختيار أحد الخيارات",
     terms_required: "برجاء الموافقة على الشروط والأحكام للمتابعة",
@@ -316,6 +317,7 @@ const COPY_EN = {
     min_length: (n: number) => `Please enter at least ${n} characters`,
     max_length: (n: number) => `Please do not exceed ${n} characters`,
     url_invalid: "Please enter a valid URL starting with http or https",
+    url_only: "This field is for links only (must start with http or https)",
     select_required: "Please select an option from the list",
     radio_required: "Please select one of the options",
     terms_required: "You must agree to the terms and conditions to proceed",
@@ -390,59 +392,49 @@ function validateStep1(data: FormData, copy: typeof COPY_AR) {
   else if (!PHONE_REGEX.test(data.whatsapp)) errors.whatsapp = copy.validation.phone_invalid;
   if (!data.email.trim()) errors.email = copy.validation.required;
   else if (!EMAIL_REGEX.test(data.email)) errors.email = copy.validation.email_invalid;
-  if (!data.city.trim()) errors.city = copy.validation.required;
+  // city اختياري
   return errors;
 }
 
 function validateStep2(data: FormData, copy: typeof COPY_AR) {
   const errors: Record<string, string> = {};
-  if (!data.business_name.trim()) errors.business_name = copy.validation.required;
-  if (!data.business_sector) errors.business_sector = copy.validation.select_required;
+  // business_name اختياري
+  // business_sector اختياري
   if (data.business_sector === "other" && !data.custom_business_sector.trim())
     errors.custom_business_sector = copy.validation.required;
-  if (!data.business_description.trim()) errors.business_description = copy.validation.required;
-  else if (data.business_description.length < 50)
-    errors.business_description = copy.validation.min_length(50);
-  else if (data.business_description.length > 1500)
-    errors.business_description = copy.validation.max_length(1500);
-  if (!data.business_age) errors.business_age = copy.validation.radio_required;
+  // business_description اختياري ( χωρίς min_length)
+  // business_age اختياري
   if (data.social_media_url && !URL_REGEX.test(data.social_media_url))
-    errors.social_media_url = copy.validation.url_invalid;
+    errors.social_media_url = copy.validation.url_only;
   return errors;
 }
 
 function validateStep3(data: FormData, copy: typeof COPY_AR) {
   const errors: Record<string, string> = {};
-  if (!data.target_audience.trim()) errors.target_audience = copy.validation.required;
-  else if (data.target_audience.length < 30)
-    errors.target_audience = copy.validation.min_length(30);
-  if (!data.biggest_challenge) errors.biggest_challenge = copy.validation.select_required;
+  // target_audience اختياري
+  // biggest_challenge اختياري
   if (data.biggest_challenge === "other" && !data.custom_challenge.trim())
     errors.custom_challenge = copy.validation.required;
-  if (!data.has_website) errors.has_website = copy.validation.radio_required;
+  // has_website اختياري
   if (data.has_website === "yes" && data.website_url && !URL_REGEX.test(data.website_url))
-    errors.website_url = copy.validation.url_invalid;
+    errors.website_url = copy.validation.url_only;
   return errors;
 }
 
 function validateStep4(data: FormData, copy: typeof COPY_AR) {
   const errors: Record<string, string> = {};
-  if (!data.website_necessity.trim()) errors.website_necessity = copy.validation.required;
-  else if (data.website_necessity.length < 50)
-    errors.website_necessity = copy.validation.min_length(50);
-  if (!data.website_objective) errors.website_objective = copy.validation.select_required;
+  // website_necessity اختياري
+  // website_objective اختياري
   if (data.website_objective === "other" && !data.custom_website_objective.trim())
     errors.custom_website_objective = copy.validation.required;
-  if (!data.six_month_goal.trim()) errors.six_month_goal = copy.validation.required;
-  else if (data.six_month_goal.length < 30)
-    errors.six_month_goal = copy.validation.min_length(30);
+  // six_month_goal اختياري
   return errors;
 }
 
 function validateStep5(data: FormData, copy: typeof COPY_AR) {
   const errors: Record<string, string> = {};
-  if (!data.content_readiness) errors.content_readiness = copy.validation.radio_required;
-  if (!data.cooperation_readiness) errors.cooperation_readiness = copy.validation.radio_required;
+  // content_readiness اختياري
+  // cooperation_readiness اختياري
   if (!data.terms_accepted) errors.terms_accepted = copy.validation.terms_required;
   return errors;
 }
@@ -503,7 +495,6 @@ function Step1({ data, onChange, errors }: { data: FormData; onChange: (patch: P
         label={copy.s1_city}
         value={data.city}
         onChange={(v) => onChange({ city: v })}
-        required
         error={errors.city}
         placeholder={copy.s1_city_ph}
       />
@@ -527,7 +518,6 @@ function Step2({ data, onChange, errors }: { data: FormData; onChange: (patch: P
         label={copy.s2_business_name}
         value={data.business_name}
         onChange={(v) => onChange({ business_name: v })}
-        required
         error={errors.business_name}
         placeholder={copy.s2_business_name_ph}
       />
@@ -538,7 +528,6 @@ function Step2({ data, onChange, errors }: { data: FormData; onChange: (patch: P
         options={SECTOR_OPTIONS}
         value={data.business_sector}
         onChange={(v) => onChange({ business_sector: v, custom_business_sector: v === "other" ? "" : data.custom_business_sector })}
-        required
         error={errors.business_sector}
       />
 
@@ -548,7 +537,6 @@ function Step2({ data, onChange, errors }: { data: FormData; onChange: (patch: P
           label={copy.s2_custom_sector}
           value={data.custom_business_sector}
           onChange={(v) => onChange({ custom_business_sector: v })}
-          required
           error={errors.custom_business_sector}
           placeholder={copy.s2_custom_sector_ph}
         />
@@ -559,9 +547,7 @@ function Step2({ data, onChange, errors }: { data: FormData; onChange: (patch: P
         label={copy.s2_desc}
         value={data.business_description}
         onChange={(v) => onChange({ business_description: v })}
-        required
         error={errors.business_description}
-        min={50}
         max={1500}
       />
 
@@ -605,9 +591,7 @@ function Step3({ data, onChange, errors }: { data: FormData; onChange: (patch: P
         label={copy.s3_audience}
         value={data.target_audience}
         onChange={(v) => onChange({ target_audience: v })}
-        required
         error={errors.target_audience}
-        min={30}
       />
 
       <SelectField
@@ -616,7 +600,6 @@ function Step3({ data, onChange, errors }: { data: FormData; onChange: (patch: P
         options={CHALLENGE_OPTIONS}
         value={data.biggest_challenge}
         onChange={(v) => onChange({ biggest_challenge: v, custom_challenge: v === "other" ? "" : data.custom_challenge })}
-        required
         error={errors.biggest_challenge}
       />
 
@@ -626,7 +609,6 @@ function Step3({ data, onChange, errors }: { data: FormData; onChange: (patch: P
           label={copy.s3_custom_challenge}
           value={data.custom_challenge}
           onChange={(v) => onChange({ custom_challenge: v })}
-          required
           error={errors.custom_challenge}
           placeholder={copy.s3_custom_challenge_ph}
         />
@@ -673,9 +655,7 @@ function Step4({ data, onChange, errors }: { data: FormData; onChange: (patch: P
         label={copy.s4_necessity}
         value={data.website_necessity}
         onChange={(v) => onChange({ website_necessity: v })}
-        required
         error={errors.website_necessity}
-        min={50}
       />
 
       <SelectField
@@ -684,7 +664,6 @@ function Step4({ data, onChange, errors }: { data: FormData; onChange: (patch: P
         options={WEBSITE_OBJECTIVE_OPTIONS}
         value={data.website_objective}
         onChange={(v) => onChange({ website_objective: v, custom_website_objective: v === "other" ? "" : data.custom_website_objective })}
-        required
         error={errors.website_objective}
       />
 
@@ -694,7 +673,6 @@ function Step4({ data, onChange, errors }: { data: FormData; onChange: (patch: P
           label={copy.s4_custom_objective}
           value={data.custom_website_objective}
           onChange={(v) => onChange({ custom_website_objective: v })}
-          required
           error={errors.custom_website_objective}
           placeholder={copy.s4_custom_objective_ph}
         />
@@ -705,9 +683,7 @@ function Step4({ data, onChange, errors }: { data: FormData; onChange: (patch: P
         label={copy.s4_goal}
         value={data.six_month_goal}
         onChange={(v) => onChange({ six_month_goal: v })}
-        required
         error={errors.six_month_goal}
-        min={30}
       />
     </div>
   );
