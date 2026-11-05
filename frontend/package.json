@@ -11,6 +11,7 @@
     "check:catalog": "node scripts/check-catalog.mjs",
     "seed:lms": "node scripts/seed-lms.mjs",
     "test:upload": "node scripts/test-upload.mjs",
+    "test:crm": "node --experimental-strip-types scripts/test-crm.mjs",
     "setup:lms": "powershell -ExecutionPolicy Bypass -File scripts/setup-lms.ps1",
     "fix:checkout": "node scripts/fix-checkout.mjs"
   },

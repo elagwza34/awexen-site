@@ -35,6 +35,7 @@ import ResourceManager from "../admin/ResourceManager";
 import KnowledgeManager from "../admin/KnowledgeManager";
 import InboxManager from "../admin/InboxManager";
 import { initiativeFields } from "../admin/initiativeFields";
+import CrmWorkspace from "../admin/crm/CrmWorkspace";
 import OverviewPanel from "../admin/OverviewPanel";
 import LmsManager from "../admin/LmsManager";
 import LmsApprovals from "../admin/LmsApprovals";
@@ -296,7 +297,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
           {active === "courses" && <ResourceManager definition={resources.courses} draftOwnerId={userId} />}
           {active === "lms" && <LmsManager role={role} />}
           {active === "approvals" && <LmsApprovals role={role} view="courses" />}
-          {active === "clients" && <ResourceManager definition={resources.clients} draftOwnerId={userId} />}
+          {active === "clients" && <CrmWorkspace role={role} userId={userId} />}
           {active === "trusted_logos" && <ResourceManager definition={resources.trusted_logos} draftOwnerId={userId} />}
           {active === "knowledge" && <KnowledgeManager userId={userId} />}
 
