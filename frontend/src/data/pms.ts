@@ -64,7 +64,7 @@ export type PMSFeature = {
 export type PMSFaq = { q: I18n; a: I18n };
 
 /** رابط تحميل نسخة النظام — بوابة التسجيل على منصة PMS */
-export const PMS_DOWNLOAD_URL = "https://pms.awexen.com/portal/register";
+export const PMS_DOWNLOAD_URL = "https://licenses.awexen.com/";
 
 /* ------------------------------ البيانات ------------------------------ */
 
