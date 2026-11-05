@@ -95,17 +95,15 @@ function FieldRow({ id, label, required, children }: { id: string; label: string
   );
 }
 
-function RadioOption({ option, value, onChange, disabled }: { option: { label: string; value: string }; value: string; onChange: (v: string) => void; disabled?: boolean }) {
+function RadioOption({ option, value, onChange, disabled, name }: { option: { label: string; value: string }; value: string; onChange: (v: string) => void; disabled?: boolean; name: string }) {
   const isSelected = value === option.value;
   return (
     <label
-      htmlFor={`radio-${option.value}`}
-      className={RADIO_CLASS + (isSelected ? " border-brand-500 bg-brand-500 text-white shadow-sm" : "")}
+      className={RADIO_CLASS + (isSelected ? " !border-brand-500 !bg-orange-50 !text-ink-900 ring-2 ring-brand-500/20" : "")}
     >
       <input
-        id={`radio-${option.value}`}
         type="radio"
-        name={`radio-${Math.random().toString(36).slice(2)}`}
+        name={name}
         value={option.value}
         checked={isSelected}
         onChange={() => onChange(option.value)}
@@ -384,20 +382,40 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^(\+201|01)[0-9]{9}$/;
 const URL_REGEX = /^https?:\/\/.+/;
 
+const OPTIONAL_LIMITS = {
+  city: [2, 100], business_name: [2, 200], business_sector: [2, 100],
+  business_description: [20, 2000], business_age: [2, 50],
+  target_audience: [10, 2000], biggest_challenge: [3, 2000],
+  website_necessity: [10, 2000], website_objective: [2, 100],
+  six_month_goal: [10, 2000],
+} as const;
+
+function validateOptionalFields(data: FormData, copy: typeof COPY_AR, errors: Record<string, string>, fields: (keyof typeof OPTIONAL_LIMITS)[]) {
+  for (const field of fields) {
+    const length = data[field].trim().length;
+    const [min, max] = OPTIONAL_LIMITS[field];
+    if (length && length < min) errors[field] = copy.validation.min_length(min);
+    else if (length > max) errors[field] = copy.validation.max_length(max);
+  }
+}
+
 function validateStep1(data: FormData, copy: typeof COPY_AR) {
   const errors: Record<string, string> = {};
+  validateOptionalFields(data, copy, errors, ["city"]);
   if (!data.name.trim()) errors.name = copy.validation.required;
-  else if (data.name.length > 120) errors.name = copy.validation.max_length(120);
+  else if (data.name.trim().length < 2) errors.name = copy.validation.min_length(2);
+  else if (data.name.trim().length > 100) errors.name = copy.validation.max_length(100);
   if (!data.whatsapp.trim()) errors.whatsapp = copy.validation.required;
-  else if (!PHONE_REGEX.test(data.whatsapp)) errors.whatsapp = copy.validation.phone_invalid;
+  else if (!PHONE_REGEX.test(data.whatsapp.trim())) errors.whatsapp = copy.validation.phone_invalid;
   if (!data.email.trim()) errors.email = copy.validation.required;
-  else if (!EMAIL_REGEX.test(data.email)) errors.email = copy.validation.email_invalid;
+  else if (!EMAIL_REGEX.test(data.email.trim())) errors.email = copy.validation.email_invalid;
   // city اختياري
   return errors;
 }
 
 function validateStep2(data: FormData, copy: typeof COPY_AR) {
   const errors: Record<string, string> = {};
+  validateOptionalFields(data, copy, errors, ["business_name","business_sector","business_description","business_age"]);
   // business_name اختياري
   // business_sector اختياري
   if (data.business_sector === "other" && !data.custom_business_sector.trim())
@@ -411,6 +429,7 @@ function validateStep2(data: FormData, copy: typeof COPY_AR) {
 
 function validateStep3(data: FormData, copy: typeof COPY_AR) {
   const errors: Record<string, string> = {};
+  validateOptionalFields(data, copy, errors, ["target_audience","biggest_challenge"]);
   // target_audience اختياري
   // biggest_challenge اختياري
   if (data.biggest_challenge === "other" && !data.custom_challenge.trim())
@@ -423,6 +442,7 @@ function validateStep3(data: FormData, copy: typeof COPY_AR) {
 
 function validateStep4(data: FormData, copy: typeof COPY_AR) {
   const errors: Record<string, string> = {};
+  validateOptionalFields(data, copy, errors, ["website_necessity","website_objective","six_month_goal"]);
   // website_necessity اختياري
   // website_objective اختياري
   if (data.website_objective === "other" && !data.custom_website_objective.trim())
@@ -465,7 +485,7 @@ function Step1({ data, onChange, errors }: { data: FormData; onChange: (patch: P
         required
         error={errors.name}
         placeholder={copy.s1_name_ph}
-        max={120}
+        max={100}
       />
 
       <TextInputField
@@ -555,7 +575,7 @@ function Step2({ data, onChange, errors }: { data: FormData; onChange: (patch: P
         <label className="mb-2 block text-[13.5px] font-bold text-ink-700">{copy.s2_age}</label>
         <div className="grid gap-2 sm:grid-cols-2">
           {BUSINESS_AGE_OPTIONS.map((opt) => (
-            <RadioOption key={opt.value} option={opt} value={data.business_age} onChange={(v) => onChange({ business_age: v })} />
+            <RadioOption key={opt.value} name="business_age" option={opt} value={data.business_age} onChange={(v) => onChange({ business_age: v })} />
           ))}
         </div>
         {errors.business_age && <FieldError message={errors.business_age} />}
@@ -618,7 +638,7 @@ function Step3({ data, onChange, errors }: { data: FormData; onChange: (patch: P
         <label className="mb-2 block text-[13.5px] font-bold text-ink-700">{copy.s3_has_website}</label>
         <div className="grid gap-2 sm:grid-cols-2">
           {YES_NO_OPTIONS.map((opt) => (
-            <RadioOption key={opt.value} option={opt} value={data.has_website} onChange={(v) => onChange({ has_website: v as "yes" | "no" })} />
+            <RadioOption key={opt.value} name="has_website" option={opt} value={data.has_website} onChange={(v) => onChange({ has_website: v as "yes" | "no" })} />
           ))}
         </div>
         {errors.has_website && <FieldError message={errors.has_website} />}
@@ -703,7 +723,7 @@ function Step5({ data, onChange, errors }: { data: FormData; onChange: (patch: P
         <label className="mb-2 block text-[13.5px] font-bold text-ink-700">{copy.s5_content}</label>
         <div className="grid gap-2 sm:grid-cols-3">
           {CONTENT_READINESS_OPTIONS.map((opt) => (
-            <RadioOption key={opt.value} option={opt} value={data.content_readiness} onChange={(v) => onChange({ content_readiness: v })} />
+            <RadioOption key={opt.value} name="content_readiness" option={opt} value={data.content_readiness} onChange={(v) => onChange({ content_readiness: v })} />
           ))}
         </div>
         {errors.content_readiness && <FieldError message={errors.content_readiness} />}
@@ -713,7 +733,7 @@ function Step5({ data, onChange, errors }: { data: FormData; onChange: (patch: P
         <label className="mb-2 block text-[13.5px] font-bold text-ink-700">{copy.s5_cooperation}</label>
         <div className="grid gap-2 sm:grid-cols-2">
           {COOPERATION_READINESS_OPTIONS.map((opt) => (
-            <RadioOption key={opt.value} option={opt} value={data.cooperation_readiness} onChange={(v) => onChange({ cooperation_readiness: v })} />
+            <RadioOption key={opt.value} name="cooperation_readiness" option={opt} value={data.cooperation_readiness} onChange={(v) => onChange({ cooperation_readiness: v })} />
           ))}
         </div>
         {errors.cooperation_readiness && <FieldError message={errors.cooperation_readiness} />}
@@ -773,14 +793,24 @@ export default function Initiative() {
   };
 
   const submitForm = async () => {
+    if (busy) return;
+    for (const stepNumber of [1, 2, 3, 4, 5] as Step[]) {
+      const stepErrors = STEP_VALIDATORS[stepNumber](form, copy);
+      if (Object.keys(stepErrors).length) {
+        setErrors(stepErrors);
+        setStep(stepNumber);
+        return;
+      }
+    }
+    setErrors({});
     setBusy(true);
     try {
       if (!supabase) throw new Error("Supabase not configured");
 
       const { error } = await supabase.from("initiative_applications").insert({
-        applicant_name: form.name,
-        whatsapp_number: form.whatsapp,
-        email: form.email,
+        applicant_name: form.name.trim(),
+        whatsapp_number: form.whatsapp.trim(),
+        email: form.email.trim(),
         city: form.city,
         business_name: form.business_name,
         business_sector: form.business_sector,
@@ -860,7 +890,7 @@ export default function Initiative() {
                   />
                 </div>
               </div>
-              <form className="space-y-8 ms-auto" style={{ width: '100%' }}>
+              <form onSubmit={(event) => { event.preventDefault(); if (step === 5) void submitForm(); else goToStep((step + 1) as Step); }} className="space-y-8 ms-auto" style={{ width: '100%' }}>
                 <Reveal>
                   <StepComp
                     data={form}

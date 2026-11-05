@@ -32,6 +32,7 @@ import CmsPanel from "../admin/cms/CmsPanel";
 import ResourceManager from "../admin/ResourceManager";
 import KnowledgeManager from "../admin/KnowledgeManager";
 import InboxManager from "../admin/InboxManager";
+import { initiativeFields } from "../admin/initiativeFields";
 import OverviewPanel from "../admin/OverviewPanel";
 import LmsManager from "../admin/LmsManager";
 import LmsApprovals from "../admin/LmsApprovals";
@@ -264,19 +265,11 @@ export default function AdminDashboard({ userId }: { userId: string }) {
               table="initiative_applications"
               title="طلبات المبادرة"
               description="طلبات مبادرة تصميم موقع إلكتروني مجانًا لبيزنس واحد."
-              titleKey="name"
-              previewKeys={["business_type", "email"]}
-              fields={[
-                { key: "name", label: "الاسم", kind: "text" },
-                { key: "email", label: "البريد الإلكتروني", kind: "email" },
-                { key: "phone", label: "الهاتف", kind: "phone" },
-                { key: "business_type", label: "نوع البيزنس", wide: true },
-                { key: "target_audience", label: "الجمهور المستهدف", wide: true },
-                { key: "biggest_challenge", label: "أكبر تحدي", wide: true },
-                { key: "how_website_helps", label: "كيف يساعد الموقع", wide: true },
-                { key: "status", label: "الحالة", kind: "text" },
-                { key: "admin_notes", label: "ملاحظات الإدارة", wide: true },
-              ]}
+              titleKey="applicant_name"
+              titleFallbackKey="name"
+              dateKey="submitted_at"
+              previewKeys={["business_name", "business_sector", "email"]}
+              fields={initiativeFields}
             />
           )}
           {active === "newsletter" && (

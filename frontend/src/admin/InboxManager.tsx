@@ -8,6 +8,9 @@ export type InboxField = {
   label: string;
   wide?: boolean;
   kind?: "email" | "phone" | "url" | "text";
+  section?: string;
+  fallbackKey?: string;
+  options?: Record<string, string>;
 };
 
 type Props = {
@@ -20,17 +23,20 @@ type Props = {
   titleKey?: string;
   /** الحقول اللي بتظهر في السطر المختصر قبل ما تفتح التفاصيل. */
   previewKeys?: string[];
+  dateKey?: string;
+  titleFallbackKey?: string;
 };
 
 function FieldValue({ field, value }: { field: InboxField; value: unknown }) {
-  const text = value === null || value === undefined || value === "" ? "—" : String(value);
+  const raw = value === null || value === undefined || value === "" ? "—" : String(value);
+  const text = field.options?.[raw] ?? raw;
   if (field.kind === "email" && text !== "—") return <a dir="ltr" href={`mailto:${text}`} className="break-all text-left text-brand-300 hover:underline">{text}</a>;
   if (field.kind === "phone" && text !== "—") return <a dir="ltr" href={`tel:${text}`} className="text-left text-brand-300 hover:underline">{text}</a>;
   if (field.kind === "url" && text !== "—") return <a dir="ltr" href={text} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 break-all text-left text-brand-300 hover:underline">فتح الرابط <ExternalLink className="h-3 w-3" /></a>;
   return <span className="whitespace-pre-wrap break-words">{text}</span>;
 }
 
-export default function InboxManager({ table, title, description, fields, statusOptions, titleKey = "name", previewKeys }: Props) {
+export default function InboxManager({ table, title, description, fields, statusOptions, titleKey = "name", previewKeys, dateKey = "created_at", titleFallbackKey }: Props) {
   const [rows, setRows] = useState<AdminRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +56,7 @@ export default function InboxManager({ table, title, description, fields, status
       setLoading(false);
       return;
     }
-    const { data, error: loadError } = await supabase.from(table).select("*").order("created_at", { ascending: false });
+    const { data, error: loadError } = await supabase.from(table).select("*").order(dateKey, { ascending: false, nullsFirst: false });
     if (loadError) {
       setRows([]);
       setError(`تعذر تحميل البيانات. تأكد من تشغيل ملف SQL وسياسة الدور الحالي. (${loadError.message})`);
@@ -58,7 +64,7 @@ export default function InboxManager({ table, title, description, fields, status
       setRows((data ?? []) as AdminRow[]);
     }
     setLoading(false);
-  }, [table]);
+  }, [table, dateKey]);
 
   useEffect(() => {
     void load();
@@ -102,7 +108,7 @@ export default function InboxManager({ table, title, description, fields, status
                 <ChevronDown className={`h-4 w-4 shrink-0 text-white/30 transition-transform ${isOpen ? "rotate-180" : ""}`} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[12.5px] font-bold text-white">
-                    {String(row[titleKey] ?? "بدون اسم")}
+                    {String(row[titleKey] || (titleFallbackKey ? row[titleFallbackKey] : null) || "بدون اسم")}
                   </span>
                   <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-white/40">
                     {previewFields.map((field) => {
@@ -110,13 +116,13 @@ export default function InboxManager({ table, title, description, fields, status
                       if (text === null || text === undefined || String(text).trim() === "") return null;
                       return (
                         <span key={field.key} dir={field.kind === "email" || field.kind === "phone" ? "ltr" : undefined} className="truncate">
-                          {String(text)}
+                          {field.options?.[String(text)] ?? String(text)}
                         </span>
                       );
                     })}
-                    {Boolean(row.created_at) && (
-                      <time dateTime={String(row.created_at)} className="text-white/30">
-                        {new Date(String(row.created_at)).toLocaleString("ar-EG", { dateStyle: "short" })}
+                    {Boolean(row[dateKey] || row.created_at) && (
+                      <time dateTime={String(row[dateKey] || row.created_at)} className="text-white/30">
+                        {new Date(String(row[dateKey] || row.created_at)).toLocaleString("ar-EG", { dateStyle: "short" })}
                       </time>
                     )}
                   </span>
@@ -139,9 +145,10 @@ export default function InboxManager({ table, title, description, fields, status
                 <div className="border-t border-white/8 px-4 pb-4 pt-4">
                   <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     {fields.map((field) => (
-                      <div key={field.key} className={field.wide ? "sm:col-span-2 xl:col-span-3" : ""}>
+                      <div key={field.key} className={field.section || field.wide ? "sm:col-span-2 xl:col-span-3" : ""}>
+                        {field.section && <h3 className="mb-3 border-b border-white/10 pb-2 text-sm font-bold text-brand-300">{field.section}</h3>}
                         <dt className="mb-1 text-[9.5px] font-bold text-white/30">{field.label}</dt>
-                        <dd className="text-[11.5px] leading-6 text-white/72"><FieldValue field={field} value={row[field.key]} /></dd>
+                        <dd className="text-[11.5px] leading-6 text-white/72"><FieldValue field={field} value={row[field.key] || (field.fallbackKey ? row[field.fallbackKey] : row[field.key])} /></dd>
                       </div>
                     ))}
                   </dl>
