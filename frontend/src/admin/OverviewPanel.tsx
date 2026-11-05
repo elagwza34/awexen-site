@@ -36,7 +36,7 @@ export default function OverviewPanel({ role, goTo }: { role: AdminRole; goTo: (
         <h2 className="mt-2 text-[21px] font-extrabold">نظرة سريعة</h2>
         <p className="mt-1 text-[11.5px] text-white/45">الدور الحالي: {role}. الأرقام تعرض فقط البيانات المسموح لك برؤيتها.</p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
         {cards.map(({ key, label, value, icon: Icon }) => (
           <button key={key} type="button" onClick={() => goTo(key)} className="rounded-xl border border-white/8 bg-white/[0.025] p-4 text-right transition hover:border-brand-500/30 hover:bg-brand-500/[0.04]">
             <Icon className="h-4 w-4 text-brand-300" />

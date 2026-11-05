@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -26,6 +26,8 @@ import {
   UserRoundCheck,
   UsersRound,
   RefreshCw,
+  Menu,
+  X,
 } from "lucide-react";
 import QuoteInbox from "../admin/QuoteInbox";
 import CmsPanel from "../admin/cms/CmsPanel";
@@ -99,6 +101,37 @@ export default function AdminDashboard({ userId }: { userId: string }) {
   const [email, setEmail] = useState("");
   const [sessionReady, setSessionReady] = useState(false);
   const [navSearch, setNavSearch] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const sidebar = sidebarRef.current;
+    const focusable = () => Array.from(sidebar?.querySelectorAll<HTMLElement>('button, input, a[href]') ?? []).filter((element) => element.getClientRects().length > 0);
+    focusable()[0]?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+      if (event.key !== "Tab") return;
+      const elements = focusable();
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const onResize = () => { if (desktop.matches) setMenuOpen(false); };
+    desktop.addEventListener("change", onResize);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+      desktop.removeEventListener("change", onResize);
+      menuButtonRef.current?.focus();
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     if (!supabase) {
@@ -136,6 +169,8 @@ export default function AdminDashboard({ userId }: { userId: string }) {
   const requestedSection = searchParams.get("section") as SectionKey | null;
   const active: SectionKey = requestedSection && visibleKeys.has(requestedSection) ? requestedSection : "overview";
   const safeGoTo = (section: SectionKey) => {
+    setMenuOpen(false);
+    setNavSearch("");
     const nextSection = visibleKeys.has(section) ? section : "overview";
     const nextParams = new URLSearchParams(searchParams);
     if (nextSection === "overview") nextParams.delete("section");
@@ -167,37 +202,43 @@ export default function AdminDashboard({ userId }: { userId: string }) {
 
   return (
     <section dir="rtl" className={`admin-shell dashboard-${theme} min-h-screen bg-[#080b12] text-white`}>
-      <header className="sticky top-0 z-40 border-b border-white/[0.07] bg-[#080b12]/95 backdrop-blur-xl">
-        <div className="flex h-14 w-full items-center justify-between gap-4 px-4 sm:px-6">
+      <header inert={menuOpen} className="sticky top-0 z-40 border-b border-white/[0.07] bg-[#080b12]/95 backdrop-blur-xl">
+        <div className="flex min-h-16 w-full items-center justify-between gap-2 px-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-500/15 text-brand-300"><LayoutDashboard className="h-4 w-4" /></span>
+            <button ref={menuButtonRef} type="button" onClick={() => setMenuOpen(true)} aria-label="فتح قائمة لوحة التحكم" aria-expanded={menuOpen} aria-controls="admin-navigation" className="admin-icon-button lg:!hidden"><Menu className="h-5 w-5" /></button>
+            <span className="hidden h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-500/15 text-brand-300 lg:grid"><LayoutDashboard className="h-4 w-4" /></span>
             <div className="min-w-0"><p className="truncate text-[11.5px] font-extrabold">Awexen Admin</p><p className="truncate text-[9px] text-white/35">{activeLabel}</p></div>
           </div>
           <div className="flex items-center gap-2">
             <DashboardThemeToggle />
-            <a href="/" target="_blank" rel="noreferrer" className="admin-button-secondary hidden sm:inline-flex">عرض الموقع</a>
+            <a href="/" target="_blank" rel="noreferrer" className="admin-button-secondary !hidden sm:!inline-flex">عرض الموقع</a>
             <span className="hidden max-w-44 truncate text-[9.5px] text-white/35 lg:block" dir="ltr">{email}</span>
-            <span className="rounded-full border border-brand-500/20 bg-brand-500/[0.06] px-2.5 py-1 text-[9px] font-bold text-brand-200">{role}</span>
-            <button type="button" onClick={() => void clearCache()} className="admin-icon-button text-brand-300 hover:text-brand-200" aria-label="مسح الكاش وإعادة تحميل الصفحة"><RefreshCw className="h-3.5 w-3.5" /></button>
-            <button type="button" onClick={() => void logout()} className="admin-icon-button text-red-300" aria-label="تسجيل الخروج"><LogOut className="h-3.5 w-3.5" /></button>
+            <span className="hidden rounded-full border border-brand-500/20 bg-brand-500/[0.06] px-2.5 py-1 text-[9px] font-bold text-brand-200 sm:block">{role}</span>
+            <button type="button" onClick={() => void clearCache()} className="admin-icon-button !hidden text-brand-300 hover:text-brand-200 sm:!inline-flex" aria-label="مسح الكاش وإعادة تحميل الصفحة"><RefreshCw className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={() => void logout()} className="admin-icon-button !hidden text-red-300 sm:!inline-flex" aria-label="تسجيل الخروج"><LogOut className="h-3.5 w-3.5" /></button>
           </div>
         </div>
       </header>
 
       <div className="grid w-full gap-4 px-3 py-4 sm:px-6 lg:grid-cols-[210px_minmax(0,1fr)] lg:gap-5">
-        <aside className="h-fit rounded-xl border border-white/[0.07] bg-white/[0.018] p-2 lg:sticky lg:top-[72px]">
-          <label className="relative mb-3 hidden lg:block">
+        {menuOpen && <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden" onClick={() => setMenuOpen(false)} aria-hidden="true" />}
+        <aside ref={sidebarRef} id="admin-navigation" role={menuOpen ? "dialog" : undefined} aria-modal={menuOpen || undefined} aria-label="قائمة لوحة التحكم" className={`admin-sidebar ${menuOpen ? "is-open" : ""} h-fit rounded-xl border border-white/[0.07] bg-white/[0.018] p-2 lg:sticky lg:top-[80px]`}>
+          <div className="mb-4 flex items-center justify-between gap-2 lg:hidden">
+            <div className="min-w-0"><h2 className="text-base font-bold">لوحة التحكم</h2><p dir="ltr" className="mt-1 truncate text-xs text-white/55">{email}</p></div>
+            <button type="button" className="admin-icon-button shrink-0" onClick={() => setMenuOpen(false)} aria-label="إغلاق القائمة"><X className="h-5 w-5" /></button>
+          </div>
+          <label className="relative mb-3 block">
             <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
             <input value={navSearch} onChange={(event) => setNavSearch(event.target.value)} placeholder="ابحث في الأقسام" aria-label="البحث في أقسام لوحة التحكم" className="admin-input pr-9" />
           </label>
-          <nav className="flex gap-1 overflow-x-auto lg:block lg:space-y-4" aria-label="أقسام لوحة التحكم">
+          <nav className="space-y-4" aria-label="أقسام لوحة التحكم">
             {groups.map((group) => {
               const items = filteredItems.filter((item) => item.group === group);
               if (!items.length) return null;
               return (
-                <div key={group} className="shrink-0 lg:shrink lg:space-y-1">
-                  <p className="hidden px-2 pb-1 text-[8px] font-bold uppercase tracking-[0.16em] text-white/25 lg:block">{group}</p>
-                  <div className="flex gap-1 lg:block lg:space-y-0.5">
+                <div key={group} className="space-y-1">
+                  <p className="px-2 pb-1 text-[11px] font-bold text-white/45">{group}</p>
+                  <div className="space-y-0.5">
                     {items.map(({ key, label, icon: Icon }) => {
                       const notificationCount = notificationCounts[key] ?? 0;
                       const isActive = active === key;
@@ -208,7 +249,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
                           onClick={() => safeGoTo(key)}
                           aria-current={isActive ? "page" : undefined}
                           title={label}
-                          className={`group relative flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[10.5px] font-bold transition-all duration-200 lg:w-full ${
+                          className={`group relative flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-bold transition-all duration-200 lg:min-h-9 lg:text-[10.5px] ${
                             isActive
                               ? "bg-brand-500 text-white shadow-lg shadow-brand-500/25"
                               : "text-white/55 hover:bg-white/[0.07] hover:text-white hover:shadow-sm"
@@ -237,9 +278,15 @@ export default function AdminDashboard({ userId }: { userId: string }) {
               );
             })}
           </nav>
+          {filteredItems.length === 0 && <p className="p-4 text-sm text-white/55">لا توجد أقسام مطابقة لبحثك.</p>}
+          <div className="mt-5 grid gap-2 border-t border-white/10 pt-4 lg:hidden">
+            <a href="/" target="_blank" rel="noreferrer" className="admin-button-secondary">عرض الموقع</a>
+            <button type="button" onClick={clearCache} className="admin-button-secondary"><RefreshCw className="h-4 w-4" />تحديث لوحة التحكم</button>
+            <button type="button" onClick={() => void logout()} className="admin-button-secondary text-red-300"><LogOut className="h-4 w-4" />تسجيل الخروج</button>
+          </div>
         </aside>
 
-        <main className="min-w-0 rounded-xl border border-white/[0.07] bg-[#0d111b] p-4 sm:p-5">
+        <main inert={menuOpen} className="min-w-0 rounded-xl border border-white/[0.07] bg-[#0d111b] p-4 sm:p-5">
           {active === "overview" && <OverviewPanel role={role} goTo={safeGoTo} />}
           {active === "portfolio" && <ResourceManager definition={resources.portfolio} draftOwnerId={userId} />}
           {active === "site-content" && <CmsPanel />}

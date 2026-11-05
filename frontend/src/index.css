@@ -502,6 +502,39 @@
   font-size: 14px;
 }
 
+/* The mobile navigation owns its scroll; content stays at viewport width. */
+@media (max-width: 1023px) {
+  .admin-shell .admin-sidebar { display: none; }
+  .admin-shell .admin-sidebar.is-open {
+    display: block;
+    position: fixed;
+    z-index: 60;
+    inset: 0 0 0 auto;
+    width: min(88vw, 340px);
+    height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+    border-radius: 0;
+    background: #0d111b;
+    box-shadow: -16px 0 48px rgb(0 0 0 / 0.2);
+  }
+  .dashboard-light.admin-shell .admin-sidebar.is-open { background: #fff; }
+}
+
+@media (max-width: 639px) {
+  .admin-shell { min-width: 0; }
+  .admin-shell :is(.admin-button-primary, .admin-button-secondary, .admin-icon-button) { min-height: 44px; }
+  .admin-shell :is(.admin-icon-button, .dashboard-theme-toggle) { min-width: 44px; min-height: 44px; }
+  .admin-shell main :is(dt, label) { font-size: 12px; }
+  .admin-shell main :is(p[class*="text-[10"], p[class*="text-[11"], dd) { font-size: 12px; }
+  .admin-shell :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) { font-size: 16px; min-height: 44px; }
+  .admin-shell main { padding: 16px 12px; }
+  .admin-shell main :is(p, dd) { overflow-wrap: anywhere; }
+  .admin-shell main :is(.admin-button-primary, .admin-button-secondary) { white-space: normal; }
+  .admin-shell main .overflow-x-auto { max-width: 100%; overscroll-behavior-x: contain; }
+}
+
 .admin-button-primary,
 .admin-button-secondary,
 .admin-icon-button {
