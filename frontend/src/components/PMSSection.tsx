@@ -1,8 +1,9 @@
-﻿import { Link } from "react-router-dom";
-import { ArrowLeft, Boxes, Download, LineChart, Store, Users } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, Boxes, LogIn, UserPlus, LineChart, Store, Users } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { Reveal, SectionHeading } from "./ui";
-import { PMS_DOWNLOAD_URL, pmsTiers } from "../data/pms";
+import { usePmsCatalogue } from "../hooks/usePmsCatalogue";
+import { PMS_LOGIN_URL, PMS_REGISTER_URL } from "../data/pms";
 
 const iconMap = {
   catalog: Boxes,
@@ -38,7 +39,7 @@ export default function PMSSection() {
     },
   ];
 
-  const startingPrice = pmsTiers[0];
+  const { tiers } = usePmsCatalogue(); const startingPrice = tiers[0];
 
 
   return (
@@ -90,7 +91,7 @@ export default function PMSSection() {
               </span>
               <div className="mt-2 flex items-end justify-center gap-2">
                 <span className="text-[46px] font-black leading-none text-white">
-                  {startingPrice.monthly.toLocaleString("en-US")}
+                  {startingPrice?.monthly.toLocaleString("en-US") ?? "—"}
                 </span>
                 <span className="pb-1.5 text-[14px] font-semibold text-brand-400">
                   {pick("ج.م / شهرياً", "EGP / month")}
@@ -104,7 +105,7 @@ export default function PMSSection() {
               </p>
             </div>
 
-            <div className="flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
+            <div className="flex w-full flex-col flex-wrap items-center gap-3 sm:w-auto sm:flex-row">
               <Link
                 to="/pms"
                 className="group inline-flex w-full items-center justify-center gap-3 rounded-xl bg-brand-500 px-8 py-4 text-[15px] font-bold text-white shadow-[var(--shadow-brand)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-400 sm:w-auto"
@@ -113,13 +114,18 @@ export default function PMSSection() {
                 <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-x-1.5 rtl:group-hover:translate-x-1.5" />
               </Link>
               <a
-                href={PMS_DOWNLOAD_URL}
-                target="_blank"
-                rel="noreferrer"
+                href={PMS_LOGIN_URL}
                 className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/5 px-8 py-4 text-[15px] font-semibold text-white backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500 sm:w-auto"
               >
-                <Download className="h-[18px] w-[18px]" />
-                {pick("تحميل النسخة", "Download the copy")}
+                <LogIn className="h-[18px] w-[18px]" aria-hidden="true" />
+                {pick("تسجيل دخول", "Log in")}
+              </a>
+              <a
+                href={PMS_REGISTER_URL}
+                className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/5 px-8 py-4 text-[15px] font-semibold text-white backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500 sm:w-auto"
+              >
+                <UserPlus className="h-[18px] w-[18px]" aria-hidden="true" />
+                {pick("تسجيل جديد", "Create account")}
               </a>
             </div>
           </div>

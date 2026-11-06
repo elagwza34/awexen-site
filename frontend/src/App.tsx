@@ -13,6 +13,8 @@ import FloatingActions from "./components/FloatingActions";
 import ScrollProgress from "./components/ScrollProgress";
 import MobileBar from "./components/MobileBar";
 import SeoManager from "./components/SeoManager";
+import ConsentPopup from "./components/ConsentPopup";
+import AnalyticsRouteTracker from "./components/AnalyticsRouteTracker";
 import KnowledgeChat from "./components/KnowledgeChat";
 import { ContentProvider } from "./context/ContentContext";
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
@@ -240,6 +242,8 @@ function AppShell() {
     <>
       <RouteEffects />
       <SeoManager />
+      <AnalyticsRouteTracker />
+      <ConsentPopup />
       {!isStandaloneRoute && <ScrollProgress />}
 
       <a href="#main" className="skip-link">

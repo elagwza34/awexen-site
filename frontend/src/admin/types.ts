@@ -2,6 +2,7 @@ export type AdminRole = "owner" | "admin" | "editor" | "hr" | "support" | "viewe
 
 export type SectionKey =
   | "overview"
+  | "analytics"
   | "pages"
   | "site-content"
   | "portfolio"

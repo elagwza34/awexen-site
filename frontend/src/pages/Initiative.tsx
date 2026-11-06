@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { trackConversion } from "../lib/analytics";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -764,6 +765,8 @@ export default function Initiative() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const submissionId = useRef(`initiative:${crypto.randomUUID()}`);
+  const submitting = useRef(false);
   const [referenceNumber, setReferenceNumber] = useState<string | null>(null);
 
   const currentStepData = useMemo(() => {
@@ -793,7 +796,7 @@ export default function Initiative() {
   };
 
   const submitForm = async () => {
-    if (busy) return;
+    if (submitting.current || busy || sent) return;
     for (const stepNumber of [1, 2, 3, 4, 5] as Step[]) {
       const stepErrors = STEP_VALIDATORS[stepNumber](form, copy);
       if (Object.keys(stepErrors).length) {
@@ -803,6 +806,7 @@ export default function Initiative() {
       }
     }
     setErrors({});
+    submitting.current = true;
     setBusy(true);
     try {
       if (!supabase) throw new Error("Supabase not configured");
@@ -839,10 +843,12 @@ export default function Initiative() {
 
       const ref = `AWX-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
       setReferenceNumber(ref);
+      trackConversion("initiative_form_submit", submissionId.current);
       setSent(true);
     } catch {
       setErrors({ _form: copy.error });
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   };

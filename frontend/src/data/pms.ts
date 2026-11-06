@@ -64,14 +64,15 @@ export type PMSFeature = {
 export type PMSFaq = { q: I18n; a: I18n };
 
 /** رابط تحميل نسخة النظام — بوابة التسجيل على منصة PMS */
-export const PMS_DOWNLOAD_URL = "https://licenses.awexen.com/portal/login";
+export const PMS_LOGIN_URL = "https://licenses.awexen.com/portal/login";
+export const PMS_REGISTER_URL = "https://licenses.awexen.com/portal/register";
 
 /* ------------------------------ البيانات ------------------------------ */
 
 export const pmsHero = {
   badge: { ar: "PMS — نظام إدارة المنتجات", en: "PMS — Product Management System" },
   title: { ar: "أدر منتجاتك", en: "Manage your products" },
-  highlight: { ar: "بمنتهى الاحتراف", en: "like a pro" },
+  highlight: { ar: "بنظام يعمل بدون إنترنت", en: "with a system that works offline" },
   desc: {
     ar: "نظام متكامل لإدارة المنتجات والمخزون والمبيعات والفواتير من مكان واحد — بواجهة عربية بالكامل، يبدأ معك من أول يوم وينمو معك بلا حدود.",
     en: "A complete system to run your products, inventory, sales and invoices from one place — fully Arabic-first, live from day one and built to scale with you.",

@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -8,10 +8,10 @@ import {
   ChevronDown,
   Crown,
   Database,
-  Download,
   FileText,
   GraduationCap,
   LineChart,
+  LogIn,
   MessageCircle,
   Minus,
   Phone,
@@ -24,8 +24,10 @@ import {
   Store,
   Truck,
   Users,
+  UserPlus,
   Wand2,
 } from "lucide-react";
+import { usePmsCatalogue, checkoutUrl } from "../hooks/usePmsCatalogue";
 import PageHero from "../components/PageHero";
 import CTA from "../components/CTA";
 import { Reveal, SectionHeading, Spotlight } from "../components/ui";
@@ -33,9 +35,10 @@ import { useSeoOverride } from "../components/SeoManager";
 import { useLanguage } from "../context/LanguageContext";
 import { cn } from "../utils/cn";
 import {
-  PMS_DOWNLOAD_URL,
-  pmsAddOns,
-  pmsComparison,
+  PMS_LOGIN_URL,
+  PMS_REGISTER_URL,
+
+
   pmsFaqs,
   pmsFeatures,
   pmsGuarantees,
@@ -43,7 +46,7 @@ import {
   pmsIntegrations,
   pmsStats,
   pmsSteps,
-  pmsTiers,
+
   type I18n,
   type PMSTierId,
 } from "../data/pms";
@@ -164,20 +167,25 @@ function FAQItem({
 export default function PMS() {
   const { lang, t, pick } = useLanguage();
   const [cycle, setCycle] = useState<Cycle>("monthly");
+  const catalogue = usePmsCatalogue(cycle);
+  const pmsTiers = catalogue.tiers;
+  const pmsAddOns: typeof import("../data/pms").pmsAddOns = [];
+  const featureMap = new Map(catalogue.plans.flatMap(p => p.features.map(f => [f.feature.key, f.feature] as const)));
+  const pmsComparison = [{ title:{ar:"مميزات الخطط",en:"Plan features"},desc:{ar:"المميزات المتاحة في نسخة البرنامج",en:"Features available in the desktop app"},icon:"catalog",rows:Array.from(featureMap.values()).map(f=>({id:f.key,label:{ar:f.nameAr??f.name,en:f.name},values:{starter:catalogue.plans.find(p=>p.key==="PMS_STARTER"+(cycle === "yearly" ? "_YEARLY" : ""))?.features.some(x=>x.feature.key===f.key)??false,growth:catalogue.plans.find(p=>p.key==="PMS_PRO"+(cycle === "yearly" ? "_YEARLY" : ""))?.features.some(x=>x.feature.key===f.key)??false,scale:catalogue.plans.find(p=>p.key==="PMS_BUSINESS"+(cycle === "yearly" ? "_YEARLY" : ""))?.features.some(x=>x.feature.key===f.key)??false}})) }];
+
   const [openFaq, setOpenFaq] = useState(0);
 
   /* حالة منشئ الباقة حسب الفيتشر */
   const [tierId, setTierId] = useState<PMSTierId>("growth");
   const [picked, setPicked] = useState<string[]>([]);
 
-  const tier = pmsTiers.find((x) => x.id === tierId) ?? pmsTiers[1];
+  const tier = pmsTiers.find((x) => x.id === tierId) ?? pmsTiers[0] ?? { ...({monthly:0,yearly:0,setup:0,includes:[]} as unknown as (typeof pmsTiers)[number]) };
 
   const copy = {
     home: t("nav.home"),
     product: pick("نظام إدارة المنتجات", "Product Management System"),
     seePricing: pick("شاهد الأسعار", "See pricing"),
     requestQuote: pick("اطلب عرض سعر", "Request a quote"),
-    download: pick("تحميل النسخة", "Download the copy"),
     perMonth: pick("ج.م / شهر", "EGP / month"),
     oneTime: pick("لمرة واحدة", "one-time"),
     monthly: pick("شهري", "Monthly"),
@@ -199,8 +207,8 @@ export default function PMS() {
 
   useSeoOverride(
     pick(
-      "نظام إدارة المنتجات PMS | Awexen",
-      "PMS — Product Management System | Awexen",
+      "نظام إدارة المنتجات PMS يعمل بدون إنترنت | Awexen",
+      "PMS — Offline Product Management System | Awexen",
     ),
     pick(
       "نظام متكامل لإدارة المنتجات والمخزون والمبيعات والفواتير بواجهة عربية، مع باقات وأسعار واضحة حسب الميزات التي تحتاجها.",
@@ -225,11 +233,32 @@ export default function PMS() {
   }, [cycle, tier, picked]);
 
   /** وفر الاشتراك السنوي مقارنة بالشهري */
-  const saving = totals.monthly * 12 - totals.yearly;
+  const saving = tier.monthly * 12 - totals.yearly;
 
   const toggle = (id: string) =>
     setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
+  const customerAccess = (
+    <div className="flex flex-wrap justify-center gap-3">
+    <a
+      href={PMS_LOGIN_URL}
+      className="inline-flex items-center justify-center gap-2.5 rounded-xl border border-brand-500 bg-white px-7 py-3.5 text-[15px] font-bold text-ink-950 shadow-lg transition-all hover:-translate-y-0.5 hover:bg-brand-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500"
+      aria-label={pick("دخول عملاء PMS إلى لوحة التراخيص والاشتراكات", "PMS customer login — licenses and subscriptions dashboard")}
+    >
+      <LogIn className="h-[18px] w-[18px]" aria-hidden="true" />
+      {pick("تسجيل دخول", "Log in")}
+    </a>
+    <a
+      href={PMS_REGISTER_URL}
+      className="inline-flex items-center justify-center gap-2.5 rounded-xl border border-brand-500 bg-brand-500 px-7 py-3.5 text-[15px] font-bold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-brand-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500"
+    >
+      <UserPlus className="h-[18px] w-[18px]" aria-hidden="true" />
+      {pick("تسجيل جديد", "Create account")}
+    </a>
+    </div>
+  );
+
+  if (!catalogue.ready) return <main className="container-x py-32 text-center"><h1 className="text-3xl font-bold">PMS</h1><div className="mt-6">{customerAccess}</div><p className="mt-6">{catalogue.error ? pick("تعذّر تحميل الخطط. أعد المحاولة.","Unable to load plans. Please retry.") : pick("جاري تحميل الخطط والأسعار…","Loading plans and prices…")}</p><button className="mt-6 rounded-xl bg-brand-500 px-6 py-3 text-white" onClick={()=>window.location.reload()}>{pick("إعادة المحاولة","Retry")}</button></main>;
   return (
     <>
       <PageHero
@@ -240,6 +269,7 @@ export default function PMS() {
         crumbs={[{ label: copy.home, to: "/" }, { label: copy.product }]}
       >
         <div className="mt-8 flex flex-wrap gap-3">
+          {customerAccess}
           <a
             href="#plans"
             className="group inline-flex items-center gap-3 rounded-xl bg-brand-500 px-7 py-3.5 text-[15px] font-bold text-white shadow-xl shadow-brand-600/25 transition-all hover:-translate-y-0.5 hover:bg-brand-400"
@@ -254,15 +284,6 @@ export default function PMS() {
             <MessageCircle className="h-[18px] w-[18px]" />
             {copy.requestQuote}
           </Link>
-          <a
-            href={PMS_DOWNLOAD_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2.5 rounded-xl border border-white/15 bg-white/5 px-7 py-3.5 text-[15px] font-semibold text-white backdrop-blur transition-all hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500"
-          >
-            <Download className="h-[18px] w-[18px]" />
-            {copy.download}
-          </a>
         </div>
 
         {/* أرقام سريعة */}
@@ -282,48 +303,6 @@ export default function PMS() {
           ))}
         </div>
       </PageHero>
-
-      {/* ============ أهم مميزات النظام ============ */}
-      <section id="features" className="relative bg-white section-y">
-        <div className="pointer-events-none absolute left-1/2 top-20 h-[380px] w-[680px] -translate-x-1/2 rounded-full bg-brand-500/6 blur-[120px]" />
-        <div className="container-x relative">
-          <SectionHeading
-            badge={pick("المميزات", "Features")}
-            title={pick("كل ما تحتاجه لتدير", "Everything you need to run")}
-            highlight={pick("منتجاتك باحتراف", "your products professionally")}
-            desc={pick(
-              "ثماني ركائز أساسية يجمعها نظام واحد، بدل عدة برامج لا يتحدث بعضها مع بعض.",
-              "Eight pillars in a single system, instead of several tools that do not talk to each other.",
-            )}
-          />
-
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {pmsFeatures.map((f, i) => {
-              const IconCmp = iconMap[f.icon as keyof typeof iconMap] ?? Boxes;
-              return (
-                <Reveal key={f.title.en} delay={(i % 4) * 90}>
-                  <Spotlight className="group h-full rounded-2xl border border-ink-100 bg-white p-6 transition-all duration-300 hover:-translate-y-1.5 hover:border-brand-500 hover:shadow-2xl hover:shadow-brand-500/10">
-                    <span
-                      className={cn(
-                        "grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br text-white shadow-lg transition-transform duration-300 group-hover:scale-105",
-                        f.color,
-                      )}
-                    >
-                      <IconCmp className="h-[22px] w-[22px]" />
-                    </span>
-                    <h3 className="mt-4 text-[17.5px] font-extrabold text-ink-900 transition-colors group-hover:text-brand-600">
-                      <T value={f.title} lang={lang} />
-                    </h3>
-                    <p className="mt-2 text-[14px] leading-7 text-ink-500">
-                      <T value={f.desc} lang={lang} />
-                    </p>
-                  </Spotlight>
-                </Reveal>
-              );
-            })}
-          </div>
-        </div>
-      </section>
 
       {/* ============ الباقات والأسعار حسب الفيتشر ============ */}
       <section id="plans" className="relative bg-ink-50 section-y">
@@ -494,8 +473,7 @@ export default function PMS() {
                       ))}
                     </ul>
 
-                    <Link
-                      to="/contact"
+                    <a href={checkoutUrl(t.id, cycle)}
                       className={cn(
                         "relative mt-8 inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[15px] font-bold transition-all",
                         t.featured
@@ -504,7 +482,7 @@ export default function PMS() {
                       )}
                     >
                       <T value={t.cta} lang={lang} />
-                    </Link>
+                    </a>
                   </article>
                 </Reveal>
               );
@@ -575,12 +553,12 @@ export default function PMS() {
               </div>
 
               <h3 className="mt-9 text-[18px] font-extrabold">
-                {pick("2. أضف ما ينقصك", "2. Add what you miss")}
+                {pick("2. مميزات الباقة", "2. Plan features")}
               </h3>
               <p className="mt-1.5 text-[13.5px] text-ink-500">
                 {pick(
-                  "كل إضافة لها سعر مستقل — اختر ما تحتاجه فقط.",
-                  "Every add-on is priced separately — choose only what you need.",
+                  "المميزات الموضحة في المقارنة مشمولة حسب الخطة. الإضافات المخصصة تحتاج عرض سعر منفصل.",
+                  "Included features follow the comparison. Custom add-ons require a separate quote.",
                 )}
               </p>
 
@@ -730,22 +708,14 @@ export default function PMS() {
                     </div>
                   </div>
 
-                  <Link
-                    to="/contact"
+                  <a
+                    href={checkoutUrl(tier.id, cycle)}
                     className="mt-7 flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3.5 text-[15px] font-bold text-white transition-colors hover:bg-brand-400"
                   >
                     <Calculator className="h-4 w-4" />
-                    {pick("اطلب هذه الباقة", "Request this plan")}
-                  </Link>
-                  <a
-                    href={PMS_DOWNLOAD_URL}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-3 text-[14px] font-semibold text-white transition-colors hover:border-brand-500 hover:bg-brand-500"
-                  >
-                    <Download className="h-4 w-4" />
-                    {copy.download}
+                    {pick("اختر الخطة وسجّل حسابك", "Choose plan and register")}
                   </a>
+                  <div className="mt-3">{customerAccess}</div>
                   <p className="mt-3 text-center text-[11.5px] text-ink-500">
                     {pick(
                       "عرض سعر نهائي خلال 24 ساعة — بدون أي التزام",
@@ -858,6 +828,48 @@ export default function PMS() {
               )}
             </p>
           </Reveal>
+        </div>
+      </section>
+
+      {/* ============ أهم مميزات النظام ============ */}
+      <section id="features" className="relative bg-white section-y">
+        <div className="pointer-events-none absolute left-1/2 top-20 h-[380px] w-[680px] -translate-x-1/2 rounded-full bg-brand-500/6 blur-[120px]" />
+        <div className="container-x relative">
+          <SectionHeading
+            badge={pick("المميزات", "Features")}
+            title={pick("كل ما تحتاجه لتدير", "Everything you need to run")}
+            highlight={pick("منتجاتك باحتراف", "your products professionally")}
+            desc={pick(
+              "ثماني ركائز أساسية يجمعها نظام واحد، بدل عدة برامج لا يتحدث بعضها مع بعض.",
+              "Eight pillars in a single system, instead of several tools that do not talk to each other.",
+            )}
+          />
+
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {pmsFeatures.map((f, i) => {
+              const IconCmp = iconMap[f.icon as keyof typeof iconMap] ?? Boxes;
+              return (
+                <Reveal key={f.title.en} delay={(i % 4) * 90}>
+                  <Spotlight className="group h-full rounded-2xl border border-ink-100 bg-white p-6 transition-all duration-300 hover:-translate-y-1.5 hover:border-brand-500 hover:shadow-2xl hover:shadow-brand-500/10">
+                    <span
+                      className={cn(
+                        "grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br text-white shadow-lg transition-transform duration-300 group-hover:scale-105",
+                        f.color,
+                      )}
+                    >
+                      <IconCmp className="h-[22px] w-[22px]" />
+                    </span>
+                    <h3 className="mt-4 text-[17.5px] font-extrabold text-ink-900 transition-colors group-hover:text-brand-600">
+                      <T value={f.title} lang={lang} />
+                    </h3>
+                    <p className="mt-2 text-[14px] leading-7 text-ink-500">
+                      <T value={f.desc} lang={lang} />
+                    </p>
+                  </Spotlight>
+                </Reveal>
+              );
+            })}
+          </div>
         </div>
       </section>
 

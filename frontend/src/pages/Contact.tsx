@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { trackConversion } from "../lib/analytics";
 import { Link } from "react-router-dom";
 import {
   Clock,
@@ -47,6 +48,8 @@ export default function Contact() {
     whatsapp: "Chat with us on WhatsApp", mapTitle: "Awexen location", error: "We could not send your request right now. Check your connection and try again.",
   };
   const [sent, setSent] = useState(false);
+  const submissionId = useRef(`contact:${crypto.randomUUID()}`);
+  const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -70,10 +73,13 @@ export default function Contact() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting.current || sent) return;
+    submitting.current = true;
     setBusy(true);
     setError(null);
 
     if (!supabase) {
+      submitting.current = false;
       setBusy(false);
       setError(copy.error);
       return;
@@ -97,12 +103,15 @@ export default function Contact() {
         throw supabaseError;
       }
 
+      trackConversion("generate_lead", submissionId.current);
       setSent(true);
       setForm({ name: "", phone: "", email: "", service: "", budget: "", message: "" });
     } catch (submitError) {
       console.warn("[contact] submission failed", submitError);
       setBusy(false);
       setError(copy.error);
+    } finally {
+      submitting.current = false;
     }
   };
 

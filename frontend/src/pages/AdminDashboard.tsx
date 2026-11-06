@@ -30,6 +30,8 @@ import {
   X,
 } from "lucide-react";
 import QuoteInbox from "../admin/QuoteInbox";
+import AnalyticsPanel from "../admin/AnalyticsPanel";
+import { analyticsAdminAllowed } from "../lib/trackingPolicy";
 import CmsPanel from "../admin/cms/CmsPanel";
 import ResourceManager from "../admin/ResourceManager";
 import KnowledgeManager from "../admin/KnowledgeManager";
@@ -58,6 +60,7 @@ const navItems: Array<{
   roles: AdminRole[];
   group: "عام" | "المحتوى" | "المبيعات" | "التوظيف والتدريب" | "المعرفة" | "النظام";
 }> = [
+  { key: "analytics", label: "التحليلات والتتبع · Analytics & Tracking", icon: LayoutDashboard, roles: ["owner", "admin"], group: "عام" },
   { key: "overview", label: "الرئيسية", icon: House, roles: allRoles, group: "عام" },
   { key: "messages", label: "رسائل التواصل", icon: Mail, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "quotes", label: "طلبات عرض السعر", icon: FileText, roles: ["owner", "admin", "support"], group: "المبيعات" },
@@ -101,6 +104,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
   const [role, setRole] = useState<AdminRole>("admin");
   const [email, setEmail] = useState("");
   const [sessionReady, setSessionReady] = useState(false);
+  const [analyticsAccessVerified, setAnalyticsAccessVerified] = useState(false);
   const [navSearch, setNavSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -143,6 +147,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
       if (data.session) {
         const access = await loadDashboardAccess(data.session);
         if (access.adminRole) setRole(access.adminRole);
+        setAnalyticsAccessVerified(access.role === "admin" && analyticsAdminAllowed(access.adminRole ?? "", true));
       }
       setEmail(data.session?.user.email ?? "");
     }).catch(() => {}).finally(() => setSessionReady(true));
@@ -161,7 +166,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
     enrollments: notificationsQuery.data?.course_requests ?? 0,
   };
 
-  const visibleItems = useMemo(() => navItems.filter((item) => item.roles.includes(role)), [role]);
+  const visibleItems = useMemo(() => navItems.filter((item) => item.roles.includes(role) && (item.key !== "analytics" || analyticsAccessVerified)), [role, analyticsAccessVerified]);
   const filteredItems = useMemo(() => {
     const query = navSearch.trim().toLocaleLowerCase("ar");
     return query ? visibleItems.filter((item) => `${item.label} ${item.group}`.toLocaleLowerCase("ar").includes(query)) : visibleItems;
@@ -288,6 +293,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
         </aside>
 
         <main inert={menuOpen} className="min-w-0 rounded-xl border border-white/[0.07] bg-[#0d111b] p-4 sm:p-5">
+          {active === "analytics" && analyticsAccessVerified && <AnalyticsPanel />}
           {active === "overview" && <OverviewPanel role={role} goTo={safeGoTo} />}
           {active === "portfolio" && <ResourceManager definition={resources.portfolio} draftOwnerId={userId} />}
           {active === "site-content" && <CmsPanel />}
