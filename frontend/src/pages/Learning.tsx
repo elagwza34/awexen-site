@@ -642,8 +642,16 @@ function LessonBody({ lesson, onVideoProgress }: { lesson: CourseLesson; onVideo
       {lesson.content_type === "live" && (
         <div className="rounded-2xl border border-brand-200 bg-brand-50 p-6">
           <p className="text-[14px] font-black text-ink-900">جلسة مباشرة</p>
-          <p className="mt-2 text-[13px] leading-7 text-ink-600">استخدم رابط الجلسة في موعدها المحدد.</p>
-          {lesson.resource_url && <a href={lesson.resource_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-3 text-[12px] font-bold text-white">دخول الجلسة <ExternalLink className="h-4 w-4" /></a>}
+          <p className="mt-2 text-[13px] leading-7 text-ink-600">
+            {lesson.live_meeting?.provider === "zoom" ? "Zoom" : lesson.live_meeting?.provider === "google_meet" ? "Google Meet" : "اجتماع مباشر"}
+            {lesson.live_meeting?.starts_at ? ` · ${new Date(lesson.live_meeting.starts_at).toLocaleString("ar-EG")}` : ""}
+            {lesson.live_meeting?.ends_at ? ` - ${new Date(lesson.live_meeting.ends_at).toLocaleString("ar-EG")}` : ""}
+          </p>
+          {(lesson.live_meeting?.meeting_url || lesson.resource_url) ? (
+            <a href={(lesson.live_meeting?.meeting_url || lesson.resource_url)!} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-3 text-[12px] font-bold text-white">دخول الجلسة <ExternalLink className="h-4 w-4" /></a>
+          ) : (
+            <p className="mt-3 text-[12px] font-bold text-amber-700">سيظهر رابط الاجتماع هنا بمجرد إعداده من الإدارة.</p>
+          )}
         </div>
       )}
       {lesson.content && <div className="mt-7 whitespace-pre-line text-[15px] leading-8 text-ink-600">{lesson.content}</div>}

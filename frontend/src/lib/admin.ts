@@ -22,6 +22,11 @@ export type AdminSettings = {
   metaPixelId: string;
   googleTagId: string;
   customHead: string;
+  zoomApiKey: string;
+  zoomApiSecret: string;
+  zoomAccountId: string;
+  googleMeetCredentials: string;
+  googleCalendarApiKey: string;
 };
 
 export const defaultAdminSettings: AdminSettings = {
@@ -47,6 +52,11 @@ export const defaultAdminSettings: AdminSettings = {
   metaPixelId: "",
   googleTagId: "",
   customHead: "",
+  zoomApiKey: "",
+  zoomApiSecret: "",
+  zoomAccountId: "",
+  googleMeetCredentials: "",
+  googleCalendarApiKey: "",
 };
 
 export const STORAGE_KEY = "awexen-admin-settings";

@@ -1,5 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.112.4";
+import nodemailer from "npm:nodemailer@6.10.1";
 
 import {
   corsHeaders,
@@ -28,6 +29,17 @@ type LmsContext = {
   memberships: Membership[];
 };
 type DatabaseClient = SupabaseClient;
+type LiveMeeting = {
+  id?: string;
+  lesson_id: string;
+  provider: "zoom" | "google_meet";
+  meeting_url: string;
+  meeting_id?: string | null;
+  meeting_password?: string | null;
+  host_url?: string | null;
+  starts_at?: string | null;
+  ends_at?: string | null;
+};
 
 const CONTENT_ROLES = ["organization_admin", "lms_manager"];
 const ENROLLMENT_ROLES = ["organization_admin", "lms_manager", "support_agent"];
@@ -173,8 +185,158 @@ function moduleOutput(row: Row): Row {
 }
 
 function lessonOutput(row: Row): Row {
-  const { module_id, created_by_id: _createdBy, ...rest } = row;
-  return { ...rest, module: module_id };
+  const { module_id, created_by_id: _createdBy, live_meeting, ...rest } = row;
+  return { ...rest, module: module_id, ...(live_meeting ? { live_meeting } : {}) };
+}
+
+async function siteSettings(db: DatabaseClient): Promise<Row> {
+  const row = unwrap(await db.from("site_settings").select("*").eq("id", 1).maybeSingle()) as Row | null;
+  return row ?? {};
+}
+
+function secret(name: string): string {
+  return Deno.env.get(name)?.trim() ?? "";
+}
+
+async function sendEmail(to: string[], subject: string, html: string, settings?: Row): Promise<void> {
+  const recipients = to.map((v) => String(v ?? "").trim()).filter(Boolean);
+  if (!recipients.length) return;
+  const host = secret("SMTP_HOST") || text(settings?.smtp_host, 500);
+  const port = Number(secret("SMTP_PORT") || settings?.smtp_port || 587);
+  const user = secret("SMTP_USER") || text(settings?.smtp_user, 500);
+  const pass = secret("SMTP_PASS") || text(settings?.smtp_pass, 500);
+  const from = secret("SMTP_FROM") || text(settings?.smtp_from, 500) || user;
+  if (!host || !from) {
+    console.warn("[lms-api] SMTP not configured; skipping email", { to: recipients, subject });
+    return;
+  }
+  const transporter = nodemailer.createTransport({
+    host, port, secure: port === 465,
+    ...(user ? { auth: { user, pass } } : {}),
+  } as any);
+  await transporter.sendMail({ from, to: recipients.join(","), subject, html });
+}
+
+async function liveMeetingLessons(db: DatabaseClient, courseVersionId: string): Promise<Array<{ lesson: Row; meeting: Row | null }>> {
+  const modules = unwrap(await db.from("courses_module").select("id").eq("course_version_id", courseVersionId)) as Row[];
+  if (!modules.length) return [];
+  const lessons = unwrap(await db.from("courses_lesson").select("*")
+    .in("module_id", modules.map((row) => row.id)).eq("content_type", "live").order("sort_order")) as Row[];
+  if (!lessons.length) return [];
+  const meetingMap = await meetingsByLessonIds(db, lessons.map((row) => String(row.id)));
+  return lessons.map((lesson) => ({ lesson, meeting: meetingMap.get(String(lesson.id)) || null }));
+}
+
+async function sendLiveMeetingEmail(db: DatabaseClient, input: { email: string; name?: string; courseVersionId: string }): Promise<void> {
+  const email = String(input.email ?? "").trim();
+  if (!email) return;
+  const version = unwrap(await db.from("courses_courseversion").select("id,title,course_id").eq("id", input.courseVersionId).maybeSingle()) as Row | null;
+  if (!version) return;
+  const course = unwrap(await db.from("courses_course").select("title").eq("id", version.course_id).maybeSingle()) as Row | null;
+  const items = (await liveMeetingLessons(db, input.courseVersionId)).filter((item) => item.meeting?.meeting_url);
+  if (!items.length) return;
+  const settings = await siteSettings(db);
+  const rows = items.map(({ lesson, meeting }) => {
+    const when = meeting?.starts_at
+      ? new Date(String(meeting.starts_at)).toISOString().replace("T", " ").slice(0, 16)
+      : "";
+    const provider = String(meeting?.provider ?? "") === "zoom" ? "Zoom" : "Google Meet";
+    return `<li style="margin:0 0 14px"><strong>${lesson.title}</strong><br><span>${provider}${when ? ` · ${when}` : ""}</span><br><a href="${meeting?.meeting_url}">رابط الحضور</a>${meeting?.meeting_password ? `<br>كلمة المرور: ${meeting.meeting_password}` : ""}</li>`;
+  }).join("");
+  const html = `<div dir="rtl" style="font-family:Arial,sans-serif;color:#111"><p>مرحبًا${input.name ? ` ${input.name}` : ""}،</p><p>تم تفعيل اشتراكك في <strong>${course?.title ?? version.title ?? "الكورس"}</strong>. مواعيد وروابط الجلسات المباشرة:</p><ul style="padding-inline-start:18px">${rows}</ul><p>فريق Awexen</p></div>`;
+  try {
+    await sendEmail([email], `روابط جلسات ${course?.title ?? version.title ?? "الكورس"} المباشرة`, html, settings);
+  } catch (error) {
+    console.error("[lms-api] failed to send live meeting email", error);
+  }
+}
+
+async function createZoomMeeting(settings: Row, input: { topic: string; startsAt?: string | null; endsAt?: string | null }): Promise<LiveMeeting | null> {
+  const accountId = secret("ZOOM_ACCOUNT_ID") || text(settings?.zoom_account_id, 200);
+  const clientId = secret("ZOOM_CLIENT_ID") || secret("ZOOM_API_KEY") || text(settings?.zoom_api_key, 500);
+  const clientSecret = secret("ZOOM_CLIENT_SECRET") || secret("ZOOM_API_SECRET") || text(settings?.zoom_api_secret, 500);
+  if (!accountId || !clientId || !clientSecret) return null;
+  const basic = btoa(`${clientId}:${clientSecret}`);
+  const tokenRes = await fetch(`https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${encodeURIComponent(accountId)}`, {
+    method: "POST",
+    headers: { Authorization: `Basic ${basic}` },
+  });
+  if (!tokenRes.ok) throw new HttpError(502, "تعذّر الحصول على رمز Zoom.", await tokenRes.text());
+  const tokenData = await tokenRes.json() as { access_token?: string };
+  if (!tokenData.access_token) throw new HttpError(502, "رمز Zoom غير متاح.");
+  const duration = input.startsAt && input.endsAt
+    ? Math.max(15, Math.round((new Date(input.endsAt).getTime() - new Date(input.startsAt).getTime()) / 60000))
+    : 60;
+  const meetingRes = await fetch("https://api.zoom.us/v2/users/me/meetings", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${tokenData.access_token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      topic: input.topic,
+      type: 2,
+      start_time: input.startsAt ?? undefined,
+      duration,
+      settings: { join_before_host: false },
+    }),
+  });
+  if (!meetingRes.ok) throw new HttpError(502, "تعذّر إنشاء اجتماع Zoom.", await meetingRes.text());
+  const meeting = await meetingRes.json() as Record<string, unknown>;
+  return {
+    lesson_id: "",
+    provider: "zoom",
+    meeting_url: String(meeting.join_url ?? ""),
+    meeting_id: meeting.id != null ? String(meeting.id) : null,
+    meeting_password: meeting.password != null ? String(meeting.password) : null,
+    host_url: meeting.start_url != null ? String(meeting.start_url) : null,
+    starts_at: input.startsAt ?? null,
+    ends_at: input.endsAt ?? null,
+  };
+}
+
+async function createGoogleMeetMeeting(settings: Row, input: { topic: string; startsAt?: string | null; endsAt?: string | null }): Promise<LiveMeeting | null> {
+  const credsRaw = secret("GOOGLE_MEET_CREDENTIALS") || secret("GOOGLE_SERVICE_ACCOUNT_JSON") || text(settings?.google_meet_credentials, 20000);
+  if (!credsRaw) return null;
+  // Placeholder: full Google Meet/Calendar creation requires service-account JWT + Calendar API event with conferenceData.
+  // Kept as a safe stub until credentials/flow are finalized.
+  console.warn("[lms-api] Google Meet credentials present but creation flow not finalized; skipping auto-create.");
+  return null;
+}
+
+async function provisionLiveMeeting(db: DatabaseClient, lesson: Row, body: Row): Promise<LiveMeeting | null> {
+  if (String(lesson.content_type ?? body.content_type ?? "") !== "live") return null;
+  const provider = text(body.meeting_provider ?? body.provider, 20) as "zoom" | "google_meet";
+  const startsAt = body.meeting_starts_at ? new Date(String(body.meeting_starts_at)).toISOString() : (body.starts_at ? new Date(String(body.starts_at)).toISOString() : null);
+  const endsAt = body.meeting_ends_at ? new Date(String(body.meeting_ends_at)).toISOString() : (body.ends_at ? new Date(String(body.ends_at)).toISOString() : null);
+  if (provider !== "zoom" && provider !== "google_meet") {
+    // No provider requested; keep existing meeting if any
+    const existing = unwrap(await db.from("courses_livemeeting").select("*").eq("lesson_id", lesson.id).maybeSingle()) as Row | null;
+    return existing as LiveMeeting | null;
+  }
+  const settings = await siteSettings(db);
+  const topic = text(body.title ?? lesson.title, 240) || "جلسة مباشرة";
+  let meeting: LiveMeeting | null = null;
+  try {
+    meeting = provider === "zoom"
+      ? await createZoomMeeting(settings, { topic, startsAt, endsAt })
+      : await createGoogleMeetMeeting(settings, { topic, startsAt, endsAt });
+  } catch (error) {
+    console.error("[lms-api] live meeting provisioning failed", error);
+    throw error instanceof HttpError ? error : new HttpError(502, "تعذّر إنشاء الاجتماع المباشر.");
+  }
+  if (!meeting) {
+    // Credentials not configured yet: store requested provider/times without URL so UI shows pending state.
+    const pending: LiveMeeting = { lesson_id: String(lesson.id), provider, meeting_url: "", starts_at: startsAt, ends_at: endsAt };
+    const saved = unwrap(await db.from("courses_livemeeting").upsert({ ...pending, updated_at: new Date().toISOString() }, { onConflict: "lesson_id" }).select("*").single()) as Row;
+    return saved as LiveMeeting;
+  }
+  meeting.lesson_id = String(lesson.id);
+  const saved = unwrap(await db.from("courses_livemeeting").upsert({ ...meeting, updated_at: new Date().toISOString() }, { onConflict: "lesson_id" }).select("*").single()) as Row;
+  return saved as LiveMeeting;
+}
+
+async function meetingsByLessonIds(db: DatabaseClient, lessonIds: string[]): Promise<Map<string, Row>> {
+  if (!lessonIds.length) return new Map();
+  const rows = unwrap(await db.from("courses_livemeeting").select("*").in("lesson_id", lessonIds)) as Row[];
+  return new Map(rows.map((row) => [String(row.lesson_id), row]));
 }
 
 function cohortOutput(row: Row): Row {
@@ -468,11 +630,12 @@ async function learningCourse(db: DatabaseClient, context: LmsContext, enrollmen
   const lessonProgress = unwrap(await db.from("learning_lessonprogress").select("*")
     .eq("enrollment_id", enrollmentId)) as Row[];
   const progressByLesson = new Map(lessonProgress.map((row) => [String(row.lesson_id), row]));
+  const meetingMap = await meetingsByLessonIds(db, lessons.map((lesson) => String(lesson.id)));
   const lessonsByModule = new Map<string, Row[]>();
   for (const lesson of lessons) {
     const progress = progressByLesson.get(String(lesson.id));
     const item = {
-      ...lessonOutput(lesson),
+      ...lessonOutput({ ...lesson, live_meeting: meetingMap.get(String(lesson.id)) || null }),
       completed: progress?.status === "completed",
       last_position_seconds: progress?.last_position_seconds ?? 0,
     };
@@ -614,16 +777,20 @@ async function adminList(
       const modules = unwrap(await db.from("courses_module").select("id").eq("course_version_id", versionId)) as Row[];
       if (!modules.length) return paged([], 0, page, pageSize);
       query = query.in("module_id", modules.map((row) => row.id));
-    } else if (url.searchParams.get("module")) {
-      const module = await moduleById(db, uuid(url.searchParams.get("module"), "الوحدة"));
-      await assertVersionAccess(db, context, String(module.course_version_id), "admin");
-      query = query.eq("module_id", module.id);
-    } else {
-      throw new HttpError(400, "حدّد إصدار الكورس أو الوحدة.");
+    } else if (contentOrganizations) {
+      const allowedCourses = unwrap(await db.from("courses_course").select("id").in("organization_id", contentOrganizations)) as Row[];
+      const versions = allowedCourses.length ? unwrap(await db.from("courses_courseversion").select("id").in("course_id", allowedCourses.map((row) => row.id))) as Row[] : [];
+      const modules = versions.length ? unwrap(await db.from("courses_module").select("id").in("course_version_id", versions.map((row) => row.id))) as Row[] : [];
+      if (!modules.length) return paged([], 0, page, pageSize);
+      query = query.in("module_id", modules.map((row) => row.id));
     }
+    if (url.searchParams.get("module")) query = query.eq("module_id", url.searchParams.get("module"));
     if (url.searchParams.get("status")) query = query.eq("status", url.searchParams.get("status"));
     if (url.searchParams.get("content_type")) query = query.eq("content_type", url.searchParams.get("content_type"));
-    transform = (rows) => Promise.resolve(rows.map(lessonOutput));
+    transform = async (rows) => {
+      const meetingMap = await meetingsByLessonIds(db, rows.map((row) => String(row.id)));
+      return rows.map((row) => lessonOutput({ ...row, live_meeting: meetingMap.get(String(row.id)) || null }));
+    };
   } else if (resource === "enrollments") {
     if (enrollmentOrganizations?.length === 0) throw new HttpError(403, "لا تملك صلاحية إدارة التسجيلات.");
     query = db.from("learning_enrollment").select("*", { count: "exact" });
@@ -670,7 +837,7 @@ async function instructorList(
   requireInstructor(context);
   const { page, pageSize, from, to } = pagination(url);
   let query: any;
-  let transform: (rows: Row[]) => Row[] = (rows) => rows;
+  let transform: (rows: Row[]) => Row[] | Promise<Row[]> = (rows) => rows;
   const ownedCourses = unwrap(await db.from("courses_course").select("id").eq("owner_id", context.id)) as Row[];
   const ownedCourseIds = ownedCourses.map((row) => String(row.id));
 
@@ -693,7 +860,10 @@ async function instructorList(
       const modules = unwrap(await db.from("courses_module").select("id").eq("course_version_id", versionId)) as Row[];
       if (!modules.length) return paged([], 0, page, pageSize);
       query = db.from("courses_lesson").select("*", { count: "exact" }).in("module_id", modules.map((row) => row.id));
-      transform = (rows) => rows.map(lessonOutput);
+      transform = async (rows) => {
+        const meetingMap = await meetingsByLessonIds(db, rows.map((row) => String(row.id)));
+        return rows.map((row) => lessonOutput({ ...row, live_meeting: meetingMap.get(String(row.id)) || null }));
+      };
     }
   } else {
     throw new HttpError(404, "مسار المدرّب غير موجود.");
@@ -729,7 +899,8 @@ async function adminDetail(
     if (!lesson) throw new HttpError(404, "الدرس غير موجود.");
     const module = await moduleById(db, String(lesson.module_id));
     await assertVersionAccess(db, context, String(module.course_version_id), "admin");
-    return lessonOutput(lesson);
+    const meetingMap = await meetingsByLessonIds(db, [id]);
+    return lessonOutput({ ...lesson, live_meeting: meetingMap.get(id) || null });
   }
   if (resource === "cohorts") {
     const cohort = unwrap(await db.from("courses_cohort").select("*").eq("id", id).maybeSingle()) as Row | null;
@@ -777,7 +948,8 @@ async function instructorDetail(
     if (!lesson) throw new HttpError(404, "الدرس غير موجود.");
     const module = await moduleById(db, String(lesson.module_id));
     await assertVersionAccess(db, context, String(module.course_version_id), "instructor");
-    return lessonOutput(lesson);
+    const meetingMap = await meetingsByLessonIds(db, [id]);
+    return lessonOutput({ ...lesson, live_meeting: meetingMap.get(id) || null });
   }
   throw new HttpError(404, "مورد المدرّب غير موجود.");
 }
@@ -1109,8 +1281,10 @@ async function mutateContent(
         module_id: module.id, created_by_id: context.id, ...lessonPayload(body),
       };
       const created = unwrap(await db.from("courses_lesson").insert(row).select("*").single()) as Row;
+      let meeting: Row | null = null;
+      try { meeting = (await provisionLiveMeeting(db, created, body)) as Row | null; } catch (e) { console.error("[lms-api] provisionLiveMeeting failed", e); }
       await audit(db, context, requestIdValue, "lesson.created", "lesson", String(created.id), String(course.organization_id));
-      return jsonResponse(request, lessonOutput(created), 201);
+      return jsonResponse(request, lessonOutput({ ...created, live_meeting: meeting || null }), 201);
     }
     if (id) {
       const lesson = unwrap(await db.from("courses_lesson").select("*").eq("id", id).maybeSingle()) as Row | null;
@@ -1122,8 +1296,11 @@ async function mutateContent(
         if (body.module && String(body.module) !== String(module.id)) throw new HttpError(400, "لا يمكن نقل الدرس بين الوحدات من هذا النموذج.");
         const updated = unwrap(await db.from("courses_lesson").update({ ...lessonPayload({ ...lesson, ...body }), updated_at: new Date().toISOString() })
           .eq("id", id).select("*").single()) as Row;
+        let meeting: Row | null = null;
+        try { meeting = (await provisionLiveMeeting(db, updated, body)) as Row | null; } catch (e) { console.error("[lms-api] provisionLiveMeeting failed", e); }
+        if (!meeting) meeting = unwrap(await db.from("courses_livemeeting").select("*").eq("lesson_id", id).maybeSingle()) as Row | null;
         await audit(db, context, requestIdValue, "lesson.updated", "lesson", id, String(course.organization_id));
-        return jsonResponse(request, lessonOutput(updated));
+        return jsonResponse(request, lessonOutput({ ...updated, live_meeting: meeting || null }));
       }
       if (method === "DELETE") {
         unwrap(await db.from("courses_lesson").delete().eq("id", id));
@@ -1263,6 +1440,7 @@ async function routeRequest(
         p_request_id: requestIdValue,
       });
       const row = unwrap(await db.from("learning_enrollment").select("*").eq("id", id).single()) as Row;
+      void sendLiveMeetingEmail(db, { email: text(body.student_email, 254).toLowerCase(), courseVersionId: String(row.course_version_id) }).catch(() => {});
       return jsonResponse(request, (await enrollmentOutputs(db, [row]))[0], 201);
     }
     if (resource === "enrollments" && parts[2] && method === "PATCH") {
@@ -1275,6 +1453,14 @@ async function routeRequest(
         p_request_id: requestIdValue,
       });
       const row = unwrap(await db.from("learning_enrollment").select("*").eq("id", id).single()) as Row;
+      if (["active", "approved", "completed"].includes(text(row.status, 20))) {
+        const student = unwrap(await db.from("accounts_user").select("email,full_name").eq("id", row.user_id).maybeSingle()) as Row | null;
+        void sendLiveMeetingEmail(db, {
+          email: text(student?.email, 254),
+          name: text(student?.full_name, 200),
+          courseVersionId: String(row.course_version_id),
+        }).catch(() => {});
+      }
       return jsonResponse(request, (await enrollmentOutputs(db, [row]))[0]);
     }
     if (resource === "payment-bookings" && parts[2] && method === "POST" && ["approve", "reject"].includes(parts[3])) {
@@ -1284,6 +1470,17 @@ async function routeRequest(
         p_booking_id: uuid(parts[2], "طلب الحجز"),
         p_action: parts[3], p_reason: text(body.reason, 2000), p_request_id: requestIdValue,
       });
+      if (parts[3] === "approve") {
+        const booking = unwrap(await db.from("commerce_coursebooking").select("id,user_id,course_version_id").eq("id", id).maybeSingle()) as Row | null;
+        const student = booking?.user_id
+          ? unwrap(await db.from("accounts_user").select("email,full_name").eq("id", booking.user_id).maybeSingle()) as Row | null
+          : null;
+        void sendLiveMeetingEmail(db, {
+          email: text(student?.email, 254),
+          name: text(student?.full_name, 200),
+          courseVersionId: text(booking?.course_version_id, 100),
+        }).catch(() => {});
+      }
       return jsonResponse(request, await bookingById(db, id));
     }
     return mutateContent(request, db, context, "admin", parts, requestIdValue);

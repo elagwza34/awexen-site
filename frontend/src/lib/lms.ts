@@ -85,12 +85,24 @@ export type StudentEnrollment = {
   accessValid: boolean;
 };
 
+export type LiveMeeting = {
+  id?: string;
+  lesson_id?: string;
+  provider: "zoom" | "google_meet";
+  meeting_url: string;
+  meeting_id?: string | null;
+  meeting_password?: string | null;
+  host_url?: string | null;
+  starts_at?: string | null;
+  ends_at?: string | null;
+};
+
 export type CourseLesson = {
   id: string;
   section_id: string;
   title: string;
-  summary: string;
-  content: string;
+  summary: string | null;
+  content: string | null;
   content_type: "text" | "video" | "audio" | "document" | "presentation" | "external_url" | "live";
   video_url: string | null;
   resource_url: string | null;
@@ -99,6 +111,7 @@ export type CourseLesson = {
   sort_order: number;
   completion_rule: "manual" | "view" | "video_threshold";
   completion_threshold: number;
+  live_meeting?: LiveMeeting | null;
 };
 
 export type CourseSection = {
@@ -156,6 +169,7 @@ type ApiLearningLesson = {
   completion_threshold: number;
   completed: boolean;
   last_position_seconds: number;
+  live_meeting?: LiveMeeting | null;
 };
 
 type ApiLearningCourse = {
@@ -325,6 +339,7 @@ export async function loadLearningCourse(enrollmentId: string): Promise<Learning
         sort_order: lesson.sort_order,
         completion_rule: lesson.completion_rule,
         completion_threshold: lesson.completion_threshold,
+        live_meeting: lesson.live_meeting ?? null,
       };
     }),
   }));

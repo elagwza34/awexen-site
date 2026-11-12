@@ -27,6 +27,11 @@ const dbToForm = (row: Record<string, unknown>): AdminSettings => ({
   metaPixelId: String(row.meta_pixel_id ?? defaultAdminSettings.metaPixelId),
   googleTagId: String(row.google_tag_id ?? defaultAdminSettings.googleTagId),
   customHead: String(row.custom_head ?? defaultAdminSettings.customHead),
+  zoomApiKey: String(row.zoom_api_key ?? defaultAdminSettings.zoomApiKey),
+  zoomApiSecret: String(row.zoom_api_secret ?? defaultAdminSettings.zoomApiSecret),
+  zoomAccountId: String(row.zoom_account_id ?? defaultAdminSettings.zoomAccountId),
+  googleMeetCredentials: String(row.google_meet_credentials ?? defaultAdminSettings.googleMeetCredentials),
+  googleCalendarApiKey: String(row.google_calendar_api_key ?? defaultAdminSettings.googleCalendarApiKey),
 });
 
 export function SiteSettingsPanel() {
@@ -72,9 +77,14 @@ export function SiteSettingsPanel() {
       canonical_url: form.canonicalUrl,
       analytics_id: form.analyticsId,
       meta_pixel_id: form.metaPixelId,
-      google_tag_id: form.googleTagId,
-      custom_head: form.customHead,
-    };
+  google_tag_id: form.googleTagId,
+  custom_head: form.customHead,
+  zoom_api_key: form.zoomApiKey,
+  zoom_api_secret: form.zoomApiSecret,
+  zoom_account_id: form.zoomAccountId,
+  google_meet_credentials: form.googleMeetCredentials,
+  google_calendar_api_key: form.googleCalendarApiKey,
+};
 
     if (supabase) {
       const { error } = await supabase.from("site_settings").upsert(payload, { onConflict: "id" });
@@ -99,6 +109,10 @@ export function SiteSettingsPanel() {
     { key: "seoTitle", label: "عنوان SEO الافتراضي", wide: true }, { key: "seoDescription", label: "وصف SEO الافتراضي", type: "textarea", wide: true },
     { key: "canonicalUrl", label: "Canonical URL", wide: true }, { key: "analyticsId", label: "Google Analytics" },
     { key: "googleTagId", label: "Google Tag Manager" }, { key: "metaPixelId", label: "Meta Pixel" },
+    { key: "zoomApiKey", label: "Zoom API Key", wide: true }, { key: "zoomApiSecret", label: "Zoom API Secret", wide: true },
+    { key: "zoomAccountId", label: "Zoom Account ID", wide: true },
+    { key: "googleMeetCredentials", label: "Google Meet Credentials (JSON)", type: "textarea", wide: true },
+    { key: "googleCalendarApiKey", label: "Google Calendar API Key", wide: true },
   ];
 
   return (
