@@ -9,9 +9,11 @@ export default function ConsentPopup() {
   const [open, setOpen] = useState(() => !readConsent());
   const [error, setError] = useState(false);
   useEffect(() => {
-    const sync = () => { if (!readConsent()) setOpen(true); };
+    const sync = () => setOpen(!readConsent());
     const storage = (event: StorageEvent) => { if (event.key === CONSENT_KEY || event.key === null) setOpen(!readConsent()); };
     const timer = window.setInterval(sync, 30_000);
+    // التحقق من حالة الموافقة مباشرة بعد المونت (يعالج اختلاف الخادم والهايدريشن)
+    setOpen(!readConsent());
     window.addEventListener(CONSENT_EVENT, sync);
     window.addEventListener("storage", storage);
     return () => { window.clearInterval(timer); window.removeEventListener(CONSENT_EVENT, sync); window.removeEventListener("storage", storage); };
