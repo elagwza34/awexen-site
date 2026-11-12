@@ -185,7 +185,6 @@ export default function Hero() {
           <Reveal>
             <span className="inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-4 py-1.5 text-[13px] font-semibold text-brand-300 backdrop-blur">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-400" />
               </span>
               {t("hero.badge")}
@@ -199,7 +198,7 @@ export default function Hero() {
               <h1
                 className={`mt-7 text-[clamp(1.35rem,6.6vw,4.4rem)] font-black leading-[1.16] tracking-tight text-white ${
                   lang === "ar"
-                    ? "w-[min(94vw,62rem)] whitespace-nowrap"
+                    ? "w-[min(94vw,62rem)] text-balance"
                     : "text-balance"
                 }`}
               >

@@ -109,11 +109,16 @@ export function Reveal({
   className?: string;
 }) {
   const { ref, inView } = useInView<HTMLDivElement>(0.08);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const visible = mounted ? inView : true;
   return (
     <div
       ref={ref}
       data-dir={dir ?? "up"}
-      className={cn("reveal", inView && "is-visible", className)}
+      className={cn("reveal", visible && "is-visible", className)}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
@@ -132,7 +137,10 @@ export function CountUp({
   duration?: number;
 }) {
   const { ref, inView } = useInView<HTMLSpanElement>(0.4);
-  const [display, setDisplay] = useState(value);
+  const match = value.match(/[\d.,]+/);
+  const prefix = match ? value.slice(0, match.index ?? 0) : "";
+  const suffix = match ? value.slice((match.index ?? 0) + match[0].length) : "";
+  const [display, setDisplay] = useState(match ? prefix + "0" + suffix : value);
 
   useEffect(() => {
     const match = value.match(/[\d.,]+/);
@@ -165,7 +173,6 @@ export function CountUp({
       if (p < 1) raf = requestAnimationFrame(tick);
     };
 
-    setDisplay(prefix + "0" + suffix);
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [inView, value, duration]);
