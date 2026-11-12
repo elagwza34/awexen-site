@@ -44,9 +44,9 @@ function Instagram({ className }: { className?: string }) {
 }
 
 const socials = [
-  { Icon: Facebook, label: "Facebook" },
-  { Icon: Instagram, label: "Instagram" },
-  { Icon: TikTok, label: "Tiktok" },
+  { Icon: Facebook, key: "facebook", label: "Facebook" },
+  { Icon: Instagram, key: "instagram", label: "Instagram" },
+  { Icon: TikTok, key: "tiktok", label: "TikTok" },
 ];
 
 const columns = [
@@ -196,16 +196,22 @@ export default function Footer() {
               </p>
             </CmsEditable>
             <div className="mt-6 flex items-center gap-2.5">
-              {socials.map(({ Icon, label }) => (
-                <a
-                  key={label}
-                  href="#"
-                  aria-label={label}
-                  className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-white/70 transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500 hover:text-white"
-                >
-                  <Icon className="h-[18px] w-[18px]" />
-                </a>
-              ))}
+              {socials.map(({ Icon, key, label }) => {
+                const href = settings[key as keyof typeof settings];
+                if (!href) return null;
+                return (
+                  <a
+                    key={key}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-white/70 transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500 hover:text-white"
+                  >
+                    <Icon className="h-[18px] w-[18px]" />
+                  </a>
+                );
+              })}
             </div>
           </div>
 

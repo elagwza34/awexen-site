@@ -13,6 +13,7 @@ export type AdminSettings = {
   whatsapp: string;
   instagram: string;
   facebook: string;
+  tiktok: string;
   primaryColor: string;
   seoTitle: string;
   seoDescription: string;
@@ -36,6 +37,7 @@ export const defaultAdminSettings: AdminSettings = {
   whatsapp: "+201092400443",
   instagram: "@awexen",
   facebook: "awexen",
+  tiktok: "",
   primaryColor: "#ff5a0a",
   seoTitle: "Awexen | تصميم وبرمجة مواقع وتطبيقات للشركات",
   seoDescription:
