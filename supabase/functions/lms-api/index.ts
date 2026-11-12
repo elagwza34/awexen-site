@@ -731,6 +731,96 @@ async function adminNotificationSummary(db: DatabaseClient, context: LmsContext)
   return { course_reviews: courseReviews, course_requests: courseRequests };
 }
 
+async function listInstructors(db: DatabaseClient, context: LmsContext): Promise<Row[]> {
+  const orgIds = allowedOrganizationIds(context, CONTENT_ROLES);
+  let query = db.from("organizations_membership")
+    .select("user_id,organization_id,role,is_active")
+    .eq("role", INSTRUCTOR_ROLE)
+    .eq("is_active", true);
+  if (orgIds) query = query.in("organization_id", orgIds);
+  const memberships = unwrap(await query) as Row[];
+  const users = mapById(await rowsByIds(db, "accounts_user", memberships.map((row) => String(row.user_id))));
+  const seen = new Set<string>();
+  const options: Row[] = [];
+  for (const membership of memberships) {
+    const id = String(membership.user_id);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const user = users.get(id) ?? {};
+    options.push({
+      id,
+      email: user.email ?? "",
+      full_name: user.full_name ?? "",
+      organization_id: membership.organization_id ?? null,
+    });
+  }
+  return options;
+}
+
+async function instructorVersionId(db: DatabaseClient, course: Row): Promise<string | null> {
+  if (course.current_version_id) return String(course.current_version_id);
+  const latest = unwrap(await db.from("courses_courseversion").select("id")
+    .eq("course_id", course.id)
+    .order("version_number", { ascending: false })
+    .limit(1)
+    .maybeSingle()) as Row | null;
+  return latest ? String(latest.id) : null;
+}
+
+async function courseInstructors(db: DatabaseClient, course: Row): Promise<Row[]> {
+  const versionId = await instructorVersionId(db, course);
+  if (!versionId) return [];
+  const rows = unwrap(await db.from("courses_courseinstructor").select("*")
+    .eq("course_version_id", versionId)
+    .order("is_lead", { ascending: false })) as Row[];
+  const users = mapById(await rowsByIds(db, "accounts_user", rows.map((row) => String(row.instructor_id))));
+  return rows.map((row) => {
+    const user = users.get(String(row.instructor_id)) ?? {};
+    return { ...row, email: user.email ?? "", full_name: user.full_name ?? "" };
+  });
+}
+
+async function setCourseInstructor(
+  db: DatabaseClient,
+  context: LmsContext,
+  course: Row,
+  userId: string,
+  isLead: boolean,
+): Promise<Row[]> {
+  const versionId = await instructorVersionId(db, course);
+  if (!versionId) throw new HttpError(400, "انشر إصدارًا للكورس أولًا قبل تعيين المحاضر.");
+  const existing = unwrap(await db.from("courses_courseinstructor").select("*")
+    .eq("course_version_id", versionId)
+    .eq("instructor_id", userId)
+    .maybeSingle()) as Row | null;
+  if (existing) {
+    unwrap(await db.from("courses_courseinstructor")
+      .update({ is_lead: isLead, updated_at: new Date().toISOString() })
+      .eq("id", existing.id));
+  } else {
+    unwrap(await db.from("courses_courseinstructor").insert({
+      id: crypto.randomUUID(),
+      course_version_id: versionId,
+      instructor_id: userId,
+      is_lead: isLead,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }));
+  }
+  await rpc(db, "lms_edge_sync_course_catalog", { p_auth_user_id: context.auth_user_id, p_course_id: course.id }).catch(() => undefined);
+  return await courseInstructors(db, course);
+}
+
+async function removeCourseInstructor(db: DatabaseClient, context: LmsContext, course: Row, userId: string): Promise<Row[]> {
+  const versionId = await instructorVersionId(db, course);
+  if (!versionId) return [];
+  unwrap(await db.from("courses_courseinstructor").delete()
+    .eq("course_version_id", versionId)
+    .eq("instructor_id", userId));
+  await rpc(db, "lms_edge_sync_course_catalog", { p_auth_user_id: context.auth_user_id, p_course_id: course.id }).catch(() => undefined);
+  return await courseInstructors(db, course);
+}
+
 async function adminList(
   db: DatabaseClient,
   context: LmsContext,
@@ -958,6 +1048,14 @@ function coursePayload(body: Row): Row {
   const payload: Row = {};
   for (const field of ["organization_id", "slug", "title", "short_description", "delivery_mode", "currency", "capacity", "starts_at", "ends_at"]) {
     if (field in body) payload[field] = body[field];
+  }
+  for (const field of ["duration_months", "modules_count"]) {
+    if (field in body) {
+      const raw = body[field];
+      payload[field] = raw === "" || raw === null || raw === undefined
+        ? null
+        : Math.max(0, Math.floor(numberValue(raw, 0)));
+    }
   }
   if ("price" in body) {
     const price = numberValue(body.price);
@@ -1422,6 +1520,29 @@ async function routeRequest(
   }
   if (parts[0] === "admin") {
     const resource = parts[1];
+    if (method === "GET" && resource === "instructors" && !parts[2]) {
+      return jsonResponse(request, await listInstructors(db, context));
+    }
+    if (resource === "courses" && parts[2] && parts[3] === "instructors") {
+      const course = await courseById(db, uuid(parts[2], "الكورس"));
+      requireOrganization(context, course.organization_id, CONTENT_ROLES);
+      if (method === "GET") {
+        return jsonResponse(request, await courseInstructors(db, course));
+      }
+      if (method === "POST") {
+        const body = await readJson(request);
+        const userId = uuid(body.user_id ?? body.instructor_id, "المحاضر");
+        const rows = await setCourseInstructor(db, context, course, userId, body.is_lead !== false);
+        await audit(db, context, requestIdValue, "course.instructor_assigned", "course", String(course.id), String(course.organization_id));
+        return jsonResponse(request, rows, 201);
+      }
+      if (method === "DELETE") {
+        const userId = uuid(parts[4] ?? "", "المحاضر");
+        const rows = await removeCourseInstructor(db, context, course, userId);
+        await audit(db, context, requestIdValue, "course.instructor_removed", "course", String(course.id), String(course.organization_id));
+        return jsonResponse(request, rows);
+      }
+    }
     if (method === "GET" && resource === "notification-summary" && !parts[2]) {
       return jsonResponse(request, await adminNotificationSummary(db, context));
     }

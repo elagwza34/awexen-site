@@ -16,6 +16,7 @@ import {
 import { lmsApi } from "../lib/lmsApi";
 import { uploadPublicImage } from "../lib/storage";
 import { useConfirmDialog } from "../components/ConfirmDialog";
+import Counter from "./Counter";
 import type { AdminRole } from "./types";
 
 type Paged<T> = { count: number; results: T[] };
@@ -41,7 +42,10 @@ type Course = {
   ends_at: string | null;
   status: "draft" | "published" | "archived";
   current_version_id: string | null;
+  duration_months?: number | null;
+  modules_count?: number | null;
 };
+type InstructorRow = { id: string; email: string; full_name: string };
 type Version = {
   id: string;
   course: string;
@@ -144,14 +148,20 @@ export default function LmsManager({ role }: { role: AdminRole }) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCourseForm, setShowCourseForm] = useState(false);
-  const [courseDraft, setCourseDraft] = useState({ title: "", slug: "", short_description: "", delivery_mode: "recorded" as Course["delivery_mode"], price: 1500 });
-  const [courseSettings, setCourseSettings] = useState({ delivery_mode: "recorded" as Course["delivery_mode"], price: 1500, capacity: "", starts_at: "", ends_at: "" });
+  const [courseDraft, setCourseDraft] = useState({ title: "", slug: "", short_description: "", delivery_mode: "recorded" as Course["delivery_mode"], price: 1500, instructor_id: "", duration_months: 1, modules_count: 1 });
+  const [courseSettings, setCourseSettings] = useState({ delivery_mode: "recorded" as Course["delivery_mode"], price: 1500, capacity: "", starts_at: "", ends_at: "", duration_months: 0, modules_count: 0 });
   const [versionDraft, setVersionDraft] = useState({ title: "", short_description: "", description: "", difficulty: "all_levels", estimated_minutes: 0, thumbnail_url: "", learning_outcomes: "", requirements: "", target_audience: "" });
   const [moduleDraft, setModuleDraft] = useState({ ...emptyModule });
   const [lessonDraft, setLessonDraft] = useState<(typeof emptyLesson & { id?: string; module: string }) | null>(null);
   const [studentEmail, setStudentEmail] = useState("");
 
   const meQuery = useQuery({ queryKey: ["lms-admin", "me"], queryFn: () => lmsApi<Me>("me/") });
+  const instructorsQuery = useQuery({
+    queryKey: ["lms-admin", "instructors"],
+    queryFn: () => lmsApi<InstructorRow[]>("admin/instructors/"),
+    enabled: meQuery.isSuccess,
+  });
+  const instructors = instructorsQuery.data ?? [];
   const organization = meQuery.data?.memberships.find((membership) =>
     membership.role === "organization_admin" || membership.role === "lms_manager"
   ) ?? (meQuery.data?.platform_role === "super_admin" ? meQuery.data.memberships[0] : undefined);
@@ -175,6 +185,8 @@ export default function LmsManager({ role }: { role: AdminRole }) {
       capacity: course.capacity?.toString() ?? "",
       starts_at: localDate(course.starts_at),
       ends_at: localDate(course.ends_at),
+      duration_months: course.duration_months ?? 0,
+      modules_count: course.modules_count ?? 0,
     });
   }, [course]);
 
@@ -257,9 +269,24 @@ export default function LmsManager({ role }: { role: AdminRole }) {
     try {
       const created = await lmsApi<Course>("admin/courses/", {
         method: "POST",
-        body: JSON.stringify({ organization_id: organization.organization_id, ...courseDraft }),
+        body: JSON.stringify({
+          organization_id: organization.organization_id,
+          title: courseDraft.title,
+          slug: courseDraft.slug,
+          short_description: courseDraft.short_description,
+          delivery_mode: courseDraft.delivery_mode,
+          price: courseDraft.price,
+          duration_months: courseDraft.duration_months,
+          modules_count: courseDraft.modules_count,
+        }),
       });
-      setCourseDraft({ title: "", slug: "", short_description: "", delivery_mode: "recorded", price: 1500 });
+      if (courseDraft.instructor_id) {
+        await lmsApi(`admin/courses/${created.id}/instructors/`, {
+          method: "POST",
+          body: JSON.stringify({ user_id: courseDraft.instructor_id }),
+        });
+      }
+      setCourseDraft({ title: "", slug: "", short_description: "", delivery_mode: "recorded", price: 1500, instructor_id: "", duration_months: 1, modules_count: 1 });
       setShowCourseForm(false);
       await refresh("courses");
       setCourseId(created.id);
@@ -288,6 +315,8 @@ export default function LmsManager({ role }: { role: AdminRole }) {
           capacity: courseSettings.capacity ? Number(courseSettings.capacity) : null,
           starts_at: courseSettings.starts_at ? new Date(courseSettings.starts_at).toISOString() : null,
           ends_at: courseSettings.ends_at ? new Date(courseSettings.ends_at).toISOString() : null,
+          duration_months: Number(courseSettings.duration_months || 0),
+          modules_count: Number(courseSettings.modules_count || 0),
         }),
       });
       await refresh("courses");
@@ -503,7 +532,7 @@ export default function LmsManager({ role }: { role: AdminRole }) {
           <label className="text-[9px] font-bold text-white/40">Slug بالإنجليزية<input dir="ltr" required pattern="[a-z0-9-]+" value={courseDraft.slug} onChange={(event) => setCourseDraft((current) => ({ ...current, slug: event.target.value.toLowerCase() }))} className="admin-input mt-1 text-left" /></label>
           <label className="text-[9px] font-bold text-white/40 sm:col-span-2">وصف مختصر<textarea required rows={2} value={courseDraft.short_description} onChange={(event) => setCourseDraft((current) => ({ ...current, short_description: event.target.value }))} className="admin-input mt-1 resize-none" /></label>
           <label className="text-[9px] font-bold text-white/40">نوع التقديم<select value={courseDraft.delivery_mode} onChange={(event) => setCourseDraft((current) => ({ ...current, delivery_mode: event.target.value as Course["delivery_mode"] }))} className="admin-input mt-1"><option value="recorded">مسجل</option><option value="online">مباشر أونلاين</option><option value="onsite">حضوري</option><option value="hybrid">هجين</option></select></label>
-          <label className="text-[9px] font-bold text-white/40">السعر بالجنيه<input type="number" min={1} required value={courseDraft.price} onChange={(event) => setCourseDraft((current) => ({ ...current, price: Number(event.target.value) }))} className="admin-input mt-1" /></label>
+          <label className="text-[9px] font-bold text-white/40">السعر بالجنيه<input type="number" min={1} required value={courseDraft.price} onChange={(event) => setCourseDraft((current) => ({ ...current, price: Number(event.target.value) }))} className="admin-input mt-1" /></label><label className="text-[9px] font-bold text-white/40">المحاضر<select value={courseDraft.instructor_id} onChange={(event) => setCourseDraft((current) => ({ ...current, instructor_id: event.target.value }))} className="admin-input mt-1"><option value="">بدون تعيين</option>{instructors.map((item) => <option key={item.id} value={item.id}>{item.full_name || item.email}</option>)}</select></label><div className="grid grid-cols-2 gap-2 sm:col-span-2"><Counter label="المدة (بالأشهر)" value={courseDraft.duration_months} min={0} max={120} onChange={(value) => setCourseDraft((current) => ({ ...current, duration_months: value }))} suffix="شهر" /><Counter label="عدد الوحدات" value={courseDraft.modules_count} min={0} max={200} onChange={(value) => setCourseDraft((current) => ({ ...current, modules_count: value }))} /></div>
           <button disabled={busy} className="admin-button-primary w-fit"><Save className="h-3.5 w-3.5" /> إنشاء</button>
         </form>
       )}
@@ -540,7 +569,7 @@ export default function LmsManager({ role }: { role: AdminRole }) {
 
             <aside className="space-y-5">
               {editable && <form onSubmit={saveVersionDetails} className="rounded-xl border border-white/[0.08] bg-white/[0.018] p-4"><h2 className="text-[11px] font-black text-white">تفاصيل الكورس وصورته</h2><label className="mt-3 block text-[9px] font-bold text-white/40">العنوان<input required value={versionDraft.title} onChange={(event) => setVersionDraft((current) => ({ ...current, title: event.target.value }))} className="admin-input mt-1" /></label><label className="mt-3 block text-[9px] font-bold text-white/40">الوصف المختصر<textarea required rows={2} value={versionDraft.short_description} onChange={(event) => setVersionDraft((current) => ({ ...current, short_description: event.target.value }))} className="admin-input mt-1 resize-none" /></label><label className="mt-3 block text-[9px] font-bold text-white/40">الوصف الكامل<textarea rows={4} value={versionDraft.description} onChange={(event) => setVersionDraft((current) => ({ ...current, description: event.target.value }))} className="admin-input mt-1 resize-y" /></label><div className="mt-3 grid grid-cols-2 gap-2"><label className="text-[9px] font-bold text-white/40">المستوى<select value={versionDraft.difficulty} onChange={(event) => setVersionDraft((current) => ({ ...current, difficulty: event.target.value }))} className="admin-input mt-1"><option value="all_levels">كل المستويات</option><option value="beginner">مبتدئ</option><option value="intermediate">متوسط</option><option value="advanced">متقدم</option></select></label><label className="text-[9px] font-bold text-white/40">المدة بالدقائق<input type="number" min={0} value={versionDraft.estimated_minutes} onChange={(event) => setVersionDraft((current) => ({ ...current, estimated_minutes: Number(event.target.value) }))} className="admin-input mt-1" /></label></div><label className="mt-3 block text-[9px] font-bold text-white/40">صورة الكورس من الجهاز<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={uploadingImage} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadThumbnail(file); event.target.value = ""; }} className="admin-input mt-1 file:ml-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-[9px] file:font-black file:text-brand-700" /></label>{versionDraft.thumbnail_url && <img src={versionDraft.thumbnail_url} alt="معاينة صورة الكورس" className="mt-3 aspect-video w-full rounded-lg border border-white/10 object-cover" />}<button disabled={busy || uploadingImage} className="admin-button-primary mt-4 w-full justify-center">{uploadingImage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />} حفظ التفاصيل والصورة</button></form>}
-              <form onSubmit={saveCourseSettings} className="rounded-xl border border-white/[0.08] bg-white/[0.018] p-4"><h2 className="text-[11px] font-black text-white">الحجز والموعد</h2><label className="mt-3 block text-[9px] font-bold text-white/40">نوع التقديم<select value={courseSettings.delivery_mode} onChange={(event) => setCourseSettings((current) => ({ ...current, delivery_mode: event.target.value as Course["delivery_mode"] }))} className="admin-input mt-1"><option value="recorded">مسجل</option><option value="online">مباشر أونلاين</option><option value="onsite">حضوري</option><option value="hybrid">هجين</option></select></label><div className="mt-3 grid grid-cols-2 gap-2"><label className="text-[9px] font-bold text-white/40">السعر<input type="number" min={0} value={courseSettings.price} onChange={(event) => setCourseSettings((current) => ({ ...current, price: Number(event.target.value) }))} className="admin-input mt-1" /></label><label className="text-[9px] font-bold text-white/40">السعة<input type="number" min={1} value={courseSettings.capacity} onChange={(event) => setCourseSettings((current) => ({ ...current, capacity: event.target.value }))} className="admin-input mt-1" /></label></div>{courseSettings.delivery_mode !== "recorded" && <div className="mt-3 grid gap-2"><label className="text-[9px] font-bold text-white/40">البداية<input type="datetime-local" value={courseSettings.starts_at} onChange={(event) => setCourseSettings((current) => ({ ...current, starts_at: event.target.value }))} className="admin-input mt-1" /></label><label className="text-[9px] font-bold text-white/40">النهاية<input type="datetime-local" value={courseSettings.ends_at} onChange={(event) => setCourseSettings((current) => ({ ...current, ends_at: event.target.value }))} className="admin-input mt-1" /></label></div>}<button disabled={busy} className="admin-button-secondary mt-4 w-full justify-center"><Save className="h-3.5 w-3.5" /> حفظ بيانات الحجز</button></form>
+              <form onSubmit={saveCourseSettings} className="rounded-xl border border-white/[0.08] bg-white/[0.018] p-4"><h2 className="text-[11px] font-black text-white">الحجز والموعد</h2><label className="mt-3 block text-[9px] font-bold text-white/40">نوع التقديم<select value={courseSettings.delivery_mode} onChange={(event) => setCourseSettings((current) => ({ ...current, delivery_mode: event.target.value as Course["delivery_mode"] }))} className="admin-input mt-1"><option value="recorded">مسجل</option><option value="online">مباشر أونلاين</option><option value="onsite">حضوري</option><option value="hybrid">هجين</option></select></label><div className="mt-3 grid grid-cols-2 gap-2"><label className="text-[9px] font-bold text-white/40">السعر<input type="number" min={0} value={courseSettings.price} onChange={(event) => setCourseSettings((current) => ({ ...current, price: Number(event.target.value) }))} className="admin-input mt-1" /></label><Counter label="عدد المقاعد" value={Number(courseSettings.capacity || 0)} min={0} max={100000} onChange={(value) => setCourseSettings((current) => ({ ...current, capacity: String(value) }))} /></div><div className="mt-2 grid grid-cols-2 gap-2"><Counter label="المدة (بالأشهر)" value={Number(courseSettings.duration_months || 0)} min={0} max={120} onChange={(value) => setCourseSettings((current) => ({ ...current, duration_months: value }))} suffix="شهر" /><Counter label="عدد الوحدات" value={Number(courseSettings.modules_count || 0)} min={0} max={200} onChange={(value) => setCourseSettings((current) => ({ ...current, modules_count: value }))} /></div>{courseSettings.delivery_mode !== "recorded" && <div className="mt-3 grid gap-2"><label className="text-[9px] font-bold text-white/40">البداية<input type="datetime-local" value={courseSettings.starts_at} onChange={(event) => setCourseSettings((current) => ({ ...current, starts_at: event.target.value }))} className="admin-input mt-1" /></label><label className="text-[9px] font-bold text-white/40">النهاية<input type="datetime-local" value={courseSettings.ends_at} onChange={(event) => setCourseSettings((current) => ({ ...current, ends_at: event.target.value }))} className="admin-input mt-1" /></label></div>}<button disabled={busy} className="admin-button-secondary mt-4 w-full justify-center"><Save className="h-3.5 w-3.5" /> حفظ بيانات الحجز</button></form>
               {editable && <form onSubmit={saveModule} className="rounded-xl border border-white/[0.08] bg-white/[0.018] p-4"><div className="flex justify-between"><h2 className="text-[11px] font-black text-white">{moduleDraft.id ? "تعديل الوحدة" : "إضافة وحدة"}</h2>{moduleDraft.id && <button type="button" onClick={() => setModuleDraft({ ...emptyModule, sort_order: modules.length })} className="text-[9px] text-white/35">إلغاء</button>}</div><label className="mt-4 block text-[9px] font-bold text-white/40">اسم الوحدة<input required value={moduleDraft.title} onChange={(event) => setModuleDraft((current) => ({ ...current, title: event.target.value }))} className="admin-input mt-1" /></label><label className="mt-3 block text-[9px] font-bold text-white/40">الوصف<textarea rows={2} value={moduleDraft.description} onChange={(event) => setModuleDraft((current) => ({ ...current, description: event.target.value }))} className="admin-input mt-1 resize-none" /></label><div className="mt-3 grid grid-cols-2 gap-2"><input type="number" min={0} value={moduleDraft.sort_order} onChange={(event) => setModuleDraft((current) => ({ ...current, sort_order: Number(event.target.value) }))} className="admin-input" /><select value={moduleDraft.status} onChange={(event) => setModuleDraft((current) => ({ ...current, status: event.target.value as ModuleRow["status"] }))} className="admin-input"><option value="published">منشورة</option><option value="draft">مسودة</option></select></div><button disabled={busy} className="admin-button-primary mt-4 w-full justify-center"><Save className="h-3.5 w-3.5" /> حفظ الوحدة</button></form>}
 
               {canEnroll && <div className="rounded-xl border border-white/[0.08] bg-white/[0.018] p-4"><h2 className="text-[11px] font-black text-white">وصول الطلاب</h2>{accessVersionId ? <><form onSubmit={enrollStudent} className="mt-3 flex gap-2"><input dir="ltr" required type="email" value={studentEmail} onChange={(event) => setStudentEmail(event.target.value)} placeholder="student@email.com" className="admin-input min-w-0 flex-1 text-left" /><button disabled={busy} className="admin-button-primary shrink-0"><UserPlus className="h-3.5 w-3.5" /> تفعيل</button></form><div className="mt-3 max-h-72 space-y-1 overflow-y-auto">{enrollments.map((item) => <div key={item.id} className="flex items-center gap-2 rounded-lg bg-white/[0.025] p-2.5"><GraduationCap className="h-3.5 w-3.5 text-brand-300" /><div className="min-w-0 flex-1"><p className="truncate text-[9.5px] font-bold text-white/70">{item.student_name || "طالب"}</p><p dir="ltr" className="truncate text-right text-[8px] text-white/25">{item.student_email}</p></div><span className="text-[8px] font-bold text-brand-300">{Number(item.progress_percent)}%</span><span className="rounded-full bg-white/5 px-2 py-1 text-[8px] text-white/40">{item.status}</span></div>)}{!enrollments.length && <p className="py-4 text-center text-[9px] text-white/25">لا يوجد طلاب بعد.</p>}</div></> : <p className="mt-3 text-[9px] leading-5 text-amber-200/70">انشر الإصدار أولًا لتفعيل الطلاب عليه.</p>}</div>}
