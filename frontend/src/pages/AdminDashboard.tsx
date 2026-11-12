@@ -5,12 +5,10 @@ import {
   BookOpenText,
   BriefcaseBusiness,
   CircleDollarSign,
-  FilePlus2,
   GraduationCap,
   House,
   Inbox,
   Images,
-  LayoutTemplate,
   FileCheck2,
   FileText,
   LayoutDashboard,
@@ -32,7 +30,6 @@ import {
 import QuoteInbox from "../admin/QuoteInbox";
 import AnalyticsPanel from "../admin/AnalyticsPanel";
 import { analyticsAdminAllowed } from "../lib/trackingPolicy";
-import CmsPanel from "../admin/cms/CmsPanel";
 import ResourceManager from "../admin/ResourceManager";
 import KnowledgeManager from "../admin/KnowledgeManager";
 import InboxManager from "../admin/InboxManager";
@@ -67,8 +64,6 @@ const navItems: Array<{
   { key: "initiative", label: "طلبات المبادرة", icon: Sparkles, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "newsletter", label: "القائمة البريدية", icon: Send, roles: ["owner", "admin", "editor", "support"], group: "المبيعات" },
   { key: "clients", label: "إدارة العملاء", icon: UsersRound, roles: ["owner", "admin", "support"], group: "المبيعات" },
-  { key: "site-content", label: "محتوى الموقع", icon: LayoutTemplate, roles: ["owner", "admin", "editor"], group: "المحتوى" },
-  { key: "pages", label: "الصفحات", icon: FilePlus2, roles: ["owner", "admin", "editor"], group: "المحتوى" },
   { key: "portfolio", label: "معرض الأعمال", icon: Images, roles: ["owner", "admin", "editor"], group: "المحتوى" },
   { key: "blog", label: "المدونة", icon: BookOpenText, roles: ["owner", "admin", "editor"], group: "المحتوى" },
   { key: "trusted_logos", label: "لوجوهات العملاء الموثوقة", icon: Images, roles: ["owner", "admin", "editor"], group: "المحتوى" },
@@ -296,8 +291,6 @@ export default function AdminDashboard({ userId }: { userId: string }) {
           {active === "analytics" && analyticsAccessVerified && <AnalyticsPanel />}
           {active === "overview" && <OverviewPanel role={role} goTo={safeGoTo} />}
           {active === "portfolio" && <ResourceManager definition={resources.portfolio} draftOwnerId={userId} />}
-          {active === "site-content" && <CmsPanel />}
-          {active === "pages" && <ResourceManager definition={resources.pages} draftOwnerId={userId} />}
           {active === "blog" && <ResourceManager definition={resources.blog} draftOwnerId={userId} />}
           {active === "jobs" && <ResourceManager definition={resources.jobs} draftOwnerId={userId} />}
           {active === "courses" && <ResourceManager definition={resources.courses} draftOwnerId={userId} />}
