@@ -7,6 +7,7 @@ export default function ConsentPopup() {
   const { lang } = useLanguage();
   const ar = lang === "ar";
   const [open, setOpen] = useState(() => !readConsent());
+  const [hasChosen, setHasChosen] = useState(!!readConsent());
   const [error, setError] = useState(false);
   useEffect(() => {
     const sync = () => setOpen(!readConsent());
@@ -19,7 +20,7 @@ export default function ConsentPopup() {
     return () => { window.clearInterval(timer); window.removeEventListener(CONSENT_EVENT, sync); window.removeEventListener("storage", storage); };
   }, []);
   const choose = (accepted: boolean) => {
-    if (saveConsent(accepted)) { setOpen(false); setError(false); }
+    if (saveConsent(accepted)) { setOpen(false); setError(false); setHasChosen(true); }
     else setError(true);
   };
   return <aside dir={ar ? "rtl" : "ltr"} aria-label={ar ? "اختيار ملفات الارتباط" : "Cookie choice"} className="fixed bottom-20 left-3 z-[100] max-w-sm sm:left-5">
@@ -29,6 +30,6 @@ export default function ConsentPopup() {
       <div className="my-3 flex gap-3">{[true, false].map((accepted) => <button key={String(accepted)} type="button" onClick={() => choose(accepted)} className="min-h-11 flex-1 rounded-lg border border-[#F45907] px-4 py-2 font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-white" style={{ background: accepted ? "#F45907" : "transparent" }}>{accepted ? (ar ? "موافق" : "Accept") : (ar ? "رفض" : "Reject")}</button>)}</div>
       <Link to="/privacy" className="text-xs underline">{ar ? "سياسة الخصوصية" : "Privacy policy"}</Link>
       {error && <p role="alert" className="mt-2 text-xs">{ar ? "تعذر حفظ الاختيار. التتبع الاختياري يظل متوقفًا." : "Could not save your choice. Optional tracking remains off."}</p>}
-    </div> : <button type="button" onClick={() => setOpen(true)} className="rounded-lg border border-white/30 bg-black px-3 py-2 text-xs text-white shadow-lg">{ar ? "اختيار الخصوصية" : "Privacy choice"}</button>}
+    </div> : (!hasChosen && <button type="button" onClick={() => setOpen(true)} className="rounded-lg border border-white/30 bg-black px-3 py-2 text-xs text-white shadow-lg">{ar ? "اختيار الخصوصية" : "Privacy choice"}</button>)}
   </aside>;
 }
