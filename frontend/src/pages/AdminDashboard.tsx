@@ -55,7 +55,7 @@ const navItems: Array<{
   label: string;
   icon: typeof House;
   roles: AdminRole[];
-  group: "عام" | "المحتوى" | "المبيعات" | "التوظيف والتدريب" | "المعرفة" | "النظام";
+  group: "عام" | "المحتوى" | "المبيعات" | "التوظيف" | "التدريب" | "المعرفة" | "النظام";
 }> = [
   { key: "analytics", label: "التحليلات والتتبع · Analytics & Tracking", icon: LayoutDashboard, roles: ["owner", "admin"], group: "عام" },
   { key: "overview", label: "الرئيسية", icon: House, roles: allRoles, group: "عام" },
@@ -67,12 +67,12 @@ const navItems: Array<{
   { key: "portfolio", label: "معرض الأعمال", icon: Images, roles: ["owner", "admin", "editor"], group: "المحتوى" },
   { key: "blog", label: "المدونة", icon: BookOpenText, roles: ["owner", "admin", "editor"], group: "المحتوى" },
   { key: "trusted_logos", label: "لوجوهات العملاء الموثوقة", icon: Images, roles: ["owner", "admin", "editor"], group: "المحتوى" },
-  { key: "jobs", label: "الوظائف", icon: BriefcaseBusiness, roles: ["owner", "admin", "hr"], group: "التوظيف والتدريب" },
-  { key: "applications", label: "طلبات التوظيف", icon: UserRoundCheck, roles: ["owner", "admin", "hr"], group: "التوظيف والتدريب" },
-  { key: "courses", label: "الكورسات", icon: GraduationCap, roles: ["owner", "admin", "editor"], group: "التوظيف والتدريب" },
-  { key: "lms", label: "محتوى منصة التعلّم", icon: LibraryBig, roles: ["owner", "admin", "editor"], group: "التوظيف والتدريب" },
-  { key: "approvals", label: "موافقات LMS", icon: FileCheck2, roles: ["owner", "admin", "editor"], group: "التوظيف والتدريب" },
-  { key: "enrollments", label: "طلبات الكورسات", icon: Inbox, roles: ["owner", "admin", "editor", "support"], group: "التوظيف والتدريب" },
+  { key: "jobs", label: "الوظائف", icon: BriefcaseBusiness, roles: ["owner", "admin", "hr"], group: "التوظيف" },
+  { key: "applications", label: "طلبات التوظيف", icon: UserRoundCheck, roles: ["owner", "admin", "hr"], group: "التوظيف" },
+  { key: "courses", label: "الكورسات", icon: GraduationCap, roles: ["owner", "admin", "editor"], group: "التدريب" },
+  { key: "lms", label: "محتوى منصة التعلّم", icon: LibraryBig, roles: ["owner", "admin", "editor"], group: "التدريب" },
+  { key: "approvals", label: "موافقات LMS", icon: FileCheck2, roles: ["owner", "admin", "editor"], group: "التدريب" },
+  { key: "enrollments", label: "طلبات الكورسات", icon: Inbox, roles: ["owner", "admin", "editor", "support"], group: "التدريب" },
   { key: "knowledge", label: "معرفة AI", icon: Sparkles, roles: ["owner", "admin", "editor"], group: "المعرفة" },
   { key: "inquiries", label: "أسئلة الزوار", icon: MessageCircleQuestion, roles: ["owner", "admin", "editor", "support"], group: "المعرفة" },
   { key: "pricing", label: "التسعير والتقسيط", icon: CircleDollarSign, roles: ["owner", "admin"], group: "النظام" },
@@ -80,7 +80,7 @@ const navItems: Array<{
   { key: "settings", label: "إعدادات الموقع", icon: Settings, roles: ["owner", "admin"], group: "النظام" },
 ];
 
-const groups = ["عام", "المبيعات", "المحتوى", "التوظيف والتدريب", "المعرفة", "النظام"] as const;
+const groups = ["عام", "المبيعات", "المحتوى", "التوظيف", "التدريب", "المعرفة", "النظام"] as const;
 
 const applicationStatuses = [
   { label: "جديد", value: "new" }, { label: "قيد المراجعة", value: "reviewing" },
