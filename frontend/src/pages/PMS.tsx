@@ -27,7 +27,7 @@ import {
   UserPlus,
   Wand2,
 } from "lucide-react";
-import { usePmsCatalogue, checkoutUrl } from "../hooks/usePmsCatalogue";
+import { usePmsCatalogue, checkoutUrl, hasYearlyPlan } from "../hooks/usePmsCatalogue";
 import PageHero from "../components/PageHero";
 import CTA from "../components/CTA";
 import { Reveal, SectionHeading, Spotlight } from "../components/ui";
@@ -77,7 +77,8 @@ const iconMap = {
 const fmt = (n: number) => n.toLocaleString("en-US");
 
 /** نص ثنائي اللغة */
-function T({ value, lang }: { value: I18n; lang: "ar" | "en" }) {
+function T({ value, lang }: { value?: I18n | null; lang: "ar" | "en" }) {
+  if (!value) return null;
   return <>{lang === "en" ? value.en || value.ar : value.ar || value.en}</>;
 }
 
@@ -171,7 +172,7 @@ export default function PMS() {
   const pmsTiers = catalogue.tiers;
   const pmsAddOns: typeof import("../data/pms").pmsAddOns = [];
   const featureMap = new Map(catalogue.plans.flatMap(p => p.features.map(f => [f.feature.key, f.feature] as const)));
-  const pmsComparison = [{ title:{ar:"مميزات الخطط",en:"Plan features"},desc:{ar:"المميزات المتاحة في نسخة البرنامج",en:"Features available in the desktop app"},icon:"catalog",rows:Array.from(featureMap.values()).map(f=>({id:f.key,label:{ar:f.nameAr??f.name,en:f.name},values:{starter:catalogue.plans.find(p=>p.key==="PMS_STARTER"+(cycle === "yearly" ? "_YEARLY" : ""))?.features.some(x=>x.feature.key===f.key)??false,growth:catalogue.plans.find(p=>p.key==="PMS_PRO"+(cycle === "yearly" ? "_YEARLY" : ""))?.features.some(x=>x.feature.key===f.key)??false,scale:catalogue.plans.find(p=>p.key==="PMS_BUSINESS"+(cycle === "yearly" ? "_YEARLY" : ""))?.features.some(x=>x.feature.key===f.key)??false}})) }];
+  const pmsComparison = featureMap.size ? [{ title:{ar:"مميزات الخطط",en:"Plan features"},desc:{ar:"المميزات المتاحة في نسخة البرنامج",en:"Features available in the desktop app"},icon:"catalog",rows:Array.from(featureMap.values()).map(f=>({id:f.key,label:{ar:f.nameAr??f.name,en:f.name},values:{starter:catalogue.plans.find(p=>p.key==="PMS_STARTER"+(cycle === "yearly" ? "_YEARLY" : ""))?.features.some(x=>x.feature.key===f.key)??false,growth:catalogue.plans.find(p=>p.key==="PMS_PRO"+(cycle === "yearly" ? "_YEARLY" : ""))?.features.some(x=>x.feature.key===f.key)??false,scale:catalogue.plans.find(p=>p.key==="PMS_BUSINESS"+(cycle === "yearly" ? "_YEARLY" : ""))?.features.some(x=>x.feature.key===f.key)??false}})) }] : [];
 
   const [openFaq, setOpenFaq] = useState(0);
 
@@ -179,7 +180,19 @@ export default function PMS() {
   const [tierId, setTierId] = useState<PMSTierId>("growth");
   const [picked, setPicked] = useState<string[]>([]);
 
-  const tier = pmsTiers.find((x) => x.id === tierId) ?? pmsTiers[0] ?? { ...({monthly:0,yearly:0,setup:0,includes:[]} as unknown as (typeof pmsTiers)[number]) };
+  const tier = pmsTiers.find((x) => x.id === tierId) ?? pmsTiers[0] ?? {
+    id: "growth" as PMSTierId,
+    name: { ar: "باقة مخصصة", en: "Custom plan" },
+    en: "Custom",
+    tagline: { ar: "تواصل معنا لتحديد الباقة المناسبة", en: "Contact us to pick a plan" },
+    monthly: 0,
+    yearly: 0,
+    setup: 0,
+    best: { ar: "الأكثر طلبًا", en: "Most popular" },
+    cta: { ar: "اطلب عرض سعر", en: "Request a quote" },
+    limits: [],
+    includes: [],
+  };
 
   const copy = {
     home: t("nav.home"),
@@ -709,7 +722,7 @@ export default function PMS() {
                   </div>
 
                   <a
-                    href={checkoutUrl(tier.id, cycle)}
+                    href={checkoutUrl(tier.id, cycle, hasYearlyPlan(catalogue.plans, tier.id))}
                     className="mt-7 flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3.5 text-[15px] font-bold text-white transition-colors hover:bg-brand-400"
                   >
                     <Calculator className="h-4 w-4" />
