@@ -20,6 +20,9 @@ export type PMSTier = {
   monthly: number;
   /** السعر الشهري عند الدفع السنوي (الإجمالي = × 12) */
   yearly: number;
+  /** Exact annual period price supplied by the licensing catalogue. */
+  yearlyTotal: number;
+  hasYearly: boolean;
   /** رسوم التفعيل لمرة واحدة */
   setup: number;
   featured?: boolean;
@@ -144,10 +147,10 @@ export const pmsFeatures: PMSFeature[] = [
   },
   {
     icon: "integrations",
-    title: { ar: "تكاملات جاهزة", en: "Ready-made integrations" },
+    title: { ar: "خدمات تجهيز الربط", en: "Connection setup services" },
     desc: {
-      ar: "ربط مباشر مع شوبيفاي وووكومرس وأنظمة الحساب والشحن ومحركات الشحن ومزودي الدفع.",
-      en: "Direct connections to Shopify, WooCommerce, accounting, shipping carriers and payment providers.",
+      ar: "خدمات التجهيز المشمولة موضحة داخل كل باقة. نتفق على المتطلبات وننسق تنفيذ الربط بعد الاشتراك.",
+      en: "Each plan lists its included setup services. Requirements and implementation are coordinated after subscription.",
     },
     color: "from-cyan-500 to-sky-600",
   },
@@ -172,13 +175,15 @@ export const pmsTiers: PMSTier[] = [
       en: "For small stores that want a professional start",
     },
     monthly: 1500,
-    yearly: 1200,
+    yearly: 1275,
+    yearlyTotal: 15300,
+    hasYearly: true,
     setup: 3000,
     best: { ar: "أفضل للمبتدئين", en: "Best for beginners" },
     cta: { ar: "ابدأ بالأساسية", en: "Start with Starter" },
     limits: [
       { label: { ar: "عدد المنتجات", en: "Products" }, value: { ar: "حتى 1,000", en: "Up to 1,000" } },
-      { label: { ar: "المستخدمون", en: "Users" }, value: { ar: "3 مستخدمين", en: "3 users" } },
+      { label: { ar: "المستخدمون", en: "Users" }, value: { ar: "مستخدم واحد", en: "1 user" } },
       { label: { ar: "الفروع", en: "Branches" }, value: { ar: "فرع واحد", en: "Single branch" } },
       { label: { ar: "الدعم", en: "Support" }, value: { ar: "بريد إلكتروني", en: "Email" } },
     ],
@@ -193,15 +198,19 @@ export const pmsTiers: PMSTier[] = [
       en: "For stores already closing real sales",
     },
     monthly: 3500,
-    yearly: 2800,
+    yearly: 2975,
+    yearlyTotal: 35700,
+    hasYearly: true,
     setup: 5000,
     featured: true,
     best: { ar: "الأكثر طلبا", en: "Most popular" },
     cta: { ar: "اختر باقة النمو", en: "Choose Growth" },
     limits: [
       { label: { ar: "عدد المنتجات", en: "Products" }, value: { ar: "غير محدود", en: "Unlimited" } },
-      { label: { ar: "المستخدمون", en: "Users" }, value: { ar: "10 مستخدمين", en: "10 users" } },
-      { label: { ar: "الفروع", en: "Branches" }, value: { ar: "3 فروع", en: "3 branches" } },
+      { label: { ar: "المستخدمون", en: "Users" }, value: { ar: "5 مستخدمين", en: "5 users" } },
+      { label: { ar: "الفروع", en: "Branches" }, value: { ar: "فرعان", en: "2 branches" } },
+      { label: { ar: "المخازن", en: "Warehouses" }, value: { ar: "مخزنان", en: "2 warehouses" } },
+      { label: { ar: "الأجهزة", en: "Devices" }, value: { ar: "4 أجهزة", en: "4 devices" } },
       { label: { ar: "الدعم", en: "Support" }, value: { ar: "واتساب وأولوية", en: "WhatsApp, priority" } },
     ],
     includes: ["whatsapp"],
@@ -211,18 +220,22 @@ export const pmsTiers: PMSTier[] = [
     name: { ar: "المتقدمة", en: "Scale" },
     en: "Scale",
     tagline: {
-      ar: "للساسل وشركات التوزيع متعددة المناطق",
-      en: "For chains and multi-region distributors",
+      ar: "للشركات وأنشطة التوزيع متعددة الفروع",
+      en: "For businesses and multi-branch distributors",
     },
     monthly: 6500,
-    yearly: 5200,
+    yearly: 5525,
+    yearlyTotal: 66300,
+    hasYearly: true,
     setup: 8000,
     best: { ar: "للمؤسسات", en: "For enterprises" },
-    cta: { ar: "تواصل معنا", en: "Contact us" },
+    cta: { ar: "اختر الباقة المتقدمة", en: "Choose Advanced" },
     limits: [
       { label: { ar: "عدد المنتجات", en: "Products" }, value: { ar: "غير محدود", en: "Unlimited" } },
-      { label: { ar: "المستخدمون", en: "Users" }, value: { ar: "غير محدود", en: "Unlimited" } },
-      { label: { ar: "الفروع", en: "Branches" }, value: { ar: "غير محدود", en: "Unlimited" } },
+      { label: { ar: "المستخدمون", en: "Users" }, value: { ar: "20 مستخدمًا", en: "20 users" } },
+      { label: { ar: "الفروع", en: "Branches" }, value: { ar: "5 فروع", en: "5 branches" } },
+      { label: { ar: "المخازن", en: "Warehouses" }, value: { ar: "5 مخازن", en: "5 warehouses" } },
+      { label: { ar: "الأجهزة", en: "Devices" }, value: { ar: "10 أجهزة", en: "Devices: 10" } },
       { label: { ar: "الدعم", en: "Support" }, value: { ar: "مدير حساب مخصص", en: "Dedicated manager" } },
     ],
     includes: ["whatsapp", "eInvoice", "api", "integrations"],
@@ -563,16 +576,7 @@ export const pmsSteps: { no: string; title: I18n; desc: I18n }[] = [
 ];
 
 export const pmsIntegrations = [
-  "Shopify",
   "WooCommerce",
-  "Zoho",
-  "Microsoft Excel",
-  "Fawry",
-  "Paymob",
-  "Aramex",
-  "Bosta",
-  "WhatsApp API",
-  "REST API",
 ];
 
 export const pmsGuarantees: I18n[] = [

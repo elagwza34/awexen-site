@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   Boxes,
@@ -27,9 +26,9 @@ import {
   UserPlus,
   Wand2,
 } from "lucide-react";
-import { usePmsCatalogue, checkoutUrl, hasYearlyPlan } from "../hooks/usePmsCatalogue";
+import { usePmsCatalogue, checkoutUrl } from "../hooks/usePmsCatalogue";
+import { billingPrice, PLAN_KEYS, PMS_SETUP_SERVICES, planForTier, selectResourcePlan } from "../data/pms-catalogue";
 import PageHero from "../components/PageHero";
-import CTA from "../components/CTA";
 import { Reveal, SectionHeading, Spotlight } from "../components/ui";
 import { useSeoOverride } from "../components/SeoManager";
 import { useLanguage } from "../context/LanguageContext";
@@ -43,12 +42,12 @@ import {
   pmsFeatures,
   pmsGuarantees,
   pmsHero,
-  pmsIntegrations,
   pmsStats,
   pmsSteps,
 
   type I18n,
   type PMSTierId,
+  type PMSFeatureGroup,
 } from "../data/pms";
 
 type Cycle = "monthly" | "yearly";
@@ -170,14 +169,59 @@ export default function PMS() {
   const [cycle, setCycle] = useState<Cycle>("monthly");
   const catalogue = usePmsCatalogue(cycle);
   const pmsTiers = catalogue.tiers;
+  const availableSetupServices = [...new Set(catalogue.plans.flatMap(plan => plan.includedServices ?? []))].filter(key => PMS_SETUP_SERVICES[key]);
   const pmsAddOns: typeof import("../data/pms").pmsAddOns = [];
   const featureMap = new Map(catalogue.plans.flatMap(p => p.features.map(f => [f.feature.key, f.feature] as const)));
-  const pmsComparison = featureMap.size ? [{ title:{ar:"مميزات الخطط",en:"Plan features"},desc:{ar:"المميزات المتاحة في نسخة البرنامج",en:"Features available in the desktop app"},icon:"catalog",rows:Array.from(featureMap.values()).map(f=>({id:f.key,label:{ar:f.nameAr??f.name,en:f.name},values:{starter:catalogue.plans.find(p=>p.key==="PMS_STARTER"+(cycle === "yearly" ? "_YEARLY" : ""))?.features.some(x=>x.feature.key===f.key)??false,growth:catalogue.plans.find(p=>p.key==="PMS_PRO"+(cycle === "yearly" ? "_YEARLY" : ""))?.features.some(x=>x.feature.key===f.key)??false,scale:catalogue.plans.find(p=>p.key==="PMS_BUSINESS"+(cycle === "yearly" ? "_YEARLY" : ""))?.features.some(x=>x.feature.key===f.key)??false}})) }] : [];
+  const tierIds: PMSTierId[] = ['starter', 'growth', 'scale'];
+  const pmsComparison: PMSFeatureGroup[] = featureMap.size ? [{
+    title: { ar: 'حدود الخطط ومميزاتها', en: 'Plan limits and features' },
+    desc: { ar: 'نفس الحدود والمميزات في الاشتراك الشهري والسنوي', en: 'The same limits and features with monthly and yearly billing' },
+    icon: 'catalog',
+    rows: [
+      ...([
+        ['maxUsers', { ar: 'المستخدمون', en: 'Users' }],
+        ['maxBranches', { ar: 'الفروع', en: 'Branches' }],
+        ['maxWarehouses', { ar: 'المخازن', en: 'Warehouses' }],
+        ['maxDevices', { ar: 'الأجهزة', en: 'Devices' }],
+      ] as const).map(([key, label]) => ({
+        id: key, label,
+        values: Object.fromEntries(tierIds.map(id => {
+          const value = planForTier(catalogue.plans, id)?.[key];
+          return [id, value === undefined ? false : { ar: String(value), en: String(value) }];
+        })) as PMSFeatureGroup['rows'][number]['values'],
+      })),
+      ...Array.from(featureMap.values()).map(feature => ({
+        id: feature.key, label: { ar: feature.nameAr ?? feature.name, en: feature.name },
+        values: Object.fromEntries(tierIds.map(id => [id,
+          planForTier(catalogue.plans, id)?.features.some(x => x.feature.key === feature.key) ?? false,
+        ])) as PMSFeatureGroup['rows'][number]['values'],
+      })),
+      ...Object.entries(PMS_SETUP_SERVICES).map(([key, label]) => ({
+        id: key, label,
+        values: Object.fromEntries(tierIds.map(id => [id,
+          planForTier(catalogue.plans, id)?.includedServices?.includes(key) ?? false,
+        ])) as PMSFeatureGroup['rows'][number]['values'],
+      })),
+    ],
+  }] : [];
 
   const [openFaq, setOpenFaq] = useState(0);
 
   /* حالة منشئ الباقة حسب الفيتشر */
-  const [tierId, setTierId] = useState<PMSTierId>("growth");
+  const [tierId, setTierId] = useState<PMSTierId>("starter");
+  const [resources, setResources] = useState({ branches: 1, warehouses: 1, devices: 1 });
+  const setResource = (key: keyof typeof resources, value: number) => {
+    const next = { ...resources, [key]: value };
+    setResources(next);
+    const matched = selectResourcePlan(catalogue.plans, next, cycle);
+    const id = tierIds.find(id => PLAN_KEYS[id] === matched?.key);
+    if (id) setTierId(id);
+  };
+  const chooseTier = (id: PMSTierId) => {
+    setTierId(id);
+    const plan = planForTier(catalogue.plans, id);
+    if (plan) setResources({ branches: plan.maxBranches, warehouses: plan.maxWarehouses, devices: plan.maxDevices });
+  };
   const [picked, setPicked] = useState<string[]>([]);
 
   const tier = pmsTiers.find((x) => x.id === tierId) ?? pmsTiers[0] ?? {
@@ -187,29 +231,34 @@ export default function PMS() {
     tagline: { ar: "تواصل معنا لتحديد الباقة المناسبة", en: "Contact us to pick a plan" },
     monthly: 0,
     yearly: 0,
+    yearlyTotal: 0,
+    hasYearly: false,
     setup: 0,
     best: { ar: "الأكثر طلبًا", en: "Most popular" },
-    cta: { ar: "اطلب عرض سعر", en: "Request a quote" },
+    cta: { ar: "اختر الخطة", en: "Choose plan" },
     limits: [],
     includes: [],
   };
+  const selectedPlan = planForTier(catalogue.plans, tier.id);
+  const builderAvailable = !!selectedPlan && !!billingPrice(selectedPlan, cycle)
+    && selectedPlan.maxBranches >= resources.branches && selectedPlan.maxWarehouses >= resources.warehouses
+    && selectedPlan.maxDevices >= resources.devices;
 
   const copy = {
     home: t("nav.home"),
     product: pick("نظام إدارة المنتجات", "Product Management System"),
     seePricing: pick("شاهد الأسعار", "See pricing"),
-    requestQuote: pick("اطلب عرض سعر", "Request a quote"),
     perMonth: pick("ج.م / شهر", "EGP / month"),
     oneTime: pick("لمرة واحدة", "one-time"),
     monthly: pick("شهري", "Monthly"),
-    yearly: pick("سنوي — وفر 20%", "Yearly — save 20%"),
+    yearly: pick("سنوي — وفر 15%", "Yearly — save 15%"),
     monthlyNote: pick(
       "مرونة كاملة — ادفع شهريا وارقِ أو ألغِ في أي وقت",
       "Full flexibility — pay monthly, upgrade or cancel anytime",
     ),
     yearlyNote: pick(
-      "خصم 20% عند الدفع السنوي مقدما على سعر الباقة",
-      "20% off when you pay the plan yearly in advance",
+      "خصم 15% على اشتراك 12 شهرًا، ورسوم التفعيل منفصلة لمرة واحدة",
+      "15% off twelve months; one-time setup is separate",
     ),
     yearlyTotal: pick("الإجمالي السنوي", "Yearly total"),
     saved: pick("توفير", "you save"),
@@ -240,7 +289,7 @@ export default function PMS() {
       .reduce((s, a) => s + a.price, 0);
     return {
       monthly: base + extras,
-      yearly: tier.yearly * 12 + extras * 12,
+      yearly: tier.yearlyTotal + extras * 12,
       setup: tier.setup + oneTime,
     };
   }, [cycle, tier, picked]);
@@ -290,13 +339,6 @@ export default function PMS() {
             {copy.seePricing}
             <ArrowLeft className="h-[18px] w-[18px] transition-transform group-hover:-translate-x-1 rtl:group-hover:translate-x-1" />
           </a>
-          <Link
-            to="/quote"
-            className="inline-flex items-center gap-2.5 rounded-xl border border-white/15 bg-white/5 px-7 py-3.5 text-[15px] font-semibold text-white backdrop-blur transition-all hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500"
-          >
-            <MessageCircle className="h-[18px] w-[18px]" />
-            {copy.requestQuote}
-          </Link>
         </div>
 
         {/* أرقام سريعة */}
@@ -427,7 +469,7 @@ export default function PMS() {
                             t.featured ? "text-white" : "text-ink-900",
                           )}
                         >
-                          {fmt(price)}
+                          {cycle === 'yearly' && !t.hasYearly ? '—' : fmt(price)}
                         </span>
                         <span
                           className={cn(
@@ -440,7 +482,7 @@ export default function PMS() {
                       </div>
                       <p className="mt-1.5 text-[12.5px] text-ink-400">
                         {cycle === "yearly"
-                          ? `${copy.yearlyTotal} ${fmt(t.yearly * 12)} ${pick("ج.م", "EGP")} — ${copy.saved} ${fmt((t.monthly - t.yearly) * 12)} ${pick("ج.م", "EGP")}`
+                          ? t.hasYearly ? `${copy.yearlyTotal} ${fmt(t.yearlyTotal)} ${pick("ج.م", "EGP")} — ${copy.saved} ${fmt(t.monthly * 12 - t.yearlyTotal)} ${pick("ج.م", "EGP")} · ${copy.setupFee} ${fmt(t.setup)} ${pick("ج.م", "EGP")}` : pick("الاشتراك السنوي غير متاح لهذه الخطة", "Yearly billing is unavailable for this plan")
                           : `${copy.setupFee} ${fmt(t.setup)} ${pick("ج.م", "EGP")}`}
                       </p>
 
@@ -486,7 +528,20 @@ export default function PMS() {
                       ))}
                     </ul>
 
-                    <a href={checkoutUrl(t.id, cycle)}
+                    {!!planForTier(catalogue.plans, t.id)?.includedServices?.length && (
+                      <div className={cn('relative mt-5 border-t pt-4 text-sm', t.featured ? 'border-white/10 text-white' : 'border-ink-100 text-ink-700')}>
+                        <p className="font-bold">{pick('خدمات تجهيز مشمولة', 'Included setup services')}</p>
+                        <ul className="mt-2 space-y-2">
+                          {planForTier(catalogue.plans, t.id)!.includedServices!.filter(key => PMS_SETUP_SERVICES[key]).map(key => (
+                            <li key={key}><T value={PMS_SETUP_SERVICES[key]} lang={lang} /></li>
+                          ))}
+                        </ul>
+                        <p className="mt-3 text-xs">{pick('يتم تجهيز الربط بالتنسيق بعد الاشتراك.', 'Setup is coordinated after subscribing.')}</p>
+                      </div>
+                    )}
+
+                    <a href={cycle === 'yearly' && !t.hasYearly ? undefined : checkoutUrl(t.id, cycle)}
+                      aria-disabled={cycle === 'yearly' && !t.hasYearly}
                       className={cn(
                         "relative mt-8 inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-[15px] font-bold transition-all",
                         t.featured
@@ -521,12 +576,12 @@ export default function PMS() {
         <div className="pointer-events-none absolute right-0 top-1/3 h-[320px] w-[420px] rounded-full bg-brand-500/6 blur-[110px]" />
         <div className="container-x relative">
           <SectionHeading
-            badge={pick("الأسعار حسب الميزات", "Feature-based pricing")}
+            badge={pick("مُفصّل الباقة", "Plan selector")}
             title={pick("ابنِ باقتك", "Build your")}
             highlight={pick("كما تحتاج", "plan your way")}
             desc={pick(
-              "اختر الباقة الأساسية ثم أضف فقط الميزات التي تحتاجها — والنظام يحسب لك السعر فورا.",
-              "Pick a base plan, then add only the features you need — the price updates instantly.",
+              "حدد احتياجك من الفروع والمخازن والأجهزة، واختر الباقة التي تستوعبه بالسعر المعلن.",
+              "Choose your branches, warehouses and devices to find a plan that fits at its listed price.",
             )}
           />
 
@@ -539,7 +594,7 @@ export default function PMS() {
                 {pmsTiers.map((t) => (
                   <button
                     key={t.id}
-                    onClick={() => setTierId(t.id)}
+                    onClick={() => chooseTier(t.id)}
                     aria-pressed={tierId === t.id}
                     className={cn(
                       "rounded-2xl border p-4 text-start transition-all duration-300",
@@ -565,13 +620,33 @@ export default function PMS() {
                 ))}
               </div>
 
+              <fieldset className="mt-8 rounded-2xl border border-ink-100 p-5">
+                <legend className="px-2 font-bold">{pick('احتياج نشاطك', 'Your resource needs')}</legend>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  {([
+                    ['branches', 'maxBranches', pick('عدد الفروع', 'Branches')],
+                    ['warehouses', 'maxWarehouses', pick('عدد المخازن', 'Warehouses')],
+                    ['devices', 'maxDevices', pick('عدد الأجهزة', 'Devices')],
+                  ] as const).map(([key, limit, label]) => (
+                    <div key={key} className="space-y-2 text-sm font-semibold">
+                      <label htmlFor={`pms-${key}`} className="block">{label}</label>
+                      <select id={`pms-${key}`} value={resources[key]} onChange={e => setResource(key, Number(e.target.value))}
+                        className="min-h-11 w-full rounded-xl border border-ink-200 bg-white px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500">
+                        {Array.from({ length: Math.max(1, ...catalogue.plans.map(p => p[limit])) }, (_, i) => i + 1).map(value => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-sm text-ink-500">{pick('نختار أقل باقة تستوعب احتياجك. تحصل على حدود الباقة كاملة؛ لا توجد رسوم مفترضة لكل جهاز أو مخزن.', 'We select the lowest-priced eligible plan. You receive its full limits; no invented per-device or warehouse fees.')}</p>
+                {!builderAvailable && <p role="alert" className="mt-3 text-sm text-red-700">{pick('لا توجد خطة متاحة بهذه الأعداد والمدة. عدّل احتياجك أو اختر الدفع الشهري.', 'No plan is available for these resources and term. Adjust your needs or select monthly billing.')}</p>}
+              </fieldset>
               <h3 className="mt-9 text-[18px] font-extrabold">
                 {pick("2. مميزات الباقة", "2. Plan features")}
               </h3>
               <p className="mt-1.5 text-[13.5px] text-ink-500">
                 {pick(
-                  "المميزات الموضحة في المقارنة مشمولة حسب الخطة. الإضافات المخصصة تحتاج عرض سعر منفصل.",
-                  "Included features follow the comparison. Custom add-ons require a separate quote.",
+                  "المميزات والحدود الموضحة في المقارنة مشمولة في الخطة المختارة.",
+                  "Features and limits in the comparison are included in your selected plan.",
                 )}
               </p>
 
@@ -653,8 +728,7 @@ export default function PMS() {
                       {pick("إجمالي باقتك", "Your plan total")}
                     </h3>
                     <p className="text-[12.5px] text-ink-400">
-                      {pick("باقة", "Plan")} <T value={tier.name} lang={lang} /> +{" "}
-                      {picked.length} {pick("إضافة", "add-ons")}
+                      {pick("باقة", "Plan")} <T value={tier.name} lang={lang} />
                     </p>
                   </div>
                 </div>
@@ -662,7 +736,7 @@ export default function PMS() {
                 <div className="relative mt-7">
                   <div className="flex items-end gap-2">
                     <span className="text-[46px] font-black leading-none text-white">
-                      {fmt(totals.monthly)}
+                      {builderAvailable ? fmt(totals.monthly) : '—'}
                     </span>
                     <span className="pb-1.5 text-[13.5px] font-semibold text-brand-400">
                       {copy.perMonth}
@@ -673,7 +747,7 @@ export default function PMS() {
                     <div className="flex items-center justify-between">
                       <span className="text-ink-400">
                         <T value={tier.name} lang={lang} /> (
-                        {cycle === "monthly" ? copy.monthly : pick("سنوي", "yearly")})
+                        {copy.monthly})
                       </span>
                       <span className="font-bold text-white">
                         {fmt(cycle === "monthly" ? tier.monthly : tier.yearly)}{" "}
@@ -719,10 +793,17 @@ export default function PMS() {
                         {fmt(totals.setup)} {pick("ج.م", "EGP")}
                       </span>
                     </div>
+                    {cycle === 'yearly' && tier.hasYearly && (
+                      <div className="flex items-center justify-between border-t border-white/10 pt-3">
+                        <span className="text-ink-300">{pick('إجمالي أول سنة شامل التفعيل', 'First year including setup')}</span>
+                        <span className="font-bold text-white">{fmt(totals.yearly + totals.setup)} {pick('ج.م', 'EGP')}</span>
+                      </div>
+                    )}
                   </div>
 
                   <a
-                    href={checkoutUrl(tier.id, cycle, hasYearlyPlan(catalogue.plans, tier.id))}
+                    href={builderAvailable ? checkoutUrl(tier.id, cycle) : undefined}
+                    aria-disabled={!builderAvailable}
                     className="mt-7 flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3.5 text-[15px] font-bold text-white transition-colors hover:bg-brand-400"
                   >
                     <Calculator className="h-4 w-4" />
@@ -731,8 +812,8 @@ export default function PMS() {
                   <div className="mt-3">{customerAccess}</div>
                   <p className="mt-3 text-center text-[11.5px] text-ink-500">
                     {pick(
-                      "عرض سعر نهائي خلال 24 ساعة — بدون أي التزام",
-                      "Final quote within 24 hours — no commitment",
+                      "راجع المبلغ والمدة في بوابة الاشتراكات قبل الدفع. التفعيل بعد تأكيد الدفع.",
+                      "Review the amount and term in the subscription portal before paying. Activation follows payment approval.",
                     )}
                   </p>
                 </div>
@@ -836,8 +917,8 @@ export default function PMS() {
           <Reveal delay={120}>
             <p className="mt-8 text-center text-[13px] text-ink-400">
               {pick(
-                "الميزات غير المذكورة متاحة كإضافات مدفوعة — راجع منشئ الباقة لمعرفة سعر كل إضافة.",
-                "Features not listed here are available as paid add-ons — check the plan builder for each price.",
+                "الحدود والمميزات مأخوذة من نفس الخطط داخل بوابة الاشتراكات.",
+                "Limits and features come from the same plans in the subscription portal.",
               )}
             </p>
           </Reveal>
@@ -859,7 +940,7 @@ export default function PMS() {
           />
 
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {pmsFeatures.map((f, i) => {
+            {pmsFeatures.filter(f => f.icon !== 'integrations' || availableSetupServices.length > 0).map((f, i) => {
               const IconCmp = iconMap[f.icon as keyof typeof iconMap] ?? Boxes;
               return (
                 <Reveal key={f.title.en} delay={(i % 4) * 90}>
@@ -918,29 +999,29 @@ export default function PMS() {
           </div>
 
           {/* التكاملات */}
-          <Reveal delay={140}>
+          {availableSetupServices.length > 0 && <Reveal delay={140}>
             <div className="mt-14 rounded-3xl border border-ink-100 bg-ink-50 p-8 text-center sm:p-10">
               <h3 className="text-[20px] font-extrabold sm:text-[24px]">
-                {pick("يتكامل مع أدواتك الحالية", "Plays well with your current tools")}
+                {pick("خدمات تجهيز الربط حسب الباقة", "Connection setup services by plan")}
               </h3>
               <p className="mx-auto mt-3 max-w-xl text-[14.5px] leading-8 text-ink-500">
                 {pick(
-                  "ربط مباشر مع متجرك وأنظمة الحساب والشحن ومحركات الدفع ومزودي رسائل واتساب — بدون كتابة أي كود.",
-                  "Direct connections to your store, accounting, shipping, couriers and messaging providers — no code required.",
+                  "راجع خدمات التجهيز المشمولة في كل باقة. يتم تحديد متطلبات الربط مع المتجر أو شركة الشحن وتنفيذه بالتنسيق بعد الاشتراك.",
+                  "Review the setup services included in each plan. Store or shipping connection requirements and implementation are coordinated after subscribing.",
                 )}
               </p>
               <div className="mt-7 flex flex-wrap items-center justify-center gap-2.5">
-                {pmsIntegrations.map((it) => (
+                {availableSetupServices.map((key) => (
                   <span
-                    key={it}
+                    key={key}
                     className="rounded-xl border border-ink-100 bg-white px-4 py-2.5 text-[13.5px] font-semibold text-ink-600 transition-colors hover:border-brand-500/40 hover:text-brand-600"
                   >
-                    {it}
+                    <T value={PMS_SETUP_SERVICES[key]} lang={lang} />
                   </span>
                 ))}
               </div>
             </div>
-          </Reveal>
+          </Reveal>}
         </div>
       </section>
 
@@ -996,7 +1077,10 @@ export default function PMS() {
         </div>
       </section>
 
-      <CTA />
+      <section className="container-x section-y text-center">
+        <h2 className="mb-6 text-2xl font-bold">{pick('اختر باقتك وابدأ مع PMS', 'Choose your plan and start with PMS')}</h2>
+        {customerAccess}
+      </section>
     </>
   );
 }
