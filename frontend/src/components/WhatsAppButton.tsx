@@ -40,14 +40,14 @@ export default function WhatsAppButton({
       rel="noopener noreferrer"
       aria-label={label}
       className={cn(
-        "group fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] end-4 z-50 grid h-12 w-12 shrink-0 animate-whatsapp-in place-items-center rounded-full bg-[#25D366] text-white shadow-lg shadow-black/25 ring-1 ring-black/5 transition-transform duration-300 ease-out hover:-translate-y-0.5 hover:scale-105 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#25D366] active:scale-95 motion-reduce:animate-none motion-reduce:transform-none motion-reduce:transition-none sm:bottom-6 sm:end-6 sm:h-14 sm:w-14",
+        "group fixed bottom-4 right-4 left-auto z-50 grid h-12 w-12 shrink-0 animate-whatsapp-in place-items-center rounded-full bg-[#25D366] text-white shadow-lg shadow-black/25 ring-1 ring-black/5 transition-transform duration-300 ease-out hover:-translate-y-0.5 hover:scale-105 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#25D366] active:scale-95 motion-reduce:animate-none motion-reduce:transform-none motion-reduce:transition-none sm:bottom-6 sm:right-6 sm:h-14 sm:w-14",
         className,
       )}
     >
       <WhatsAppGlyph className="h-6 w-6 drop-shadow-sm sm:h-7 sm:w-7" />
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute end-full top-1/2 me-3 hidden -translate-y-1/2 whitespace-nowrap rounded-lg bg-ink-950 px-2.5 py-1.5 text-[12px] font-bold text-white opacity-0 shadow-lg ring-1 ring-white/10 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100 sm:block"
+        className="pointer-events-none absolute right-full top-1/2 mr-3 hidden -translate-y-1/2 whitespace-nowrap rounded-lg bg-ink-950 px-2.5 py-1.5 text-[12px] font-bold text-white opacity-0 shadow-lg ring-1 ring-white/10 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100 sm:block"
       >
         {label}
       </span>
