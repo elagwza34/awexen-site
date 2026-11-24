@@ -35,11 +35,16 @@ export function billingPrice(plan: CataloguePlan, cycle: BillingCycle) {
   return { periodMinor: option.price, monthlyEquivalent: option.price / (cycle === 'yearly' ? 1200 : 100), setup: plan.setupFee / 100 };
 }
 
-export function checkoutUrl(id: PMSTierId, cycle: BillingCycle) {
-  const url = new URL('https://licenses.awexen.com/portal/register');
+export function checkoutUrl(id: PMSTierId, cycle: BillingCycle, access: 'register' | 'login' = 'register') {
+  // Protected checkout preserves the destination through the portal's sign-in guard.
+  const url = new URL(access === 'login' ? 'https://licenses.awexen.com/portal/subscription/PMS' : 'https://licenses.awexen.com/portal/register');
   url.searchParams.set('plan', PLAN_KEYS[id]);
   url.searchParams.set('billingInterval', cycle === 'yearly' ? 'YEARLY' : 'MONTHLY');
   return url.toString();
+}
+
+export function annualSummaryTotal(monthly: number, annualPrepayment: number, cycle: BillingCycle) {
+  return cycle === 'monthly' ? monthly * 12 : annualPrepayment;
 }
 
 export function selectResourcePlan(plans: CataloguePlan[], requirements: { branches: number; warehouses: number; devices: number }, cycle: BillingCycle) {

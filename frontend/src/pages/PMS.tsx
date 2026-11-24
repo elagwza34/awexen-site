@@ -27,7 +27,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { usePmsCatalogue, checkoutUrl } from "../hooks/usePmsCatalogue";
-import { billingPrice, PLAN_KEYS, PMS_SETUP_SERVICES, planForTier, selectResourcePlan } from "../data/pms-catalogue";
+import { annualSummaryTotal, billingPrice, PLAN_KEYS, PMS_SETUP_SERVICES, planForTier, selectResourcePlan } from "../data/pms-catalogue";
 import PageHero from "../components/PageHero";
 import { Reveal, SectionHeading, Spotlight } from "../components/ui";
 import { useSeoOverride } from "../components/SeoManager";
@@ -289,21 +289,21 @@ export default function PMS() {
       .reduce((s, a) => s + a.price, 0);
     return {
       monthly: base + extras,
-      yearly: tier.yearlyTotal + extras * 12,
+      yearly: annualSummaryTotal(tier.monthly, tier.yearlyTotal, cycle) + extras * 12,
       setup: tier.setup + oneTime,
     };
   }, [cycle, tier, picked]);
 
   /** وفر الاشتراك السنوي مقارنة بالشهري */
-  const saving = tier.monthly * 12 - totals.yearly;
+  const saving = tier.monthly * 12 - tier.yearlyTotal;
 
   const toggle = (id: string) =>
     setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
-  const customerAccess = (
+  const customerAccess = (selectedPlan = false) => (
     <div className="flex flex-wrap justify-center gap-3">
     <a
-      href={PMS_LOGIN_URL}
+      href={selectedPlan ? checkoutUrl(tier.id, cycle, 'login') : PMS_LOGIN_URL}
       className="inline-flex items-center justify-center gap-2.5 rounded-xl border border-brand-500 bg-white px-7 py-3.5 text-[15px] font-bold text-ink-950 shadow-lg transition-all hover:-translate-y-0.5 hover:bg-brand-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500"
       aria-label={pick("دخول عملاء PMS إلى لوحة التراخيص والاشتراكات", "PMS customer login — licenses and subscriptions dashboard")}
     >
@@ -311,7 +311,7 @@ export default function PMS() {
       {pick("تسجيل دخول", "Log in")}
     </a>
     <a
-      href={PMS_REGISTER_URL}
+      href={selectedPlan ? checkoutUrl(tier.id, cycle) : PMS_REGISTER_URL}
       className="inline-flex items-center justify-center gap-2.5 rounded-xl border border-brand-500 bg-brand-500 px-7 py-3.5 text-[15px] font-bold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-brand-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500"
     >
       <UserPlus className="h-[18px] w-[18px]" aria-hidden="true" />
@@ -320,7 +320,7 @@ export default function PMS() {
     </div>
   );
 
-  if (!catalogue.ready) return <main className="container-x py-32 text-center"><h1 className="text-3xl font-bold">PMS</h1><div className="mt-6">{customerAccess}</div><p className="mt-6">{catalogue.error ? pick("تعذّر تحميل الخطط. أعد المحاولة.","Unable to load plans. Please retry.") : pick("جاري تحميل الخطط والأسعار…","Loading plans and prices…")}</p><button className="mt-6 rounded-xl bg-brand-500 px-6 py-3 text-white" onClick={()=>window.location.reload()}>{pick("إعادة المحاولة","Retry")}</button></main>;
+  if (!catalogue.ready) return <main className="container-x py-32 text-center"><h1 className="text-3xl font-bold">PMS</h1><div className="mt-6">{customerAccess()}</div><p className="mt-6">{catalogue.error ? pick("تعذّر تحميل الخطط. أعد المحاولة.","Unable to load plans. Please retry.") : pick("جاري تحميل الخطط والأسعار…","Loading plans and prices…")}</p><button className="mt-6 rounded-xl bg-brand-500 px-6 py-3 text-white" onClick={()=>window.location.reload()}>{pick("إعادة المحاولة","Retry")}</button></main>;
   return (
     <>
       <PageHero
@@ -331,7 +331,7 @@ export default function PMS() {
         crumbs={[{ label: copy.home, to: "/" }, { label: copy.product }]}
       >
         <div className="mt-8 flex flex-wrap gap-3">
-          {customerAccess}
+          {customerAccess()}
           <a
             href="#plans"
             className="group inline-flex items-center gap-3 rounded-xl bg-brand-500 px-7 py-3.5 text-[15px] font-bold text-white shadow-xl shadow-brand-600/25 transition-all hover:-translate-y-0.5 hover:bg-brand-400"
@@ -809,7 +809,7 @@ export default function PMS() {
                     <Calculator className="h-4 w-4" />
                     {pick("اختر الخطة وسجّل حسابك", "Choose plan and register")}
                   </a>
-                  <div className="mt-3">{customerAccess}</div>
+                  <div className="mt-3">{customerAccess(true)}</div>
                   <p className="mt-3 text-center text-[11.5px] text-ink-500">
                     {pick(
                       "راجع المبلغ والمدة في بوابة الاشتراكات قبل الدفع. التفعيل بعد تأكيد الدفع.",
@@ -1079,7 +1079,7 @@ export default function PMS() {
 
       <section className="container-x section-y text-center">
         <h2 className="mb-6 text-2xl font-bold">{pick('اختر باقتك وابدأ مع PMS', 'Choose your plan and start with PMS')}</h2>
-        {customerAccess}
+        {customerAccess()}
       </section>
     </>
   );

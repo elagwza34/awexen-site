@@ -599,8 +599,8 @@ export const pmsFaqs: PMSFaq[] = [
   {
     q: { ar: "هل يمكنني البدء بميزة واحدة فقط؟", en: "Can I start with a single feature?" },
     a: {
-      ar: "بالتأكيد — أسعارنا مبنية على الميزات. تبدأ بالباقة الأساسية وتضيف ما تحتاجه فقط، أو تشتري إضافة واحدة منفردة بدون ما تدفع الباقة كاملة.",
-      en: "Absolutely — our pricing is feature-based. Start on a base plan and add only what you need, or buy a single add-on without paying for the full plan.",
+      ar: "الاشتراك متاح من خلال الباقات المعروضة. اختر الباقة المناسبة لاحتياجاتك، ويمكنك الترقية لاحقًا. شراء ميزة أو إضافة منفردة غير متاح حاليًا.",
+      en: "Subscriptions use the published plans. Choose the plan that fits your needs and upgrade later. Standalone feature or add-on purchases are not currently available.",
     },
   },
   {
