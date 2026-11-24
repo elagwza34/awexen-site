@@ -178,24 +178,13 @@ export default function AiChat() {
   }, [messages, busy, supportMessages, supportBusy, mode]);
 
   const closePrompt = useCallback((choice: "ai" | "human") => {
-    try {
-      window.sessionStorage.setItem("awexen-support-prompt-seen", "1");
-    } catch {
-      // التخزين مقفول في المتصفح؛ العرض هيتكرر في الزيارة الجاية بس.
-    }
     setPromptOpen(false);
     if (choice === "human") setMode("human");
   }, []);
 
-  // نسأل الزائر عن الدعم البشري مرة واحدة بعد فتح صفحة المحادثة.
+  // بنسأل الزائر عن الدعم البشري في كل مرة يفتح فيها صفحة المحادثة.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      if (window.sessionStorage.getItem("awexen-support-prompt-seen")) return;
-    } catch {
-      return;
-    }
-    const timer = window.setTimeout(() => setPromptOpen(true), 500);
+    const timer = window.setTimeout(() => setPromptOpen(true), 400);
     return () => window.clearTimeout(timer);
   }, []);
 

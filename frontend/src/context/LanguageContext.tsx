@@ -133,8 +133,8 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
   "chat.subtitle": { ar: "مساعدك الذكي", en: "Your AI assistant" },
   "chat.back": { ar: "العودة إلى الصفحة السابقة", en: "Back to previous page" },
   "chat.welcome": {
-    ar: "أهلًا بك. اسأل عن خدمات أوكسين، وسأجيب فقط من المعلومات التي اعتمدها فريق الإدارة.",
-    en: "Welcome. Ask about Awexen services and I will answer only from the information approved by the team.",
+    ar: "أهلًا بك. اسألني عن خدمات أوكسين ومحتوى الموقع، أو عن أي حاجة في تصميم وتطوير المواقع والمتاجر والمنصات الرقمية — وأنا هساعدك.",
+    en: "Welcome. Ask me about Awexen services and site content, or anything about web design, development, stores, and digital platforms — I am here to help.",
   },
   "chat.placeholder": { ar: "اكتب سؤالك هنا...", en: "Type your question..." },
   "chat.placeholderLoading": { ar: "جارٍ تجهيز المعرفة...", en: "Preparing knowledge..." },
