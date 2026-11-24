@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Bot, Check, CheckCheck, Headset, Loader2, Send, ShieldCheck, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { loadKnowledge, matchKnowledge, saveAiInquiry, type KnowledgeEntry } from "../lib/cms";
@@ -21,14 +21,22 @@ import { cn } from "../utils/cn";
 import { useContent } from "../context/ContentContext";
 import { useLanguage, type Lang } from "../context/LanguageContext";
 
+const CHAT_TIME_FORMAT: Record<Lang, Intl.DateTimeFormat> = {
+  ar: new Intl.DateTimeFormat("ar-EG", { hour: "2-digit", minute: "2-digit" }),
+  en: new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" }),
+};
+
 function formatChatTime(value: string | null | undefined, lang: Lang) {
   if (!value) return "";
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "";
-  return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  return CHAT_TIME_FORMAT[lang].format(date);
+}
+
+function supportSignature(list: SupportMessage[]) {
+  let signature = "";
+  for (const message of list) signature += `${message.id}${message.read_by_recipient ? "+" : "-"},`;
+  return signature;
 }
 
 function AssistantAvatar() {
@@ -130,6 +138,41 @@ function AgentTypingBubble() {
   );
 }
 
+const SupportThread = memo(function SupportThread({
+  messages,
+  seenUpto,
+  seenAt,
+  lastSeenOwnId,
+  typing,
+}: {
+  messages: SupportMessage[];
+  seenUpto: number;
+  seenAt: string | null;
+  lastSeenOwnId: number;
+  typing: boolean;
+}) {
+  const { t } = useLanguage();
+  return (
+    <>
+      <AgentBubble text={t("chat.supportWelcome")} />
+      {messages.map((message) => (
+        message.sender === "agent"
+          ? <AgentBubble key={message.id} text={message.body} time={message.created_at} />
+          : (
+            <UserBubble
+              key={message.id}
+              text={message.body}
+              time={message.created_at}
+              status={message.id <= seenUpto ? "seen" : "sent"}
+              seenAt={message.id === lastSeenOwnId ? seenAt : null}
+            />
+          )
+      ))}
+      {typing && <AgentTypingBubble />}
+    </>
+  );
+});
+
 function TypingBubble() {
   const { t } = useLanguage();
   return (
@@ -146,6 +189,21 @@ function TypingBubble() {
     </div>
   );
 }
+
+const AiThread = memo(function AiThread({ messages, typing }: { messages: ChatMessage[]; typing: boolean }) {
+  const { t } = useLanguage();
+  return (
+    <>
+      <AssistantBubble text={t("chat.welcome")} />
+      {messages.map((message) => (
+        message.role === "user"
+          ? <UserBubble key={message.id} text={message.text} />
+          : <AssistantBubble key={message.id} text={message.text} source={message.source} />
+      ))}
+      {typing && <TypingBubble />}
+    </>
+  );
+});
 
 export default function AiChat() {
   const { services, projects, settings } = useContent();
@@ -170,6 +228,7 @@ export default function AiChat() {
   const [agentTyping, setAgentTyping] = useState(false);
   const [agentSeen, setAgentSeen] = useState<{ upto: number; at: string | null }>({ upto: 0, at: null });
   const typingPingRef = useRef(0);
+  const supportSigRef = useRef("");
   const [promptOpen, setPromptOpen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -273,15 +332,23 @@ export default function AiChat() {
     const load = async () => {
       try {
         const list = await fetchSupportMessages(supportToken);
-        if (active) setSupportMessages(list);
+        const signature = supportSignature(list);
+        if (active && signature !== supportSigRef.current) {
+          supportSigRef.current = signature;
+          setSupportMessages(list);
+        }
       } catch {
         // أخطاء الشبكة المؤقتة مش المفروض تمسح الرسايل الظاهرة.
       }
       try {
         const presence = await fetchSupportPresence(supportToken);
         if (active) {
-          setAgentTyping(presence.agentTyping);
-          setAgentSeen({ upto: presence.agentReadUpto, at: presence.agentReadAt });
+          setAgentTyping((prev) => (prev === presence.agentTyping ? prev : presence.agentTyping));
+          setAgentSeen((prev) =>
+            prev.upto === presence.agentReadUpto && prev.at === presence.agentReadAt
+              ? prev
+              : { upto: presence.agentReadUpto, at: presence.agentReadAt },
+          );
         }
       } catch {
         // نفس المنطق: فشل قراءة الحالة مش بيعطل المحادثة.
@@ -420,7 +487,9 @@ export default function AiChat() {
         setSupportMessages((current) => [...current.filter((item) => item.id !== message.id), message]);
       }
       try {
-        setSupportMessages(await fetchSupportMessages(token));
+        const list = await fetchSupportMessages(token);
+        supportSigRef.current = supportSignature(list);
+        setSupportMessages(list);
       } catch {
         // الرسالة اتبعتت بالفعل؛ فشل تحديث القائمة مش معناه إن الإرسال فشل.
       }
@@ -437,7 +506,7 @@ export default function AiChat() {
   );
 
   return (
-    <div className="flex h-dvh max-h-dvh flex-col bg-ink-950 text-white">
+    <div className="fixed inset-0 flex h-dvh max-h-dvh flex-col overflow-hidden bg-ink-950 text-white">
       <header className="shrink-0 border-b border-white/10 bg-ink-950/95 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-3xl items-center gap-3 px-4 sm:px-6">
           <button
@@ -488,36 +557,18 @@ export default function AiChat() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto overscroll-contain" role="log" aria-live="polite" aria-relevant="additions">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" role="log" aria-live="polite" aria-relevant="additions">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-6 sm:px-6">
           {mode === "human" ? (
-            <>
-              <AgentBubble text={t("chat.supportWelcome")} />
-              {supportMessages.map((message) => (
-                message.sender === "agent"
-                  ? <AgentBubble key={message.id} text={message.body} time={message.created_at} />
-                  : (
-                    <UserBubble
-                      key={message.id}
-                      text={message.body}
-                      time={message.created_at}
-                      status={message.id <= agentSeen.upto ? "seen" : "sent"}
-                      seenAt={message.id === lastSeenOwnId ? agentSeen.at : null}
-                    />
-                  )
-              ))}
-              {agentTyping && <AgentTypingBubble />}
-            </>
+            <SupportThread
+              messages={supportMessages}
+              seenUpto={agentSeen.upto}
+              seenAt={agentSeen.at}
+              lastSeenOwnId={lastSeenOwnId}
+              typing={agentTyping}
+            />
           ) : (
-            <>
-              <AssistantBubble text={t("chat.welcome")} />
-              {messages.map((message) => (
-                message.role === "user"
-                  ? <UserBubble key={message.id} text={message.text} />
-                  : <AssistantBubble key={message.id} text={message.text} source={message.source} />
-              ))}
-              {busy && <TypingBubble />}
-            </>
+            <AiThread messages={messages} typing={busy} />
           )}
           <div ref={endRef} />
         </div>
