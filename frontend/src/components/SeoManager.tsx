@@ -69,6 +69,11 @@ const pages: Record<string, SeoEntry> = {
     description: "أداة داخلية لمراجعة تصدير بيانات الموقع.",
     noindex: true,
   },
+  "/chat": {
+    title: "محادثة Awexen الذكية | Awexen",
+    description: "محادثة مباشرة مع مساعد Awexen الذكي للحصول على إجابات من المحتوى المعتمد.",
+    noindex: true,
+  },
   "/awexen": {
     title: "لوحة إدارة Awexen",
     description: "لوحة الإدارة الداخلية لموقع Awexen.",

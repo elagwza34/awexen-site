@@ -10,13 +10,12 @@ import {
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import FloatingActions from "./components/FloatingActions";
-import WhatsAppButton from "./components/WhatsAppButton";
+import FloatingDock from "./components/FloatingDock";
 import ScrollProgress from "./components/ScrollProgress";
 import MobileBar from "./components/MobileBar";
 import SeoManager from "./components/SeoManager";
 import ConsentPopup from "./components/ConsentPopup";
 import AnalyticsRouteTracker from "./components/AnalyticsRouteTracker";
-import KnowledgeChat from "./components/KnowledgeChat";
 import { ContentProvider } from "./context/ContentContext";
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 import { DashboardThemeProvider } from "./context/DashboardThemeContext";
@@ -59,6 +58,7 @@ const LearningAuth = lazy(() => import("./pages/Learning").then((module) => ({ d
 const LearningGuard = lazy(() => import("./pages/Learning").then((module) => ({ default: module.LearningGuard })));
 const LearningErrorBoundary = lazy(() => import("./pages/Learning").then((module) => ({ default: module.LearningErrorBoundary })));
 const LessonPlayer = lazy(() => import("./pages/Learning").then((module) => ({ default: module.LessonPlayer })));
+const AiChat = lazy(() => import("./pages/AiChat"));
 
 function RouteLoader({ dark = false }: { dark?: boolean }) {
   const { lang } = useLanguage();
@@ -236,7 +236,8 @@ function AppShell() {
   const isLearningRoute = pathname === "/learn" || pathname.startsWith("/learn/");
   const isInstructorRoute = pathname === "/instructor" || pathname.startsWith("/instructor/");
   const isLoginRoute = pathname === "/login";
-  const isStandaloneRoute = isAdminRoute || isLearningRoute || isInstructorRoute || isLoginRoute || pathname === "/reset-password";
+  const isChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
+  const isStandaloneRoute = isAdminRoute || isLearningRoute || isInstructorRoute || isLoginRoute || isChatRoute || pathname === "/reset-password";
   const isLightPortal = isLearningRoute || isInstructorRoute;
 
   return (
@@ -293,6 +294,7 @@ function AppShell() {
             <Route path="/pages/:slug" element={<DynamicPage />} />
             <Route path="/export" element={<ExportData />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/chat" element={<AiChat />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/awexen" element={<DashboardThemeProvider><AwexenAdminRoute /></DashboardThemeProvider>} />
             <Route path="/reset-password" element={<ResetPassword />} />
@@ -305,9 +307,8 @@ function AppShell() {
           <>
             <Footer />
             <FloatingActions />
-            <WhatsAppButton />
+            <FloatingDock />
             <MobileBar />
-            <KnowledgeChat />
           </>
         )}
       </div>

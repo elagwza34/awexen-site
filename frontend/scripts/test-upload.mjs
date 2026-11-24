@@ -248,11 +248,11 @@ check("قاعدة المعرفة بتستفيد من الـ cache", /cached\("ai
 check("إعدادات الأسعار بتستفيد من الـ cache", /cached\("pricing_settings"/.test(cmsSource));
 check("صفحات المحتوى بتستفيد من الـ cache", /cached\(`content_page:\$\{slug\}`/.test(cmsSource));
 
-/* ---------- 11) المحادثة بتجيب المعرفة بس عند الفتح ---------- */
-const chatSource = readFileSync(resolve(here, "..", "src", "components", "KnowledgeChat.tsx"), "utf8");
+/* ---------- 11) صفحة المحادثة (/chat) بتجيب المعرفة بس عند الفتح ---------- */
+const chatSource = readFileSync(resolve(here, "..", "src", "pages", "AiChat.tsx"), "utf8");
 check("المعرفة مش بتتحمّل مع كل صفحة", /knowledgeRequested/.test(chatSource));
 check("في حارس يمنع الطلب المتكرر", /loadKnowledgeOnce/.test(chatSource));
-check("الطلب بيحصل عند الفتح", /if \(open\) loadKnowledgeOnce\(\)/.test(chatSource));
+check("الطلب بيحصل عند فتح صفحة المحادثة", /useEffect\(\(\) => \{\s*loadKnowledgeOnce\(\)/.test(chatSource));
 
 /* ---------- 13) مسار إثبات الدفع: الشكل والأطراف الأربعة ---------- */
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

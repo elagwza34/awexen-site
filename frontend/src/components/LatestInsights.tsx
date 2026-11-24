@@ -3,7 +3,6 @@ import { ArrowLeft, BookOpenText, BriefcaseBusiness, GraduationCap, MessageCircl
 import { Link } from "react-router-dom";
 import { fallbackPosts, loadBlogPosts, type BlogPost } from "../lib/cms";
 import { Reveal, SectionHeading } from "./ui";
-import { openKnowledgeChat } from "../lib/uiEvents";
 import { useLanguage } from "../context/LanguageContext";
 import { FEATURES } from "../lib/features";
 
@@ -21,11 +20,11 @@ export default function LatestInsights() {
   const rawPaths = lang === "en" ? [
     { to: "/courses", title: "Learn by building", desc: "Focused courses that end with a reviewable project.", icon: GraduationCap },
     { to: "/jobs", title: "Work with us", desc: "Explore open roles or send your profile to our hiring team.", icon: BriefcaseBusiness },
-    { to: "", title: "Ask Awexen", desc: "Answers grounded only in approved content.", icon: MessageCircleQuestion },
+    { to: "/chat", title: "Ask Awexen", desc: "Answers grounded only in approved content.", icon: MessageCircleQuestion },
   ] : [
     { to: "/courses", title: "تعلم بالتطبيق", desc: "كورسات صغيرة تنتهي بمشروع قابل للمراجعة.", icon: GraduationCap },
     { to: "/jobs", title: "اعمل معنا", desc: "تابع الأدوار المتاحة أو أرسل ملفك لفريق التوظيف.", icon: BriefcaseBusiness },
-    { to: "", title: "اسأل Awexen", desc: "إجابة من المحتوى المعتمد فقط، بلا تخمين.", icon: MessageCircleQuestion },
+    { to: "/chat", title: "اسأل Awexen", desc: "إجابة من المحتوى المعتمد فقط، بلا تخمين.", icon: MessageCircleQuestion },
   ];
   const paths = FEATURES.courses ? rawPaths : rawPaths.filter((p) => p.to !== "/courses");
 
@@ -64,11 +63,7 @@ export default function LatestInsights() {
               </>
             );
             const className = "group flex w-full items-center gap-4 rounded-2xl border border-ink-100 bg-white p-5 transition hover:border-brand-500/35";
-            return to ? (
-              <Link key={title} to={to} className={className}>{content}</Link>
-            ) : (
-              <button key={title} type="button" onClick={openKnowledgeChat} className={className}>{content}</button>
-            );
+            return <Link key={title} to={to} className={className}>{content}</Link>;
           })}
         </div>
       </div>

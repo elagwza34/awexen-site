@@ -3,7 +3,7 @@ import { ArrowUp } from "lucide-react";
 import { cn } from "../utils/cn";
 import { useLanguage } from "../context/LanguageContext";
 
-/** Stacks directly above the floating WhatsApp button (see WhatsAppButton). */
+/** Stacks directly above the bottom-right floating dock (AI chat + WhatsApp). */
 export default function FloatingActions() {
   const [show, setShow] = useState(false);
   const { t } = useLanguage();
@@ -16,7 +16,7 @@ export default function FloatingActions() {
   }, []);
 
   return (
-    <div className="pointer-events-none fixed bottom-[calc(8.75rem+env(safe-area-inset-bottom))] end-4 z-40 flex flex-col items-center sm:bottom-[5.75rem] sm:end-6">
+    <div className="pointer-events-none fixed bottom-[calc(8.5rem+env(safe-area-inset-bottom))] right-4 z-40 flex flex-col items-center sm:bottom-40 sm:right-6">
       {/* العودة للأعلى */}
       <button
         aria-label={t("floating.backToTop")}

@@ -130,6 +130,37 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
   // ---------- إجراءات عائمة ----------
   "floating.whatsapp": { ar: "تواصل عبر واتساب", en: "Contact via WhatsApp" },
   "whatsapp.chat": { ar: "تواصل معنا على واتساب", en: "Chat with us" },
+  "chat.launcher": { ar: "اسأل أوكسين", en: "Ask Awexen" },
+  "chat.subtitle": { ar: "مساعدك الذكي", en: "Your AI assistant" },
+  "chat.back": { ar: "العودة إلى الصفحة السابقة", en: "Back to previous page" },
+  "chat.welcome": {
+    ar: "أهلًا بك. اسأل عن خدمات أوكسين، وسأجيب فقط من المعلومات التي اعتمدها فريق الإدارة.",
+    en: "Welcome. Ask about Awexen services and I will answer only from the information approved by the team.",
+  },
+  "chat.placeholder": { ar: "اكتب سؤالك هنا...", en: "Type your question..." },
+  "chat.placeholderLoading": { ar: "جارٍ تجهيز المعرفة...", en: "Preparing knowledge..." },
+  "chat.send": { ar: "إرسال السؤال", en: "Send question" },
+  "chat.typing": { ar: "أراجع قاعدة المعرفة...", en: "Reviewing the knowledge base..." },
+  "chat.loading": { ar: "جارٍ تجهيز قاعدة المعرفة...", en: "Preparing the knowledge base..." },
+  "chat.loadError": { ar: "تعذر تحميل قاعدة المعرفة.", en: "Could not load the knowledge base." },
+  "chat.sendError": { ar: "تعذر إرسال الرسالة. حاول مرة أخرى.", en: "Could not send the message. Please try again." },
+  "chat.retry": { ar: "إعادة المحاولة", en: "Retry" },
+  "chat.source": { ar: "عرض المصدر", en: "View source" },
+  "chat.contactToggle": { ar: "بيانات التواصل — اختيارية", en: "Contact details — optional" },
+  "chat.name": { ar: "الاسم", en: "Name" },
+  "chat.email": { ar: "البريد الإلكتروني", en: "Email" },
+  "chat.privacy": {
+    ar: "قد يُحفظ السؤال لتحسين قاعدة المعرفة. لا ترسل بيانات حساسة.",
+    en: "Questions may be stored to improve the knowledge base. Do not send sensitive data.",
+  },
+  "chat.emptyKnowledge": {
+    ar: "قاعدة المعرفة لم تُجهّز بعد. سجّلت سؤالك ليظهر للإدارة، ويمكنك التواصل عبر واتساب للحصول على رد مباشر.",
+    en: "The knowledge base is not ready yet. I logged your question for the team, and you can reach us on WhatsApp for a direct reply.",
+  },
+  "chat.noApprovedAnswer": {
+    ar: "لم أجد إجابة معتمدة لهذا السؤال. سجّلته للمراجعة بدل تقديم معلومة غير مؤكدة.",
+    en: "I could not find an approved answer to this question. I logged it for review instead of giving unverified information.",
+  },
   "floating.backToTop": { ar: "العودة إلى أعلى الصفحة", en: "Back to top" },
 
   // ---------- الواجهة الرئيسية ----------

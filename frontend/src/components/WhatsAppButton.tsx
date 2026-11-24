@@ -40,7 +40,7 @@ export default function WhatsAppButton({
       rel="noopener noreferrer"
       aria-label={label}
       className={cn(
-        "group fixed bottom-4 right-4 left-auto z-50 grid h-12 w-12 shrink-0 animate-whatsapp-in place-items-center rounded-full bg-[#25D366] text-white shadow-lg shadow-black/25 ring-1 ring-black/5 transition-transform duration-300 ease-out hover:-translate-y-0.5 hover:scale-105 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#25D366] active:scale-95 motion-reduce:animate-none motion-reduce:transform-none motion-reduce:transition-none sm:bottom-6 sm:right-6 sm:h-14 sm:w-14",
+        "group relative grid h-12 w-12 shrink-0 animate-whatsapp-in place-items-center rounded-full bg-[#25D366] text-white shadow-lg shadow-black/25 ring-1 ring-black/5 transition-transform duration-300 ease-out hover:-translate-y-0.5 hover:scale-105 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#25D366] active:scale-95 motion-reduce:animate-none motion-reduce:transform-none motion-reduce:transition-none sm:h-14 sm:w-14",
         className,
       )}
     >

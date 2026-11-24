@@ -779,14 +779,14 @@
 }
 
 @media (max-width: 639px) {
-  body:has(input:focus, textarea:focus, select:focus) #ask-awexen-launcher,
+  body:has(input:focus, textarea:focus, select:focus) #awexen-float-dock,
   body:has(input:focus, textarea:focus, select:focus) nav[aria-label="إجراءات سريعة"],
   body:has(input:focus, textarea:focus, select:focus) nav[aria-label="Quick actions"] {
     pointer-events: none;
     opacity: 0;
   }
 
-  footer { padding-bottom: 4.5rem; }
+  footer { padding-bottom: 8.5rem; }
 }
 
 /* ============================================================
