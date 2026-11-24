@@ -33,29 +33,29 @@ export default function PortfolioPage() {
         crumbs={[{ label: t("home.crumb"), to: "/" }, { label: t("portfolio.pageBadge") }]}
       />
 
-      <section className="bg-white section-y">
+      {/* تصفية المشاريع */}
+      <div className="border-b border-ink-100 bg-white">
         <div className="container-x">
-          {/* شريط التصفية */}
-          <Reveal>
-            <div className="flex flex-wrap items-center justify-center gap-2.5">
+          <div className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
+            <div className="flex w-max min-w-full items-center gap-1 sm:justify-center sm:gap-2">
               {tags.map((tag) => (
                 <button
                   key={tag}
                   onClick={() => setFilter(tag)}
                   aria-pressed={filter === tag}
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-[13.5px] font-bold transition-all duration-300",
+                    "inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 pb-3 pt-4 text-[13.5px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500",
                     filter === tag
-                      ? "border-brand-500 bg-brand-500 text-white shadow-[var(--shadow-brand)]"
-                      : "border-ink-200 bg-white text-ink-600 hover:border-brand-400 hover:text-brand-600",
+                      ? "border-brand-500 text-brand-600"
+                      : "border-transparent text-ink-500 hover:text-ink-900",
                   )}
                 >
                   {tag === "__all__" && <LayoutGrid className="h-3.5 w-3.5" />}
                   {tag === "__all__" ? t("portfolio.filterAll") : pick(tag, projects.find((project) => project.tag === tag)?.tagEn ?? "")}
                   <span
                     className={cn(
-                      "rounded-full px-1.5 text-[10.5px] font-black",
-                      filter === tag ? "bg-white/20" : "bg-ink-100 text-ink-500",
+                      "hidden rounded-full px-1.5 text-[10.5px] font-black sm:inline-block",
+                      filter === tag ? "bg-brand-500/10 text-brand-600" : "bg-ink-100 text-ink-500",
                     )}
                   >
                     {tag === "__all__"
@@ -65,10 +65,14 @@ export default function PortfolioPage() {
                 </button>
               ))}
             </div>
-          </Reveal>
+          </div>
+        </div>
+      </div>
 
+      <section className="bg-white section-y">
+        <div className="container-x">
           {/* الشبكة */}
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {list.map((p, i) => {
               const projectTitle = pick(p.title, p.titleEn ?? "");
               const projectTag = pick(p.tag, p.tagEn ?? "");
