@@ -27,6 +27,31 @@ export function saveSupportToken(token: string) {
   }
 }
 
+export function clearSupportToken() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // التخزين مقفول؛ مفيش حاجة نمسحها.
+  }
+}
+
+/** التوكن المحفوظ لمحادثة مش موجودة (اتمسحت أو من بيئة تانية). */
+export function isUnknownConversation(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const record = error as { code?: unknown; message?: unknown };
+  return record.code === "P0002" || /المحادثة غير متاحة/.test(String(record.message ?? ""));
+}
+
+/** رسائل دوالنا عربية وآمنة للعرض؛ أي خطأ تاني بنستبدله برسالة عامة. */
+export function supportErrorMessage(error: unknown, fallback: string): string {
+  if (error && typeof error === "object") {
+    const message = String((error as { message?: unknown }).message ?? "").trim();
+    if (message && /[\u0600-\u06FF]/.test(message)) return message;
+  }
+  return fallback;
+}
+
 function normalizeMessage(row: unknown): SupportMessage | null {
   if (!row || typeof row !== "object") return null;
   const record = row as Record<string, unknown>;

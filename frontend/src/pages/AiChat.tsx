@@ -5,11 +5,14 @@ import { loadKnowledge, matchKnowledge, saveAiInquiry, type KnowledgeEntry } fro
 import { askAwexen } from "../lib/askAwexen";
 import { readChatSession, saveChatSession, type ChatMessage } from "../lib/chatSession";
 import {
+  clearSupportToken,
   fetchSupportMessages,
   identifySupportVisitor,
+  isUnknownConversation,
   readSupportToken,
   sendSupportMessage,
   startSupportChat,
+  supportErrorMessage,
   type SupportMessage,
 } from "../lib/supportChat";
 import { cn } from "../utils/cn";
@@ -293,8 +296,8 @@ export default function AiChat() {
     try {
       const token = await startSupportChat(name, email);
       setSupportToken(token);
-    } catch {
-      setSupportError(t("chat.supportUnavailable"));
+    } catch (requestError) {
+      setSupportError(supportErrorMessage(requestError, t("chat.supportUnavailable")));
     } finally {
       setSupportBusy(false);
     }
@@ -313,13 +316,33 @@ export default function AiChat() {
     setSupportBusy(true);
     setSupportError(null);
     try {
-      const token = supportToken ?? (await startSupportChat(name, email));
+      let token = supportToken ?? (await startSupportChat(name, email));
       if (!supportToken) setSupportToken(token);
-      await sendSupportMessage(token, body);
+
+      let sent: SupportMessage | null = null;
+      try {
+        sent = await sendSupportMessage(token, body);
+      } catch (sendError) {
+        if (!isUnknownConversation(sendError)) throw sendError;
+        // التوكن المحفوظ قديم أو المحادثة اتمسحت؛ بنبدأ محادثة جديدة ونبعت تاني.
+        clearSupportToken();
+        token = await startSupportChat(name, email);
+        setSupportToken(token);
+        sent = await sendSupportMessage(token, body);
+      }
+
       setSupportText("");
-      setSupportMessages(await fetchSupportMessages(token));
-    } catch {
-      setSupportError(t("chat.supportError"));
+      if (sent) {
+        const message = sent;
+        setSupportMessages((current) => [...current.filter((item) => item.id !== message.id), message]);
+      }
+      try {
+        setSupportMessages(await fetchSupportMessages(token));
+      } catch {
+        // الرسالة اتبعتت بالفعل؛ فشل تحديث القائمة مش معناه إن الإرسال فشل.
+      }
+    } catch (requestError) {
+      setSupportError(supportErrorMessage(requestError, t("chat.supportError")));
     } finally {
       setSupportBusy(false);
     }
