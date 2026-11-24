@@ -191,6 +191,8 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
     en: "Support is unavailable right now. Try again shortly or reach us on WhatsApp.",
   },
   "chat.supportResume": { ar: "لديك محادثة دعم — متابعة", en: "You have a support chat — resume" },
+  "chat.supportTyping": { ar: "فريق الدعم بيكتب...", en: "Support is typing..." },
+  "chat.supportSeen": { ar: "تم الاطلاع", en: "Seen" },
   "floating.backToTop": { ar: "العودة إلى أعلى الصفحة", en: "Back to top" },
 
   // ---------- الواجهة الرئيسية ----------

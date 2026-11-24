@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
+  Bell,
+  BellOff,
+  BellRing,
+  Check,
+  CheckCheck,
   CheckCircle2,
   CircleSlash2,
   Headset,
@@ -11,12 +17,21 @@ import {
 } from "lucide-react";
 import {
   fetchSupportThread,
+  fetchSupportVisitorPresence,
   listSupportConversations,
   replySupportConversation,
+  sendSupportAgentTyping,
   setSupportConversationStatus,
   type SupportConversation,
   type SupportThreadMessage,
 } from "../lib/supportAdmin";
+import {
+  disableSupportPush,
+  enableSupportPush,
+  getSupportPushState,
+  supportPushSupported,
+  type SupportPushStatus,
+} from "../lib/supportPush";
 import { cn } from "../utils/cn";
 
 function formatTime(value: string | null) {
@@ -29,17 +44,42 @@ function formatTime(value: string | null) {
 function describeError(error: unknown): string {
   if (error && typeof error === "object" && "message" in error) {
     const message = String((error as { message: unknown }).message ?? "");
+    if (/awexen_support_push/i.test(message)) {
+      return "دوال إشعارات الدعم لسه مش متعملة على قاعدة البيانات. نفّذ migration 202611240006_support_push.sql.";
+    }
+    if (/awexen_support_(admin_presence|agent_typing|visitor_typing|presence)/i.test(message)) {
+      return "دوال مؤشر الكتابة والقراءة لسه مش متعملة. نفّذ migration 202611240007_support_presence_seen.sql.";
+    }
+    if (/column reference .* is ambiguous/i.test(message)) {
+      return "دوال محادثات الدعم محتاجة تحديث. نفّذ migration 202611240007_support_presence_seen.sql.";
+    }
     if (/could not find the function|does not exist/i.test(message)) {
-      return "دوال الدعم الفني لسه مش متعملة على قاعدة البيانات. نفّذ migration 202611240004_support_chat.sql أولًا.";
+      return "دوال الدعم الفني لسه مش متعملة على قاعدة البيانات. نفّذ migrations الدعم 202611240004 ثم 202611240007.";
     }
     if (message) return message;
   }
   return "تعذر تنفيذ العملية. حاول مرة أخرى.";
 }
 
+function VisitorTypingBubble() {
+  return (
+    <div className="flex justify-start">
+      <div className="inline-flex items-center gap-2 rounded-2xl rounded-es-md border border-white/10 bg-white/[0.06] px-3.5 py-2.5">
+        <span className="flex gap-1" aria-hidden="true">
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/45 [animation-delay:-0.3s]" />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/45 [animation-delay:-0.15s]" />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/45" />
+        </span>
+        <span className="text-[10.5px] text-white/40">الزائر بيكتب...</span>
+      </div>
+    </div>
+  );
+}
+
 export default function SupportInbox() {
+  const [searchParams] = useSearchParams();
   const [conversations, setConversations] = useState<SupportConversation[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(() => searchParams.get("conversation"));
   const [thread, setThread] = useState<SupportThreadMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [threadLoading, setThreadLoading] = useState(false);
@@ -47,7 +87,32 @@ export default function SupportInbox() {
   const [sending, setSending] = useState(false);
   const [statusBusy, setStatusBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pushState, setPushState] = useState<SupportPushStatus>("disabled");
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+  const [visitorTyping, setVisitorTyping] = useState(false);
+  const [visitorSeen, setVisitorSeen] = useState<{ upto: number; at: string | null }>({ upto: 0, at: null });
+  const typingPingRef = useRef(0);
   const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!supportPushSupported()) {
+      setPushState("unsupported");
+      return;
+    }
+    void (async () => {
+      try {
+        const state = await getSupportPushState();
+        setPushState(state);
+        // إعادة مزامنة الاشتراك مع السيرفر لو الإشعارات مفعّلة بالفعل.
+        if (state === "enabled" && Notification.permission === "granted") {
+          await enableSupportPush().catch(() => {});
+        }
+      } catch {
+        // مشكلة في قراءة حالة الإشعارات مش بتعطّل صندوق الدعم.
+      }
+    })();
+  }, []);
 
   const loadList = useCallback(async () => {
     try {
@@ -67,7 +132,10 @@ export default function SupportInbox() {
   }, [loadList]);
 
   useEffect(() => {
-    if (!selectedId && conversations.length > 0) setSelectedId(conversations[0].id);
+    if (conversations.length === 0) return;
+    if (!selectedId || !conversations.some((item) => item.id === selectedId)) {
+      setSelectedId(conversations[0].id);
+    }
   }, [conversations, selectedId]);
 
   const loadThread = useCallback(async (conversationId: string) => {
@@ -83,6 +151,16 @@ export default function SupportInbox() {
     }
   }, []);
 
+  const loadPresence = useCallback(async (conversationId: string) => {
+    try {
+      const presence = await fetchSupportVisitorPresence(conversationId);
+      setVisitorTyping(presence.visitorTyping);
+      setVisitorSeen({ upto: presence.visitorReadUpto, at: presence.visitorReadAt });
+    } catch {
+      // فشل قراءة مؤشر الكتابة مش بيعطل المحادثة.
+    }
+  }, []);
+
   useEffect(() => {
     if (!selectedId) {
       setThread([]);
@@ -90,14 +168,22 @@ export default function SupportInbox() {
     }
     setThreadLoading(true);
     void loadThread(selectedId).finally(() => setThreadLoading(false));
-    const timer = window.setInterval(() => void loadThread(selectedId), 5000);
-    return () => window.clearInterval(timer);
-  }, [selectedId, loadThread]);
+    void loadPresence(selectedId);
+    const timer = window.setInterval(() => {
+      void loadThread(selectedId);
+      void loadPresence(selectedId);
+    }, 3000);
+    return () => {
+      window.clearInterval(timer);
+      setVisitorTyping(false);
+      setVisitorSeen({ upto: 0, at: null });
+    };
+  }, [selectedId, loadThread, loadPresence]);
 
   useEffect(() => {
     if (thread.length === 0) return;
     endRef.current?.scrollIntoView({ block: "end" });
-  }, [thread]);
+  }, [thread, visitorTyping]);
 
   const selected = conversations.find((item) => item.id === selectedId) ?? null;
   const totalUnread = conversations.reduce((sum, item) => sum + item.unread_count, 0);
@@ -135,6 +221,43 @@ export default function SupportInbox() {
     }
   };
 
+  const togglePush = async () => {
+    if (pushBusy) return;
+    setPushBusy(true);
+    setPushError(null);
+    try {
+      if (pushState === "enabled") {
+        await disableSupportPush();
+        setPushState("disabled");
+      } else {
+        await enableSupportPush();
+        setPushState("enabled");
+      }
+    } catch (requestError) {
+      const code = requestError instanceof Error ? requestError.message : "";
+      if (code === "push-denied") {
+        setPushState("denied");
+      } else if (code === "push-unsupported") {
+        setPushState("unsupported");
+      } else {
+        setPushError(describeError(requestError));
+      }
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const noteTyping = () => {
+    if (!selectedId || Date.now() - typingPingRef.current < 3000) return;
+    typingPingRef.current = Date.now();
+    void sendSupportAgentTyping(selectedId).catch(() => {});
+  };
+
+  const lastSeenAgentId = thread.reduce(
+    (max, message) => (message.sender === "agent" && message.id <= visitorSeen.upto ? Math.max(max, message.id) : max),
+    0,
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -147,11 +270,56 @@ export default function SupportInbox() {
             {conversations.length} محادثة{totalUnread > 0 ? ` · ${totalUnread} رسالة غير مقروءة` : ""}
           </p>
         </div>
-        <button type="button" onClick={() => void loadList()} className="admin-button-secondary">
-          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-          تحديث
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {pushState === "unsupported" && (
+            <span className="text-[10.5px] text-white/35">إشعارات الموبايل غير مدعومة في المتصفح ده</span>
+          )}
+          {pushState !== "unsupported" && (
+            <button
+              type="button"
+              onClick={() => void togglePush()}
+              disabled={pushBusy || pushState === "denied"}
+              aria-pressed={pushState === "enabled"}
+              className="admin-button-secondary"
+            >
+              {pushBusy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : pushState === "enabled" ? (
+                <BellRing className="h-3.5 w-3.5 text-emerald-300" />
+              ) : pushState === "denied" ? (
+                <BellOff className="h-3.5 w-3.5" />
+              ) : (
+                <Bell className="h-3.5 w-3.5" />
+              )}
+              {pushState === "enabled"
+                ? "إشعارات الموبايل مفعّلة"
+                : pushState === "denied"
+                  ? "الإشعارات متقفلة من كروم"
+                  : "تشغيل إشعارات الموبايل"}
+            </button>
+          )}
+          <button type="button" onClick={() => void loadList()} className="admin-button-secondary">
+            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+            تحديث
+          </button>
+        </div>
       </div>
+
+      {pushState === "enabled" && (
+        <p className="rounded-xl border border-emerald-400/20 bg-emerald-500/[0.06] px-3 py-2 text-[11px] leading-5 text-emerald-100/80">
+          الإشعارات مفعّلة على الجهاز ده: هيوصلك إشعار من كروم حتى لو المتصفح مقفول طول ما الموبايل متصل بالإنترنت.
+        </p>
+      )}
+      {pushState === "denied" && (
+        <p className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-[11px] leading-5 text-amber-100/90">
+          الإشعارات مرفوضة من إعدادات كروم. اضغط أيقونة القفل جنب رابط الموقع ← الإشعارات ← السماح، ثم أعد تحميل الصفحة.
+        </p>
+      )}
+      {pushError && (
+        <p role="alert" className="rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-[11.5px] leading-5 text-red-200">
+          {pushError}
+        </p>
+      )}
 
       {error && (
         <p role="alert" className="rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-[11.5px] leading-5 text-red-200">
@@ -274,7 +442,10 @@ export default function SupportInbox() {
                   <p className="text-[11px] text-white/35">لا توجد رسائل في هذه المحادثة بعد.</p>
                 )}
                 {thread.map((message) => (
-                  <div key={message.id} className={message.sender === "agent" ? "flex justify-end" : "flex justify-start"}>
+                  <div
+                    key={message.id}
+                    className={cn("flex flex-col", message.sender === "agent" ? "items-end" : "items-start")}
+                  >
                     <div
                       className={cn(
                         "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[12.5px] leading-6",
@@ -284,12 +455,27 @@ export default function SupportInbox() {
                       )}
                     >
                       <p dir="auto" className="whitespace-pre-line">{message.body}</p>
-                      <p className={cn("mt-1 text-[9px]", message.sender === "agent" ? "text-white/60" : "text-white/30")}>
+                      <p className={cn(
+                        "mt-1 flex items-center gap-1 text-[9px]",
+                        message.sender === "agent" ? "justify-end text-white/60" : "text-white/30",
+                      )}>
                         {formatTime(message.created_at)}
+                        {message.sender === "agent" && (
+                          message.id <= visitorSeen.upto
+                            ? <CheckCheck className="h-3 w-3" aria-hidden="true" />
+                            : <Check className="h-3 w-3 opacity-60" aria-hidden="true" />
+                        )}
                       </p>
                     </div>
+                    {message.sender === "agent" && message.id === lastSeenAgentId && visitorSeen.at && (
+                      <span className="mt-0.5 inline-flex items-center gap-1 text-[9px] text-white/35">
+                        <CheckCheck className="h-2.5 w-2.5" aria-hidden="true" />
+                        تم الاطلاع · {formatTime(visitorSeen.at)}
+                      </span>
+                    )}
                   </div>
                 ))}
+                {visitorTyping && <VisitorTypingBubble />}
                 <div ref={endRef} />
               </div>
 
@@ -303,7 +489,10 @@ export default function SupportInbox() {
                     dir="auto"
                     maxLength={4000}
                     value={reply}
-                    onChange={(event) => setReply(event.target.value)}
+                    onChange={(event) => {
+                      setReply(event.target.value);
+                      if (event.target.value.trim()) noteTyping();
+                    }}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey) {
                         event.preventDefault();

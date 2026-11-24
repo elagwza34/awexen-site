@@ -4,8 +4,17 @@ export type SupportMessage = {
   id: number;
   sender: "visitor" | "agent";
   body: string;
+  read_by_recipient: boolean;
   created_at: string;
 };
+
+export type SupportPresence = {
+  agentTyping: boolean;
+  agentReadUpto: number;
+  agentReadAt: string | null;
+};
+
+const NO_PRESENCE: SupportPresence = { agentTyping: false, agentReadUpto: 0, agentReadAt: null };
 
 const TOKEN_KEY = "awexen-support-token";
 
@@ -63,6 +72,7 @@ function normalizeMessage(row: unknown): SupportMessage | null {
     id,
     sender,
     body,
+    read_by_recipient: record.read_by_recipient === true,
     created_at: String(record.created_at ?? new Date().toISOString()),
   };
 }
@@ -107,4 +117,24 @@ export async function fetchSupportMessages(token: string): Promise<SupportMessag
   const { data, error } = await supabase.rpc("awexen_support_fetch", { p_token: token });
   if (error) throw error;
   return (Array.isArray(data) ? data : []).map(normalizeMessage).filter((item): item is SupportMessage => Boolean(item));
+}
+
+export async function sendSupportTyping(token: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.rpc("awexen_support_visitor_typing", { p_token: token });
+  if (error) throw error;
+}
+
+export async function fetchSupportPresence(token: string): Promise<SupportPresence> {
+  if (!supabase) return NO_PRESENCE;
+  const { data, error } = await supabase.rpc("awexen_support_presence", { p_token: token });
+  if (error) throw error;
+  const row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
+  if (!row) return NO_PRESENCE;
+  const upto = Number(row.agent_read_upto);
+  return {
+    agentTyping: row.agent_typing === true,
+    agentReadUpto: Number.isFinite(upto) ? upto : 0,
+    agentReadAt: row.agent_read_at ? String(row.agent_read_at) : null,
+  };
 }

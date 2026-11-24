@@ -16,8 +16,17 @@ export type SupportThreadMessage = {
   id: number;
   sender: "visitor" | "agent";
   body: string;
+  read_by_recipient: boolean;
   created_at: string;
 };
+
+export type SupportVisitorPresence = {
+  visitorTyping: boolean;
+  visitorReadUpto: number;
+  visitorReadAt: string | null;
+};
+
+const NO_PRESENCE: SupportVisitorPresence = { visitorTyping: false, visitorReadUpto: 0, visitorReadAt: null };
 
 function requireClient() {
   if (!supabase) throw new Error("supabase-unavailable");
@@ -57,6 +66,7 @@ function normalizeThreadMessage(row: unknown): SupportThreadMessage | null {
     id,
     sender: record.sender === "agent" ? "agent" : "visitor",
     body,
+    read_by_recipient: record.read_by_recipient === true,
     created_at: String(record.created_at ?? ""),
   };
 }
@@ -102,4 +112,24 @@ export async function fetchSupportUnreadCount(): Promise<number> {
   const { data, error } = await supabase.rpc("awexen_support_admin_unread");
   if (error) throw error;
   return asNumber(Array.isArray(data) ? data[0] : data);
+}
+
+export async function sendSupportAgentTyping(conversationId: string): Promise<void> {
+  const client = requireClient();
+  const { error } = await client.rpc("awexen_support_agent_typing", { p_conversation_id: conversationId });
+  if (error) throw error;
+}
+
+export async function fetchSupportVisitorPresence(conversationId: string): Promise<SupportVisitorPresence> {
+  const client = requireClient();
+  const { data, error } = await client.rpc("awexen_support_admin_presence", { p_conversation_id: conversationId });
+  if (error) throw error;
+  const row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
+  if (!row) return NO_PRESENCE;
+  const upto = Number(row.visitor_read_upto);
+  return {
+    visitorTyping: row.visitor_typing === true,
+    visitorReadUpto: Number.isFinite(upto) ? upto : 0,
+    visitorReadAt: row.visitor_read_at ? String(row.visitor_read_at) : null,
+  };
 }

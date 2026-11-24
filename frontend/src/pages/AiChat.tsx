@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Bot, Headset, Loader2, Send, ShieldCheck, X } from "lucide-react";
+import { ArrowLeft, Bot, Check, CheckCheck, Headset, Loader2, Send, ShieldCheck, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { loadKnowledge, matchKnowledge, saveAiInquiry, type KnowledgeEntry } from "../lib/cms";
 import { askAwexen } from "../lib/askAwexen";
@@ -7,17 +7,29 @@ import { readChatSession, saveChatSession, type ChatMessage } from "../lib/chatS
 import {
   clearSupportToken,
   fetchSupportMessages,
+  fetchSupportPresence,
   identifySupportVisitor,
   isUnknownConversation,
   readSupportToken,
   sendSupportMessage,
+  sendSupportTyping,
   startSupportChat,
   supportErrorMessage,
   type SupportMessage,
 } from "../lib/supportChat";
 import { cn } from "../utils/cn";
 import { useContent } from "../context/ContentContext";
-import { useLanguage } from "../context/LanguageContext";
+import { useLanguage, type Lang } from "../context/LanguageContext";
+
+function formatChatTime(value: string | null | undefined, lang: Lang) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
 
 function AssistantAvatar() {
   return (
@@ -44,7 +56,9 @@ function AssistantBubble({ text, source }: { text: string; source?: string | nul
   );
 }
 
-function AgentBubble({ text }: { text: string }) {
+function AgentBubble({ text, time }: { text: string; time?: string | null }) {
+  const { lang } = useLanguage();
+  const stamp = formatChatTime(time, lang);
   return (
     <div className="flex items-start gap-2.5">
       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-emerald-400/25 bg-emerald-500/10 text-emerald-300">
@@ -52,16 +66,65 @@ function AgentBubble({ text }: { text: string }) {
       </span>
       <div className="max-w-[85%] rounded-2xl rounded-es-md border border-white/10 bg-white/[0.06] px-4 py-3 text-[13.5px] leading-7 text-white/85 sm:max-w-[75%]">
         <p dir="auto" className="whitespace-pre-line">{text}</p>
+        {stamp && <p className="mt-1 text-[10px] text-white/35">{stamp}</p>}
       </div>
     </div>
   );
 }
 
-function UserBubble({ text }: { text: string }) {
+function UserBubble({
+  text,
+  time,
+  status,
+  seenAt,
+}: {
+  text: string;
+  time?: string | null;
+  status?: "sent" | "seen";
+  seenAt?: string | null;
+}) {
+  const { lang, t } = useLanguage();
+  const stamp = formatChatTime(time, lang);
+  const seenStamp = formatChatTime(seenAt, lang);
   return (
-    <div className="flex justify-end">
+    <div className="flex flex-col items-end">
       <div className="max-w-[85%] rounded-2xl rounded-ee-md bg-brand-500 px-4 py-3 text-[13.5px] leading-7 text-white sm:max-w-[75%]">
         <p dir="auto" className="whitespace-pre-line">{text}</p>
+        {stamp && (
+          <span className="mt-1 flex items-center justify-end gap-1 text-[10px] text-white/70">
+            {stamp}
+            {status === "seen" ? (
+              <CheckCheck className="h-3 w-3" aria-hidden="true" />
+            ) : status === "sent" ? (
+              <Check className="h-3 w-3 opacity-70" aria-hidden="true" />
+            ) : null}
+          </span>
+        )}
+      </div>
+      {status === "seen" && seenStamp && (
+        <span className="mt-0.5 inline-flex items-center gap-1 text-[9.5px] text-white/35">
+          <CheckCheck className="h-3 w-3" aria-hidden="true" />
+          {t("chat.supportSeen")} · {seenStamp}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function AgentTypingBubble() {
+  const { t } = useLanguage();
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-emerald-400/25 bg-emerald-500/10 text-emerald-300">
+        <Headset className="h-4 w-4" />
+      </span>
+      <div className="inline-flex items-center gap-2 rounded-2xl rounded-es-md border border-white/10 bg-white/[0.06] px-4 py-3">
+        <span className="flex gap-1" aria-hidden="true">
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/55 [animation-delay:-0.3s]" />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/55 [animation-delay:-0.15s]" />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/55" />
+        </span>
+        <span className="text-[11px] text-white/40">{t("chat.supportTyping")}</span>
       </div>
     </div>
   );
@@ -104,6 +167,9 @@ export default function AiChat() {
   const [supportText, setSupportText] = useState("");
   const [supportBusy, setSupportBusy] = useState(false);
   const [supportError, setSupportError] = useState<string | null>(null);
+  const [agentTyping, setAgentTyping] = useState(false);
+  const [agentSeen, setAgentSeen] = useState<{ upto: number; at: string | null }>({ upto: 0, at: null });
+  const typingPingRef = useRef(0);
   const [promptOpen, setPromptOpen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -178,7 +244,7 @@ export default function AiChat() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, busy, supportMessages, supportBusy, mode]);
+  }, [messages, busy, supportMessages, supportBusy, mode, agentTyping]);
 
   const closePrompt = useCallback((choice: "ai" | "human") => {
     setPromptOpen(false);
@@ -200,7 +266,7 @@ export default function AiChat() {
     return () => window.removeEventListener("keydown", onKey);
   }, [promptOpen, closePrompt]);
 
-  // بنتابع ردود فريق الدعم كل 5 ثواني طول ما الزائر في وضع المحادثة البشرية.
+  // بنتابع ردود فريق الدعم ومؤشر الكتابة كل 3 ثواني طول ما الزائر في وضع المحادثة البشرية.
   useEffect(() => {
     if (mode !== "human" || !supportToken) return;
     let active = true;
@@ -211,14 +277,31 @@ export default function AiChat() {
       } catch {
         // أخطاء الشبكة المؤقتة مش المفروض تمسح الرسايل الظاهرة.
       }
+      try {
+        const presence = await fetchSupportPresence(supportToken);
+        if (active) {
+          setAgentTyping(presence.agentTyping);
+          setAgentSeen({ upto: presence.agentReadUpto, at: presence.agentReadAt });
+        }
+      } catch {
+        // نفس المنطق: فشل قراءة الحالة مش بيعطل المحادثة.
+      }
     };
     void load();
-    const timer = window.setInterval(() => void load(), 5000);
+    const timer = window.setInterval(() => void load(), 3000);
     return () => {
       active = false;
       window.clearInterval(timer);
+      setAgentTyping(false);
+      setAgentSeen({ upto: 0, at: null });
     };
   }, [mode, supportToken]);
+
+  const noteSupportTyping = useCallback(() => {
+    if (!supportToken || Date.now() - typingPingRef.current < 3000) return;
+    typingPingRef.current = Date.now();
+    void sendSupportTyping(supportToken).catch(() => {});
+  }, [supportToken]);
 
   useEffect(() => {
     if (mode !== "human" || !supportToken) return;
@@ -348,6 +431,11 @@ export default function AiChat() {
     }
   };
 
+  const lastSeenOwnId = supportMessages.reduce(
+    (max, message) => (message.sender === "visitor" && message.id <= agentSeen.upto ? Math.max(max, message.id) : max),
+    0,
+  );
+
   return (
     <div className="flex h-dvh max-h-dvh flex-col bg-ink-950 text-white">
       <header className="shrink-0 border-b border-white/10 bg-ink-950/95 backdrop-blur">
@@ -407,9 +495,18 @@ export default function AiChat() {
               <AgentBubble text={t("chat.supportWelcome")} />
               {supportMessages.map((message) => (
                 message.sender === "agent"
-                  ? <AgentBubble key={message.id} text={message.body} />
-                  : <UserBubble key={message.id} text={message.body} />
+                  ? <AgentBubble key={message.id} text={message.body} time={message.created_at} />
+                  : (
+                    <UserBubble
+                      key={message.id}
+                      text={message.body}
+                      time={message.created_at}
+                      status={message.id <= agentSeen.upto ? "seen" : "sent"}
+                      seenAt={message.id === lastSeenOwnId ? agentSeen.at : null}
+                    />
+                  )
               ))}
+              {agentTyping && <AgentTypingBubble />}
             </>
           ) : (
             <>
@@ -484,8 +581,13 @@ export default function AiChat() {
                 dir="auto"
                 value={mode === "human" ? supportText : question}
                 onChange={(event) => {
-                  if (mode === "human") setSupportText(event.target.value);
-                  else setQuestion(event.target.value);
+                  const value = event.target.value;
+                  if (mode === "human") {
+                    setSupportText(value);
+                    if (value.trim()) noteSupportTyping();
+                  } else {
+                    setQuestion(value);
+                  }
                 }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
