@@ -158,6 +158,8 @@ export default function Hero() {
     : [];
   const primary = heroButtons[0];
   const secondary = heroButtons[1];
+  // The CMS may still hold the old in-page anchor; the CTA now opens the portfolio page.
+  const secondaryTo = secondary?.link && secondary.link !== "#portfolio" ? secondary.link : "/portfolio";
 
   return (
     <section
@@ -236,7 +238,7 @@ export default function Hero() {
               {(!primary || secondary) && (
                 <CmsEditable section="hero" element="secondaryButton">
                   <AnchorLink
-                    to={secondary?.link || "#portfolio"}
+                    to={secondaryTo}
                     {...(secondary?.newTab ? { target: "_blank", rel: "noreferrer" } : {})}
                     className="group inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/[0.04] px-7 py-3.5 text-[15px] font-semibold text-white backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500 sm:w-auto"
                   >

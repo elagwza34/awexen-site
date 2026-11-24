@@ -14,6 +14,7 @@ import { useContent } from "../context/ContentContext";
 import { useLanguage } from "../context/LanguageContext";
 import { Icon, Reveal, SectionHeading } from "../components/ui";
 import PageHero from "../components/PageHero";
+import { WHATSAPP_PHONE, whatsappHref } from "../lib/whatsapp";
 import { cn } from "../utils/cn";
 
 function FAQItem({ q, a, open, onClick }: { q: string; a: string; open: boolean; onClick: () => void }) {
@@ -67,6 +68,18 @@ export default function ServiceDetail() {
   }
 
   const related = services.filter((s) => s.slug !== service.slug).slice(0, 3);
+  const inquiryMessage =
+    lang === "ar"
+      ? [
+          `مرحباً، أرغب في الاستفسار عن خدمة «${service.title}».`,
+          "وصلت إليكم من صفحة الخدمة على موقع أوكسين:",
+          window.location.href,
+        ].join("\n")
+      : [
+          `Hello, I would like to ask about the "${service.title}" service.`,
+          "I came from this service page on the Awexen website:",
+          window.location.href,
+        ].join("\n");
 
   return (
     <>
@@ -81,17 +94,15 @@ export default function ServiceDetail() {
         ]}
       >
         <div className="mt-8 flex flex-wrap gap-3">
-          <a
-            href={`https://wa.me/201092400443?text=${encodeURIComponent(`مرحباً، أرغب في طلب خدمة: ${service.title}`)}`}
-            target="_blank"
-            rel="noreferrer"
+          <Link
+            to="/quote"
             className="group inline-flex items-center gap-3 rounded-xl bg-brand-500 px-7 py-3.5 text-[15px] font-bold text-white shadow-xl shadow-brand-600/25 transition-all hover:-translate-y-0.5 hover:bg-brand-400"
           >
             اطلب الخدمة الآن
-            <MessageCircle className="h-[18px] w-[18px]" />
-          </a>
+            <ArrowLeft className="h-[18px] w-[18px] transition-transform duration-300 group-hover:-translate-x-1" />
+          </Link>
           <a
-            href="https://wa.me/201092400443"
+            href={whatsappHref(WHATSAPP_PHONE, inquiryMessage)}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2.5 rounded-xl border border-white/15 bg-white/5 px-7 py-3.5 text-[15px] font-semibold text-white backdrop-blur transition-all hover:-translate-y-0.5 hover:border-brand-500 hover:bg-brand-500"

@@ -357,6 +357,10 @@ export function AnchorLink({
   const handle = (e: React.MouseEvent) => {
     e.preventDefault();
     onClick?.();
+    if (!to.startsWith("#")) {
+      navigate(to);
+      return;
+    }
     const scroll = () =>
       document
         .querySelector(to)
