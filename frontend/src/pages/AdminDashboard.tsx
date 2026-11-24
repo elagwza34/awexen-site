@@ -170,6 +170,8 @@ export default function AdminDashboard({ userId }: { userId: string }) {
   const visibleKeys = useMemo(() => new Set(visibleItems.map((item) => item.key)), [visibleItems]);
   const requestedSection = searchParams.get("section") as SectionKey | null;
   const active: SectionKey = requestedSection && visibleKeys.has(requestedSection) ? requestedSection : "overview";
+  // حذف سجلات الموقع العامة متاح للمالك والمدير فقط؛ باقي الأدوار تقرأ وتحدّث فقط.
+  const canDeleteRecords = role === "owner" || role === "admin";
   const safeGoTo = (section: SectionKey) => {
     setMenuOpen(false);
     setNavSearch("");
@@ -302,12 +304,12 @@ export default function AdminDashboard({ userId }: { userId: string }) {
           {active === "knowledge" && <KnowledgeManager userId={userId} />}
 
           {active === "messages" && (
-            <InboxManager table="contact_messages" title="رسائل التواصل" description="طلبات الخدمات وعروض الأسعار الواردة من صفحة التواصل." titleKey="name" previewKeys={["service", "budget"]} fields={[
+            <InboxManager table="contact_messages" title="رسائل التواصل" description="طلبات الخدمات وعروض الأسعار الواردة من صفحة التواصل." titleKey="name" previewKeys={["service", "budget"]} canDelete={canDeleteRecords} fields={[
               { key: "email", label: "البريد", kind: "email" }, { key: "phone", label: "الهاتف", kind: "phone" },
               { key: "service", label: "الخدمة" }, { key: "budget", label: "الميزانية" }, { key: "message", label: "الرسالة", wide: true },
             ]} />
           )}
-          {active === "quotes" && <QuoteInbox />}
+          {active === "quotes" && <QuoteInbox canDelete={canDeleteRecords} />}
           {active === "initiative" && (
             <InboxManager
               table="initiative_applications"
@@ -317,16 +319,17 @@ export default function AdminDashboard({ userId }: { userId: string }) {
               titleFallbackKey="name"
               dateKey="submitted_at"
               previewKeys={["business_name", "business_sector", "email"]}
+              canDelete={canDeleteRecords}
               fields={initiativeFields}
             />
           )}
           {active === "newsletter" && (
-            <InboxManager table="newsletter_subscribers" title="القائمة البريدية" description="عناوين البريد المسجلة من نموذج النشرة الأسبوعية في الموقع." titleKey="email" previewKeys={["source"]} fields={[
+            <InboxManager table="newsletter_subscribers" title="القائمة البريدية" description="عناوين البريد المسجلة من نموذج النشرة الأسبوعية في الموقع." titleKey="email" previewKeys={["source"]} canDelete={canDeleteRecords} fields={[
               { key: "email", label: "البريد", kind: "email" }, { key: "source", label: "مصدر الاشتراك" },
             ]} />
           )}
           {active === "applications" && (
-            <InboxManager table="job_applications" title="طلبات التوظيف" description="راجع الخبرات والمهارات والروابط، ثم حدّث حالة كل متقدم." statusOptions={applicationStatuses} titleKey="name" previewKeys={["location", "years_experience"]} fields={[
+            <InboxManager table="job_applications" title="طلبات التوظيف" description="راجع الخبرات والمهارات والروابط، ثم حدّث حالة كل متقدم." statusOptions={applicationStatuses} titleKey="name" titleFallbackKey="full_name" previewKeys={["location", "years_experience"]} canDelete={canDeleteRecords} fields={[
               { key: "email", label: "البريد", kind: "email" }, { key: "phone", label: "الهاتف", kind: "phone" },
               { key: "location", label: "المكان" }, { key: "years_experience", label: "سنوات الخبرة" }, { key: "skills", label: "المهارات", wide: true },
               { key: "portfolio_url", label: "Portfolio", kind: "url" }, { key: "linkedin_url", label: "LinkedIn", kind: "url" }, { key: "cv_url", label: "السيرة الذاتية", kind: "url" },
@@ -335,7 +338,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
           )}
           {active === "enrollments" && <LmsApprovals role={role} view="payments" />}
           {active === "inquiries" && (
-            <InboxManager table="ai_inquiries" title="أسئلة قاعدة المعرفة" description="راقب الأسئلة التي وجدت إجابة، ووسّع المعرفة للأسئلة التي تحتاج مراجعة." statusOptions={inquiryStatuses} titleKey="question" previewKeys={["email"]} fields={[
+            <InboxManager table="ai_inquiries" title="أسئلة قاعدة المعرفة" description="راقب الأسئلة التي وجدت إجابة، ووسّع المعرفة للأسئلة التي تحتاج مراجعة." statusOptions={inquiryStatuses} titleKey="question" previewKeys={["email"]} canDelete={canDeleteRecords} fields={[
               { key: "email", label: "البريد", kind: "email" }, { key: "question", label: "السؤال", wide: true }, { key: "answer", label: "الإجابة المستخدمة", wide: true },
             ]} />
           )}

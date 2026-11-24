@@ -6,10 +6,13 @@ import {
   Mail,
   Phone,
   RefreshCw,
+  Search,
   Send,
   Trash2,
   X,
 } from "lucide-react";
+import { useConfirmDialog } from "../components/ConfirmDialog";
+import { deleteAdminRecords } from "../lib/adminDeletion";
 import { supabase } from "../lib/supabase";
 
 /** صف طلب عرض سعر كما comes من public.quote_requests */
@@ -45,6 +48,7 @@ type QuoteRow = {
   quoted_amount?: number | null;
   quote_sent_at?: string | null;
   created_at?: string;
+  deleted_at?: string | null;
 };
 
 const STATUSES = [
@@ -148,7 +152,8 @@ function QuoteDetails({ row }: { row: QuoteRow }) {
     </div>
   );
 }
-export default function QuoteInbox() {
+export default function QuoteInbox({ canDelete = false }: { canDelete?: boolean }) {
+  const { confirm, confirmDialog } = useConfirmDialog();
   const [rows, setRows] = useState<QuoteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -157,7 +162,10 @@ export default function QuoteInbox() {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [quoteAmount, setQuoteAmount] = useState("");
   const [quoteNotes, setQuoteNotes] = useState("");
-  const [pendingDelete, setPendingDelete] = useState<QuoteRow | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -170,12 +178,14 @@ export default function QuoteInbox() {
     const { data, error: loadError } = await supabase
       .from("quote_requests")
       .select("*")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
     if (loadError) {
       setRows([]);
       setError(`تعذر تحميل الطلبات. تأكد من تشغيل ملف SQL وسياسة الدور الحالي. (${loadError.message})`);
     } else {
       setRows((data ?? []) as QuoteRow[]);
+      setSelected(new Set());
     }
     setLoading(false);
   }, []);
@@ -184,16 +194,14 @@ export default function QuoteInbox() {
     void load();
   }, [load]);
 
-  // Escape يقفل بوب أب التفاصيل أو نافذة الحذف، وأي واحد مفتوح يتقفل الأول.
+  // Escape يقفل بوب أب التفاصيل.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      if (pendingDelete) setPendingDelete(null);
-      else setOpenId(null);
+      if (event.key === "Escape") setOpenId(null);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [pendingDelete]);
+  }, []);
 
   const open = rows.find((row) => row.id === openId) ?? null;
 
@@ -246,19 +254,90 @@ export default function QuoteInbox() {
     setNotice("تم حفظ عرض السعر. استخدم زر «رد على العميل» لإرساله.");
   };
 
-  const remove = async (row: QuoteRow) => {
-    if (!supabase || row.id === undefined) return;
-    setBusyId(row.id);
-    const { error: deleteError } = await supabase.from("quote_requests").delete().eq("id", row.id);
-    setBusyId(null);
-    if (deleteError) {
-      setError(deleteError.message);
-      return;
+  const filteredRows = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase("ar");
+    return rows.filter((row) => {
+      if (statusFilter && (row.status ?? "new") !== statusFilter) return false;
+      if (!query) return true;
+      return [
+        statusLabel(row.status), row.name, row.email, row.phone, row.project_type,
+        row.budget, row.goals, row.industry, row.notes,
+      ].filter(Boolean).join(" ").toLocaleLowerCase("ar").includes(query);
+    });
+  }, [rows, search, statusFilter]);
+
+  const visibleIds = filteredRows.map((row) => String(row.id));
+  const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
+  const someSelected = visibleIds.some((id) => selected.has(id));
+
+  const toggleSelect = (id: string) => {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (allSelected) visibleIds.forEach((id) => next.delete(id));
+      else visibleIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  const isFinancialQuote = (row: QuoteRow) =>
+    Boolean(row.quoted_amount) || ["quoted", "accepted"].includes(row.status ?? "");
+
+  const askDelete = async (targets: QuoteRow[]) => {
+    if (!canDelete || deleting || targets.length === 0) return;
+    const archiveCount = targets.filter(isFinancialQuote).length;
+    const deleteCount = targets.length - archiveCount;
+    const description = targets.length === 1
+      ? (archiveCount > 0
+        ? "الطلب مرتبط بعرض سعر أو قبول، فسيتم أرشفته وإخفاؤه من القائمة مع الاحتفاظ بسجله التجاري."
+        : "سيُحذف الطلب نهائيًا من قاعدة البيانات. لا يمكن التراجع.")
+      : `سيتم حذف ${deleteCount} طلبًا نهائيًا${archiveCount > 0 ? `، وأرشفة ${archiveCount} طلبًا مرتبطًا بعرض سعر` : ""}. لا يمكن التراجع عن الحذف.`;
+    const approved = await confirm({
+      title: targets.length === 1 ? "حذف الطلب؟" : `حذف ${targets.length} طلب؟`,
+      description,
+      confirmLabel: "نعم، احذف",
+      cancelLabel: "إلغاء",
+      tone: "danger",
+    });
+    if (!approved) return;
+
+    setDeleting(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await deleteAdminRecords("quote_requests", targets.map((row) => String(row.id)));
+      const removed = new Set([...result.deleted_ids, ...result.archived_ids]);
+      if (removed.size > 0) {
+        setRows((current) => current.filter((row) => !removed.has(String(row.id))));
+        setSelected((current) => {
+          const next = new Set(current);
+          removed.forEach((id) => next.delete(id));
+          return next;
+        });
+        if (openId !== null && removed.has(String(openId))) setOpenId(null);
+      }
+      const parts: string[] = [];
+      if (result.deleted > 0) parts.push(`تم حذف ${result.deleted} طلبًا`);
+      if (result.archived > 0) parts.push(`تمت أرشفة ${result.archived} طلبًا`);
+      if (parts.length > 0) setNotice(`${parts.join("، ")}.`);
+      const issueMessages = [
+        ...(result.blocked.length > 0 ? [result.blocked.map((item) => item.reason).join(" — ")] : []),
+        ...result.errors,
+      ];
+      if (issueMessages.length > 0) setError(`لم يتم حذف بعض الطلبات: ${issueMessages.join(" — ")}`);
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "تعذر حذف الطلبات. حاول مرة أخرى.");
+    } finally {
+      setDeleting(false);
     }
-    setRows((current) => current.filter((item) => item.id !== row.id));
-    if (openId === row.id) setOpenId(null);
-    setPendingDelete(null);
-    setNotice("تم حذف الطلب نهائيًا.");
   };
 
   const newCount = useMemo(() => rows.filter((r) => !r.status || r.status === "new").length, [rows]);
@@ -277,13 +356,67 @@ export default function QuoteInbox() {
             )}
           </div>
           <p className="mt-1 text-[11.5px] leading-5 text-white/45">
-            كل طلب في سطر مختصر. اضغط «التفاصيل» تشوف كل الحقول وتحمّله PDF أو تسجّل عرض السعر، والسلة بتمسح الطلب.
+            كل طلب في سطر مختصر. اضغط «التفاصيل» تشوف كل الحقول وتحمّله PDF أو تسجّل عرض السعر، وتقدر تحذف طلبًا واحدًا أو عدة طلبات.
           </p>
         </div>
         <button type="button" onClick={() => void load()} className="admin-button-secondary">
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />تحديث
         </button>
       </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <label className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/30" />
+          <input
+            value={search}
+            onChange={(event) => { setSearch(event.target.value); setSelected(new Set()); }}
+            placeholder="ابحث بالاسم أو البريد أو المشروع..."
+            aria-label="بحث في طلبات عرض السعر"
+            className="admin-input pr-9"
+          />
+        </label>
+        <select
+          value={statusFilter}
+          onChange={(event) => { setStatusFilter(event.target.value); setSelected(new Set()); }}
+          aria-label="تصفية بالحالة"
+          className="admin-input sm:w-44"
+        >
+          <option value="">كل الحالات</option>
+          {STATUSES.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+        </select>
+        {canDelete && filteredRows.length > 0 && (
+          <label className="admin-button-secondary cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              ref={(element) => { if (element) element.indeterminate = someSelected && !allSelected; }}
+              onChange={toggleSelectAll}
+              className="h-3.5 w-3.5 accent-red-500"
+            />
+            تحديد الكل
+          </label>
+        )}
+      </div>
+
+      {(search.trim() || statusFilter) && (
+        <p className="text-[10.5px] text-white/40">عرض {filteredRows.length} من {rows.length} طلب.</p>
+      )}
+
+      {canDelete && selected.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-red-500/25 bg-red-500/8 p-3">
+          <span className="text-[11.5px] font-bold text-red-200">تم تحديد {selected.size}</span>
+          <button
+            type="button"
+            onClick={() => void askDelete(rows.filter((row) => selected.has(String(row.id))))}
+            disabled={deleting}
+            className="admin-button-danger"
+          >
+            {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+            حذف المحدد ({selected.size})
+          </button>
+          <button type="button" onClick={() => setSelected(new Set())} className="admin-button-secondary">إلغاء التحديد</button>
+        </div>
+      )}
 
       {error && <div role="alert" className="rounded-xl border border-red-500/20 bg-red-500/8 p-3 text-[11.5px] leading-5 text-red-200">{error}</div>}
       {notice && <div role="status" className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-3 text-[11.5px] text-emerald-200">{notice}</div>}
@@ -296,13 +429,26 @@ export default function QuoteInbox() {
         <div className="grid min-h-36 place-items-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] text-[12px] text-white/40">
           لا توجد طلبات حتى الآن.
         </div>
+      ) : filteredRows.length === 0 ? (
+        <div className="grid min-h-36 place-items-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] text-[12px] text-white/40">
+          لا توجد طلبات مطابقة للبحث أو التصفية.
+        </div>
       ) : (
         <div className="space-y-2">
-          {rows.map((row) => {
+          {filteredRows.map((row) => {
             return (
               <article key={String(row.id)} className="rounded-xl border border-white/8 bg-white/[0.018]">
                 <div className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:gap-3">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
+                    {canDelete && row.id !== undefined && (
+                      <input
+                        type="checkbox"
+                        checked={selected.has(String(row.id))}
+                        onChange={() => toggleSelect(String(row.id))}
+                        aria-label={`تحديد طلب ${row.name || ""}`}
+                        className="h-4 w-4 shrink-0 accent-red-500"
+                      />
+                    )}
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
                         <span className="truncate text-[12.5px] font-bold text-white">{row.name || "بدون اسم"}</span>
@@ -343,7 +489,8 @@ export default function QuoteInbox() {
                     )}
                     <button
                       type="button"
-                      onClick={() => setPendingDelete(row)}
+                      onClick={() => void askDelete([row])}
+                      disabled={deleting}
                       aria-label={`حذف طلب ${row.name}`}
                       className="admin-icon-button text-red-300"
                     >
@@ -387,9 +534,11 @@ export default function QuoteInbox() {
                 <button
                   type="button"
                   onClick={() => {
-                    setPendingDelete(open);
+                    const target = open;
                     setOpenId(null);
+                    void askDelete([target]);
                   }}
+                  disabled={deleting}
                   aria-label={`حذف طلب ${open.name}`}
                   className="admin-icon-button text-red-300"
                 >
@@ -485,34 +634,7 @@ export default function QuoteInbox() {
         </div>
       )}
 
-      {/* تأكيد الحذف قبل التنفيذ */}
-      {pendingDelete && (
-        <div className="fixed inset-0 z-[120] grid place-items-center bg-black/70 p-4" role="dialog" aria-modal="true">
-          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0d111b] p-5">
-            <h3 className="text-[15px] font-extrabold text-white">حذف الطلب نهائيًا؟</h3>
-            <p className="mt-2 text-[12px] leading-6 text-white/60">
-              هيتشال طلب <span className="font-bold text-white">{pendingDelete.name || "بدون اسم"}</span> من القاعدة، ومفيش تراجع.
-            </p>
-            <div className="mt-5 flex gap-2">
-              <button
-                type="button"
-                disabled={busyId === pendingDelete.id}
-                onClick={() => void remove(pendingDelete)}
-                className="flex-1 rounded-xl bg-red-500 px-4 py-2.5 text-[12.5px] font-bold text-white transition hover:bg-red-400"
-              >
-                {busyId === pendingDelete.id ? "جارٍ الحذف..." : "نعم، احذف"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setPendingDelete(null)}
-                className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-[12.5px] font-bold text-white/70 transition hover:bg-white/5"
-              >
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {confirmDialog}
     </div>
   );
 }
