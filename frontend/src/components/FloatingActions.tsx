@@ -16,7 +16,7 @@ export default function FloatingActions() {
   }, []);
 
   return (
-    <div className="pointer-events-none fixed bottom-[calc(8.5rem+env(safe-area-inset-bottom))] right-4 z-40 flex flex-col items-center sm:bottom-40 sm:right-6">
+    <div className="pointer-events-none fixed bottom-[calc(12rem+env(safe-area-inset-bottom))] right-4 z-40 flex flex-col items-center sm:bottom-40 sm:right-6">
       {/* العودة للأعلى */}
       <button
         aria-label={t("floating.backToTop")}

@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Grid2x2, Home, MessageCircle, Phone } from "lucide-react";
+import { Grid2x2, Home, Images, Phone } from "lucide-react";
 import { cn } from "../utils/cn";
 import { useLanguage } from "../context/LanguageContext";
-import { WHATSAPP_MESSAGES, WHATSAPP_PHONE, whatsappHref } from "../lib/whatsapp";
 
 /**
  * شريط إجراءات سفلي للموبايل — يظهر بعد التمرير.
@@ -12,7 +11,7 @@ import { WHATSAPP_MESSAGES, WHATSAPP_PHONE, whatsappHref } from "../lib/whatsapp
 export default function MobileBar() {
   const [show, setShow] = useState(false);
   const { pathname } = useLocation();
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
 
   useEffect(() => {
     const onScroll = () => setShow(window.scrollY > 420);
@@ -62,15 +61,16 @@ export default function MobileBar() {
           {t("mobile.call")}
         </a>
 
-        <a
-          href={whatsappHref(WHATSAPP_PHONE, WHATSAPP_MESSAGES[lang])}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex flex-col items-center gap-1 bg-brand-500 py-2.5 text-[11px] font-bold text-white"
+        <Link
+          to="/portfolio"
+          className={cn(
+            "flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition-colors",
+            pathname.startsWith("/portfolio") ? "text-brand-400" : "text-white/60",
+          )}
         >
-          <MessageCircle className="h-[19px] w-[19px]" strokeWidth={1.9} />
-          {t("mobile.whatsapp")}
-        </a>
+          <Images className="h-[19px] w-[19px]" strokeWidth={1.9} />
+          {t("nav.portfolio")}
+        </Link>
       </div>
     </nav>
   );

@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bot } from "lucide-react";
+import { cn } from "../utils/cn";
 import { useLanguage } from "../context/LanguageContext";
 import WhatsAppButton from "./WhatsAppButton";
 
@@ -10,11 +12,23 @@ import WhatsAppButton from "./WhatsAppButton";
 export default function FloatingDock() {
   const { t } = useLanguage();
   const label = t("chat.launcher");
+  const [aboveMobileBar, setAboveMobileBar] = useState(false);
+
+  // Same threshold as MobileBar so the dock rides above the bar while it is visible.
+  useEffect(() => {
+    const onScroll = () => setAboveMobileBar(window.scrollY > 420);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <div
       id="awexen-float-dock"
-      className="fixed bottom-4 right-4 left-auto z-50 flex flex-col items-center gap-3 sm:bottom-6 sm:right-6"
+      className={cn(
+        "fixed right-4 left-auto z-50 flex flex-col items-center gap-3 transition-[bottom] duration-300 sm:bottom-6 sm:right-6",
+        aboveMobileBar ? "bottom-[calc(4.5rem+env(safe-area-inset-bottom))]" : "bottom-4",
+      )}
     >
       <Link
         id="ask-awexen-launcher"

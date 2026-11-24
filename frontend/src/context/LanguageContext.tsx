@@ -125,7 +125,6 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
 
   // ---------- شريط الجوال ----------
   "mobile.call": { ar: "اتصال", en: "Call" },
-  "mobile.whatsapp": { ar: "واتساب", en: "WhatsApp" },
 
   // ---------- إجراءات عائمة ----------
   "floating.whatsapp": { ar: "تواصل عبر واتساب", en: "Contact via WhatsApp" },
