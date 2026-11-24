@@ -160,6 +160,37 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
     ar: "لم أجد إجابة معتمدة لهذا السؤال. سجّلته للمراجعة بدل تقديم معلومة غير مؤكدة.",
     en: "I could not find an approved answer to this question. I logged it for review instead of giving unverified information.",
   },
+  "chat.supportPromptTitle": {
+    ar: "تحب تتكلم مع حد من الفريق؟",
+    en: "Would you like to talk to a human?",
+  },
+  "chat.supportPromptDesc": {
+    ar: "لو المساعد الذكي مش كفاية، افتح محادثة مع الدعم الفني وفريق أوكسين هيرد عليك من نفس الصفحة.",
+    en: "If the AI assistant is not enough, open a support chat and the Awexen team will reply from this page.",
+  },
+  "chat.supportPromptHint": {
+    ar: "الرد بيتم خلال ساعات العمل.",
+    en: "Replies happen during working hours.",
+  },
+  "chat.supportPromptStart": { ar: "التحدث مع الدعم الفني", en: "Chat with support" },
+  "chat.supportPromptAi": { ar: "أكمل مع المساعد الذكي", en: "Continue with the AI assistant" },
+  "chat.supportTitle": { ar: "دعم أوكسين", en: "Awexen support" },
+  "chat.supportSubtitle": { ar: "فريق بشري هيرد عليك هنا", en: "A human team replies here" },
+  "chat.supportOpen": { ar: "التحدث مع الدعم", en: "Talk to support" },
+  "chat.supportBackToAi": { ar: "رجوع للمساعد الذكي", en: "Back to the AI assistant" },
+  "chat.supportWelcome": {
+    ar: "اكتب رسالتك وهيوصل لفريق أوكسين، وهيتم الرد عليك هنا في أقرب وقت.",
+    en: "Write your message and it will reach the Awexen team. A reply will appear here as soon as possible.",
+  },
+  "chat.supportPlaceholder": { ar: "اكتب رسالتك لفريق أوكسين...", en: "Write your message to the Awexen team..." },
+  "chat.supportSend": { ar: "إرسال للدعم", en: "Send to support" },
+  "chat.supportWaiting": { ar: "تم إرسال رسالتك. فريق أوكسين هيرد عليك هنا.", en: "Your message was sent. The team will reply here." },
+  "chat.supportError": { ar: "تعذر إرسال الرسالة للدعم. جرّب تاني.", en: "Could not send the message to support. Please try again." },
+  "chat.supportUnavailable": {
+    ar: "الدعم الفني غير متاح حاليًا. جرّب تاني بعد شوية أو تواصل معنا على واتساب.",
+    en: "Support is unavailable right now. Try again shortly or reach us on WhatsApp.",
+  },
+  "chat.supportResume": { ar: "لديك محادثة دعم — متابعة", en: "You have a support chat — resume" },
   "floating.backToTop": { ar: "العودة إلى أعلى الصفحة", en: "Back to top" },
 
   // ---------- الواجهة الرئيسية ----------

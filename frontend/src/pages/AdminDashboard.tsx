@@ -3,9 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import {
   BookOpenText,
+  Bot,
   BriefcaseBusiness,
   CircleDollarSign,
   GraduationCap,
+  Headset,
   House,
   Inbox,
   Images,
@@ -32,6 +34,8 @@ import AnalyticsPanel from "../admin/AnalyticsPanel";
 import { analyticsAdminAllowed } from "../lib/trackingPolicy";
 import ResourceManager from "../admin/ResourceManager";
 import KnowledgeManager from "../admin/KnowledgeManager";
+import AiChatPanel from "../admin/AiChatPanel";
+import SupportInbox from "../admin/SupportInbox";
 import InboxManager from "../admin/InboxManager";
 import { initiativeFields } from "../admin/initiativeFields";
 import CrmWorkspace from "../admin/crm/CrmWorkspace";
@@ -44,6 +48,7 @@ import { resources } from "../admin/resourceDefinitions";
 import type { AdminRole, SectionKey } from "../admin/types";
 import { lmsApi } from "../lib/lmsApi";
 import { supabase } from "../lib/supabase";
+import { fetchSupportUnreadCount } from "../lib/supportAdmin";
 import { loadDashboardAccess } from "../lib/roleRouting";
 import { clearAdminSessionDrafts, lockAdminSession } from "../lib/adminSession";
 import { DashboardThemeToggle, useDashboardTheme } from "../context/DashboardThemeContext";
@@ -61,6 +66,7 @@ const navItems: Array<{
   { key: "analytics", label: "التحليلات والتتبع · Analytics & Tracking", icon: LayoutDashboard, roles: ["owner", "admin"], group: "عام" },
   { key: "overview", label: "الرئيسية", icon: House, roles: allRoles, group: "عام" },
   { key: "messages", label: "رسائل التواصل", icon: Mail, roles: ["owner", "admin", "support"], group: "المبيعات" },
+  { key: "support", label: "محادثات الدعم", icon: Headset, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "quotes", label: "طلبات عرض السعر", icon: FileText, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "initiative", label: "طلبات المبادرة", icon: Sparkles, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "newsletter", label: "القائمة البريدية", icon: Send, roles: ["owner", "admin", "editor", "support"], group: "المبيعات" },
@@ -74,6 +80,7 @@ const navItems: Array<{
   { key: "lms", label: "محتوى منصة التعلّم", icon: LibraryBig, roles: ["owner", "admin", "editor"], group: "التدريب" },
   { key: "approvals", label: "موافقات LMS", icon: FileCheck2, roles: ["owner", "admin", "editor"], group: "التدريب" },
   { key: "enrollments", label: "طلبات الكورسات", icon: Inbox, roles: ["owner", "admin", "editor", "support"], group: "التدريب" },
+  { key: "ai", label: "المساعد الذكي", icon: Bot, roles: ["owner", "admin"], group: "المعرفة" },
   { key: "knowledge", label: "معرفة AI", icon: Sparkles, roles: ["owner", "admin", "editor"], group: "المعرفة" },
   { key: "inquiries", label: "أسئلة الزوار", icon: MessageCircleQuestion, roles: ["owner", "admin", "editor", "support"], group: "المعرفة" },
   { key: "pricing", label: "التسعير والتقسيط", icon: CircleDollarSign, roles: ["owner", "admin"], group: "النظام" },
@@ -157,9 +164,20 @@ export default function AdminDashboard({ userId }: { userId: string }) {
     refetchInterval: 30_000,
     refetchOnWindowFocus: true,
   });
+  // إشعار محادثات الدعم: رسايل الزوار اللي لسه الفريق مردش عليها.
+  const supportUnreadQuery = useQuery({
+    queryKey: ["admin-support-unread"],
+    queryFn: fetchSupportUnreadCount,
+    enabled: sessionReady && Boolean(supabase) && ["owner", "admin", "support"].includes(role),
+    staleTime: 10_000,
+    refetchInterval: 20_000,
+    refetchOnWindowFocus: true,
+    retry: false,
+  });
   const notificationCounts: Partial<Record<SectionKey, number>> = {
     approvals: notificationsQuery.data?.course_reviews ?? 0,
     enrollments: notificationsQuery.data?.course_requests ?? 0,
+    support: supportUnreadQuery.data ?? 0,
   };
 
   const visibleItems = useMemo(() => navItems.filter((item) => item.roles.includes(role) && (item.key !== "analytics" || analyticsAccessVerified)), [role, analyticsAccessVerified]);
@@ -302,6 +320,8 @@ export default function AdminDashboard({ userId }: { userId: string }) {
           {active === "clients" && <CrmWorkspace role={role} userId={userId} />}
           {active === "trusted_logos" && <ResourceManager definition={resources.trusted_logos} draftOwnerId={userId} />}
           {active === "knowledge" && <KnowledgeManager userId={userId} />}
+          {active === "ai" && <AiChatPanel />}
+          {active === "support" && <SupportInbox />}
 
           {active === "messages" && (
             <InboxManager table="contact_messages" title="رسائل التواصل" description="طلبات الخدمات وعروض الأسعار الواردة من صفحة التواصل." titleKey="name" previewKeys={["service", "budget"]} canDelete={canDeleteRecords} fields={[

@@ -1,3 +1,9 @@
+import {
+  AI_CHAT_DISABLED_MESSAGE,
+  AI_CHAT_MISSING_KEY_MESSAGE,
+  loadAiChatConfig,
+} from "../_shared/aiChatConfig.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -91,8 +97,9 @@ Deno.serve(async (request) => {
     return json({ error: "اكتب سؤالًا من 2 إلى 1500 حرف." }, 400);
   }
 
-  const apiKey = Deno.env.get("OPENROUTER_API_KEY")?.trim();
-  if (!apiKey) return json({ error: "مفتاح OpenRouter غير مضاف في Supabase Secrets." }, 503);
+  const config = await loadAiChatConfig();
+  if (!config.enabled) return json({ error: AI_CHAT_DISABLED_MESSAGE }, 503);
+  if (!config.apiKey) return json({ error: AI_CHAT_MISSING_KEY_MESSAGE }, 503);
 
   const entries = cleanKnowledge(payload.knowledge);
   const systemPrompt = [
@@ -110,13 +117,13 @@ Deno.serve(async (request) => {
     const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${config.apiKey}`,
         "HTTP-Referer": Deno.env.get("OPENROUTER_SITE_URL") ?? "https://awexen.com",
         "X-Title": Deno.env.get("OPENROUTER_SITE_NAME") ?? "Ask Awexen",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: Deno.env.get("OPENROUTER_MODEL") ?? "openai/gpt-4o",
+        model: config.model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
