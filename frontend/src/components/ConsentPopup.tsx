@@ -23,7 +23,7 @@ export default function ConsentPopup() {
     if (saveConsent(accepted)) { setOpen(false); setError(false); setHasChosen(true); }
     else setError(true);
   };
-  return <aside dir={ar ? "rtl" : "ltr"} aria-label={ar ? "اختيار ملفات الارتباط" : "Cookie choice"} className="fixed bottom-20 left-3 z-[100] max-w-sm sm:left-5">
+  return <aside dir={ar ? "rtl" : "ltr"} aria-label={ar ? "اختيار ملفات الارتباط" : "Cookie choice"} className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] start-3 z-[100] w-[calc(100vw-6rem)] sm:bottom-6 sm:start-5 sm:w-auto sm:max-w-sm">
     {open ? <div className="rounded-2xl border border-white/20 bg-black p-5 text-white shadow-2xl" role="region" aria-labelledby="cookie-question">
       <p id="cookie-question" className="text-sm leading-7">{ar ? "بنستخدم ملفات تعريف الارتباط لتحسين تجربتك وفهم استخدام الموقع. هل توافق؟" : "We use cookies to improve your experience and understand website usage. Do you agree?"}</p>
       <p className="mt-2 text-xs leading-6 text-white/70">{ar ? "يشمل ذلك تحليلات Google وقياس التسويق عبر Meta. يمكنك الرفض أو تغيير اختيارك لاحقًا." : "This includes Google analytics and Meta marketing measurement. You can reject or change your choice later."}</p>

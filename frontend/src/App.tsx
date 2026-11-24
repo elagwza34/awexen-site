@@ -10,6 +10,7 @@ import {
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import FloatingActions from "./components/FloatingActions";
+import WhatsAppButton from "./components/WhatsAppButton";
 import ScrollProgress from "./components/ScrollProgress";
 import MobileBar from "./components/MobileBar";
 import SeoManager from "./components/SeoManager";
@@ -304,6 +305,7 @@ function AppShell() {
           <>
             <Footer />
             <FloatingActions />
+            <WhatsAppButton />
             <MobileBar />
             <KnowledgeChat />
           </>

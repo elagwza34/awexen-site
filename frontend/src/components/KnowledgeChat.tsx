@@ -164,7 +164,7 @@ export default function KnowledgeChat() {
   };
 
   return (
-    <div id="ask-awexen" className="fixed bottom-20 right-3 z-[70] sm:bottom-6 sm:right-6">
+    <div id="ask-awexen" className="fixed bottom-[calc(12.25rem+env(safe-area-inset-bottom))] end-3 z-[70] sm:bottom-[9.5rem] sm:end-6">
       {open && (
         <>
           <button type="button" aria-label="إغلاق المحادثة" onClick={() => setOpen(false)} className="fixed inset-0 -z-10 bg-black/35 backdrop-blur-[2px] sm:hidden" />

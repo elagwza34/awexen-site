@@ -129,6 +129,7 @@ const translations: Record<TranslationKey, { ar: string; en: string }> = {
 
   // ---------- إجراءات عائمة ----------
   "floating.whatsapp": { ar: "تواصل عبر واتساب", en: "Contact via WhatsApp" },
+  "whatsapp.chat": { ar: "تواصل معنا على واتساب", en: "Chat with us" },
   "floating.backToTop": { ar: "العودة إلى أعلى الصفحة", en: "Back to top" },
 
   // ---------- الواجهة الرئيسية ----------

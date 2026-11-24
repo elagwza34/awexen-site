@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Grid2x2, Home, MessageCircle, Phone } from "lucide-react";
 import { cn } from "../utils/cn";
 import { useLanguage } from "../context/LanguageContext";
+import { WHATSAPP_MESSAGES, WHATSAPP_PHONE, whatsappHref } from "../lib/whatsapp";
 
 /**
  * شريط إجراءات سفلي للموبايل — يظهر بعد التمرير.
@@ -11,7 +12,7 @@ import { useLanguage } from "../context/LanguageContext";
 export default function MobileBar() {
   const [show, setShow] = useState(false);
   const { pathname } = useLocation();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   useEffect(() => {
     const onScroll = () => setShow(window.scrollY > 420);
@@ -62,9 +63,9 @@ export default function MobileBar() {
         </a>
 
         <a
-          href="https://wa.me/201092400443"
+          href={whatsappHref(WHATSAPP_PHONE, WHATSAPP_MESSAGES[lang])}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           className="flex flex-col items-center gap-1 bg-brand-500 py-2.5 text-[11px] font-bold text-white"
         >
           <MessageCircle className="h-[19px] w-[19px]" strokeWidth={1.9} />
