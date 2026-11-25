@@ -229,10 +229,16 @@ function LegacyLoginRedirect() {
   return <Navigate to={{ pathname: "/login", search: location.search, hash: location.hash }} replace />;
 }
 
+function LegacyAdminRedirect() {
+  const location = useLocation();
+  return <Navigate to={{ pathname: "/awexen", search: location.search, hash: location.hash }} replace />;
+}
+
 function AppShell() {
   const { pathname } = useLocation();
   const { lang } = useLanguage();
-  const isAdminRoute = pathname === "/awexen" || pathname.startsWith("/awexen/");
+  const isAdminRoute = pathname === "/awexen" || pathname.startsWith("/awexen/")
+    || pathname === "/admin" || pathname.startsWith("/admin/");
   const isLearningRoute = pathname === "/learn" || pathname.startsWith("/learn/");
   const isInstructorRoute = pathname === "/instructor" || pathname.startsWith("/instructor/");
   const isLoginRoute = pathname === "/login";
@@ -297,6 +303,8 @@ function AppShell() {
             <Route path="/chat" element={<AiChat />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/awexen" element={<DashboardThemeProvider><AwexenAdminRoute /></DashboardThemeProvider>} />
+            <Route path="/admin" element={<LegacyAdminRedirect />} />
+            <Route path="/admin/*" element={<LegacyAdminRedirect />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
