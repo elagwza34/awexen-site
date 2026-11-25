@@ -18,7 +18,7 @@ self.addEventListener("push", (event) => {
 
   const title = typeof data.title === "string" && data.title ? data.title : "رسالة دعم جديدة";
   const body = typeof data.body === "string" && data.body ? data.body : "افتح لوحة التحكم للرد على الزائر.";
-  const url = typeof data.url === "string" && data.url ? data.url : "/admin?section=support";
+  const url = typeof data.url === "string" && data.url ? data.url : "/awexen?section=support";
 
   event.waitUntil(
     self.registration.showNotification(title, {
@@ -32,15 +32,23 @@ self.addEventListener("push", (event) => {
   );
 });
 
+function isAdminClient(clientUrl) {
+  try {
+    return new URL(clientUrl).pathname.startsWith("/awexen");
+  } catch {
+    return false;
+  }
+}
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = (event.notification.data && event.notification.data.url) || "/admin?section=support";
+  const target = (event.notification.data && event.notification.data.url) || "/awexen?section=support";
 
   event.waitUntil(
     (async () => {
       const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
       for (const client of windows) {
-        if (client.url.includes("/admin")) {
+        if (isAdminClient(client.url)) {
           await client.focus();
           if ("navigate" in client) {
             try {

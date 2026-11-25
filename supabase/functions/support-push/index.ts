@@ -101,8 +101,8 @@ Deno.serve(async (request) => {
     title: `رسالة دعم جديدة من ${visitorName}`,
     body: preview || "افتح لوحة التحكم للرد على الزائر.",
     url: conversationId
-      ? `/admin?section=support&conversation=${encodeURIComponent(conversationId)}`
-      : "/admin?section=support",
+      ? `/awexen?section=support&conversation=${encodeURIComponent(conversationId)}`
+      : "/awexen?section=support",
     tag: conversationId || "support",
   });
 
