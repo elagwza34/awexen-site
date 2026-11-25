@@ -46,6 +46,9 @@ function formatTime(value: string | null) {
 function describeError(error: unknown): string {
   if (error && typeof error === "object" && "message" in error) {
     const message = String((error as { message: unknown }).message ?? "");
+    if (/DELETE requires a WHERE clause/i.test(message)) {
+      return "دوال إشعارات الدعم محتاجة تحديث. نفّذ migration 202611250001_support_push_safe_delete.sql.";
+    }
     if (/awexen_support_push/i.test(message)) {
       return "دوال إشعارات الدعم لسه مش متعملة على قاعدة البيانات. نفّذ migration 202611240006_support_push.sql.";
     }
