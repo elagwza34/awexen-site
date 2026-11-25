@@ -18,6 +18,7 @@ import {
   type SupportMessage,
 } from "../lib/supportChat";
 import { cn } from "../utils/cn";
+import { useVisualViewportPin } from "../utils/useVisualViewportPin";
 import { useContent } from "../context/ContentContext";
 import { useLanguage, type Lang } from "../context/LanguageContext";
 
@@ -206,7 +207,7 @@ const AiThread = memo(function AiThread({ messages, typing }: { messages: ChatMe
 });
 
 export default function AiChat() {
-  const { services, projects, settings } = useContent();
+  const { services, projects, plans, settings } = useContent();
   const { t } = useLanguage();
   const navigate = useNavigate();
 
@@ -230,8 +231,11 @@ export default function AiChat() {
   const typingPingRef = useRef(0);
   const supportSigRef = useRef("");
   const [promptOpen, setPromptOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+
+  useVisualViewportPin(rootRef, endRef);
 
   useEffect(() => { saveChatSession({ messages }); }, [messages]);
   useEffect(() => { saveChatSession({ name }); }, [name]);
@@ -256,20 +260,50 @@ export default function AiChat() {
       });
     };
 
+    if (settings) {
+      const contact = [settings.email, settings.phones, settings.address, settings.hours].filter(Boolean).join(" | ");
+      push(
+        "من هي أوكسين",
+        "عن الشركة",
+        "مين أوكسين؟ من أنتم؟ عرفني عن الشركة",
+        [
+          `${settings.brandAr} (${settings.name}) — ${settings.tagline}`,
+          settings.description,
+          contact ? `بيانات التواصل: ${contact}` : "",
+        ].filter(Boolean).join("\n"),
+      );
+      push("معلومات التواصل", "إعدادات", "معلومات التواصل", [settings.name, contact].filter(Boolean).join(" | "));
+    }
+
     for (const s of services ?? []) {
       push(s.title, "خدمات", s.title, [s.short, s.heroDesc, ...(s.overview ?? []), ...(s.features ?? []).map((f) => `${f.title}: ${f.desc}`), ...(s.faqs ?? []).map((f) => `${f.q} — ${f.a}`)].filter(Boolean).join("\n"));
       for (const f of s.faqs ?? []) {
         push(s.title, "أسئلة شائعة", f.q, f.a);
       }
     }
+
+    if (plans?.length) {
+      push(
+        "الخطط والأسعار",
+        "الأسعار",
+        "الأسعار كام؟ إيه الباقات المتاحة؟ كم سعر موقع؟",
+        [
+          "باقات تصميم وتطوير المواقع في أوكسين:",
+          ...plans.map((p) => [
+            `• ${p.name} — ${p.price}${p.currency ? ` ${p.currency}` : ""}`,
+            p.desc,
+            p.features?.length ? `المميزات: ${p.features.join("، ")}` : "",
+          ].filter(Boolean).join("\n")),
+          "السعر النهائي يعتمد على نطاق المشروع المعتمد، ولا يبدأ التنفيذ قبل اعتماد العرض ومراحل الدفع.",
+        ].join("\n\n"),
+      );
+    }
+
     for (const p of projects ?? []) {
       push(p.title, "معرض الأعمال", p.title, [p.desc, p.challenge, p.solution, p.results].filter(Boolean).join("\n"));
     }
-    if (settings) {
-      push("معلومات التواصل", "إعدادات", "معلومات التواصل", [settings.name, settings.email, settings.phones, settings.address, settings.hours].filter(Boolean).join(" | "));
-    }
     return entries;
-  }, [services, projects, settings]);
+  }, [services, projects, plans, settings]);
 
   const allKnowledge = useMemo(() => [...siteKnowledge, ...knowledge], [siteKnowledge, knowledge]);
 
@@ -506,7 +540,7 @@ export default function AiChat() {
   );
 
   return (
-    <div className="fixed inset-0 flex h-dvh max-h-dvh flex-col overflow-hidden bg-ink-950 text-white">
+    <div ref={rootRef} className="fixed inset-0 flex h-dvh max-h-dvh flex-col overflow-hidden bg-ink-950 text-white">
       <header className="shrink-0 border-b border-white/10 bg-ink-950/95 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-3xl items-center gap-3 px-4 sm:px-6">
           <button

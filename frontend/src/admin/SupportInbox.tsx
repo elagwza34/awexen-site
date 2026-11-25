@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
+  ArrowLeft,
   Bell,
   BellOff,
   BellRing,
@@ -33,6 +34,7 @@ import {
   type SupportPushStatus,
 } from "../lib/supportPush";
 import { cn } from "../utils/cn";
+import { useVisualViewportPin } from "../utils/useVisualViewportPin";
 
 const TIME_FORMAT = new Intl.DateTimeFormat("ar-EG", { dateStyle: "short", timeStyle: "short" });
 
@@ -188,6 +190,7 @@ export default function SupportInbox() {
   const [searchParams] = useSearchParams();
   const [conversations, setConversations] = useState<SupportConversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(() => searchParams.get("conversation"));
+  const [mobileOpen, setMobileOpen] = useState(() => Boolean(searchParams.get("conversation")));
   const [thread, setThread] = useState<SupportThreadMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [threadLoading, setThreadLoading] = useState(false);
@@ -202,7 +205,10 @@ export default function SupportInbox() {
   const [visitorSeen, setVisitorSeen] = useState<{ upto: number; at: string | null }>({ upto: 0, at: null });
   const typingPingRef = useRef(0);
   const threadSigRef = useRef("");
+  const panelRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+
+  useVisualViewportPin(panelRef, endRef, mobileOpen);
 
   useEffect(() => {
     if (!supportPushSupported()) {
@@ -246,6 +252,15 @@ export default function SupportInbox() {
       setSelectedId(conversations[0].id);
     }
   }, [conversations, selectedId]);
+
+  useEffect(() => {
+    if (!mobileOpen || !window.matchMedia("(max-width: 1023px)").matches) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [mobileOpen]);
 
   const loadThread = useCallback(async (conversationId: string) => {
     try {
@@ -378,7 +393,12 @@ export default function SupportInbox() {
     void sendSupportAgentTyping(selectedId).catch(() => {});
   };
 
-  const selectConversation = useCallback((id: string) => setSelectedId(id), []);
+  const selectConversation = useCallback((id: string) => {
+    setSelectedId(id);
+    setMobileOpen(true);
+  }, []);
+
+  const closeMobileThread = useCallback(() => setMobileOpen(false), []);
 
   const lastSeenAgentId = thread.reduce(
     (max, message) => (message.sender === "agent" && message.id <= visitorSeen.upto ? Math.max(max, message.id) : max),
@@ -480,23 +500,50 @@ export default function SupportInbox() {
           </ul>
         </div>
 
-        <div className="flex h-[72dvh] max-h-[760px] min-h-[420px] flex-col rounded-xl border border-white/[0.08] bg-white/[0.015]">
+        <div
+          ref={panelRef}
+          className={cn(
+            "flex flex-col border-white/[0.08] bg-white/[0.015]",
+            "lg:h-[72dvh] lg:max-h-[760px] lg:min-h-[420px] lg:rounded-xl lg:border",
+            "max-lg:fixed max-lg:inset-0 max-lg:z-40 max-lg:h-dvh max-lg:border-0 max-lg:bg-ink-950 max-lg:pb-[env(safe-area-inset-bottom)]",
+            mobileOpen ? "max-lg:flex" : "max-lg:hidden",
+          )}
+        >
           {!selected && (
-            <div className="grid flex-1 place-items-center p-6 text-center text-[12px] leading-6 text-white/40">
-              اختر محادثة من القائمة لعرض الرسائل والرد على الزائر.
+            <div className="grid flex-1 place-items-center p-6 text-center">
+              <div>
+                <p className="text-[12px] leading-6 text-white/40">اختر محادثة من القائمة لعرض الرسائل والرد على الزائر.</p>
+                <button
+                  type="button"
+                  onClick={closeMobileThread}
+                  className="mt-3 rounded-lg border border-white/10 px-3 py-1.5 text-[11px] font-bold text-white/60 transition hover:bg-white/5 hover:text-white lg:hidden"
+                >
+                  الرجوع إلى المحادثات
+                </button>
+              </div>
             </div>
           )}
 
           {selected && (
             <>
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.07] px-4 py-3">
-                <div className="min-w-0">
-                  <p className="truncate text-[13px] font-extrabold text-white">
-                    {selected.visitor_name || "زائر بدون اسم"}
-                  </p>
-                  <p className="mt-0.5 truncate text-[10px] text-white/40" dir="ltr">
-                    {selected.visitor_email || `visitor ${selected.id.slice(0, 8)}`}
-                  </p>
+              <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/[0.07] px-4 py-3">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={closeMobileThread}
+                    aria-label="الرجوع إلى قائمة المحادثات"
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/10 text-white/60 transition hover:bg-white/5 hover:text-white lg:hidden"
+                  >
+                    <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+                  </button>
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-extrabold text-white">
+                      {selected.visitor_name || "زائر بدون اسم"}
+                    </p>
+                    <p className="mt-0.5 truncate text-[10px] text-white/40" dir="ltr">
+                      {selected.visitor_email || `visitor ${selected.id.slice(0, 8)}`}
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -537,7 +584,7 @@ export default function SupportInbox() {
                 <div ref={endRef} />
               </div>
 
-              <form onSubmit={submitReply} className="border-t border-white/[0.07] p-3">
+              <form onSubmit={submitReply} className="shrink-0 border-t border-white/[0.07] p-3">
                 {selected.status !== "open" && (
                   <p className="mb-2 text-[10px] text-amber-300/80">المحادثة مغلقة. افتحها الأول عشان تقدر ترد.</p>
                 )}
