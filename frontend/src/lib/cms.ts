@@ -534,19 +534,29 @@ export function matchKnowledge(question: string, entries: KnowledgeEntry[]) {
   return best?.score > 0 ? best.entry : null;
 }
 
-function rankKnowledgeWithScores(question: string, entries: KnowledgeEntry[]) {
-  const tokens = [...new Set(question
+/** توحيد الهمزات والتاء المربوطة والتشكيل عشان «الاسعار» تطابق «الأسعار». */
+function normalizeArabic(value: string) {
+  return value
     .toLocaleLowerCase("ar")
+    .replace(/[\u064B-\u0652\u0640]/g, "")
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي");
+}
+
+function rankKnowledgeWithScores(question: string, entries: KnowledgeEntry[]) {
+  const tokens = [...new Set(normalizeArabic(question)
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .split(/\s+/)
+    .map((token) => (token.length > 4 ? token.replace(/^ال/, "") : token))
     .filter((token) => token.length > 2))];
 
   return entries
     .map((entry) => {
-      const title = entry.title.toLocaleLowerCase("ar");
-      const topic = entry.topic.toLocaleLowerCase("ar");
-      const expectedQuestion = entry.question.toLocaleLowerCase("ar");
-      const answer = entry.answer.toLocaleLowerCase("ar");
+      const title = normalizeArabic(entry.title);
+      const topic = normalizeArabic(entry.topic);
+      const expectedQuestion = normalizeArabic(entry.question);
+      const answer = normalizeArabic(entry.answer);
       const score = tokens.reduce((total, token) => total
         + (title.includes(token) ? 3 : 0)
         + (topic.includes(token) ? 2 : 0)

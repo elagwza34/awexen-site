@@ -28,7 +28,7 @@ function isRateLimited(request: Request) {
 }
 
 const fallbackAnswer = "مش عندي معلومة مؤكدة عن النقطة دي. تحب أوصلك بفريق أوكسين عشان يدوك التفاصيل الدقيقة؟";
-const maxEntries = 12;
+const maxEntries = 40;
 const maxContextCharacters = 24_000;
 
 type KnowledgeEntry = {
@@ -46,8 +46,20 @@ function json(body: Record<string, unknown>, status = 200) {
   });
 }
 
+/** توحيد الهمزات والتاء المربوطة والتشكيل عشان «الاسعار» تطابق «الأسعار». */
+function normalizeArabic(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[\u064B-\u0652\u0640]/g, "")
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي");
+}
+
 function tokenize(text: string) {
-  return (text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).filter((token) => token.length > 2);
+  return (normalizeArabic(text).match(/[\p{L}\p{N}]+/gu) ?? [])
+    .map((token) => (token.length > 4 ? token.replace(/^ال/, "") : token))
+    .filter((token) => token.length > 2);
 }
 
 /** بنرتّب المراجع حسب ارتباطها بالسؤال عشان أول 8 عناصر مايحجبوش المحتوى المهم. */
@@ -70,7 +82,7 @@ function selectKnowledge(raw: unknown, question: string) {
 
   const questionTokens = new Set(tokenize(question));
   const ranked = entries.map((entry, index) => {
-    const haystack = `${entry.title} ${entry.topic} ${entry.question} ${entry.answer}`.toLowerCase();
+    const haystack = normalizeArabic(`${entry.title} ${entry.topic} ${entry.question} ${entry.answer}`);
     let score = 0;
     for (const token of questionTokens) {
       if (haystack.includes(token)) score += 1;
