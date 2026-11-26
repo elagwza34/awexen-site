@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   BrowserRouter,
   Navigate,
@@ -8,6 +8,7 @@ import {
   useNavigationType,
 } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import { lazyWithRetry } from "./lib/lazyRetry";
 import Footer from "./components/Footer";
 import FloatingActions from "./components/FloatingActions";
 import FloatingDock from "./components/FloatingDock";
@@ -20,48 +21,49 @@ import { isOfferPath } from "./lib/offers";
 import { ContentProvider } from "./context/ContentContext";
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 import { DashboardThemeProvider } from "./context/DashboardThemeContext";
-import { supabase } from "./lib/supabase";
-import { loadDashboardAccess, type DashboardAccess } from "./lib/roleRouting";
+import type { Session } from "@supabase/supabase-js";
+import type { DashboardAccess } from "./lib/roleRouting";
 import {
   isAdminSessionUnlocked,
   lockAdminSession,
   unlockAdminSession,
 } from "./lib/adminSession";
 
-const Home = lazy(() => import("./pages/Home"));
-const ServicesIndex = lazy(() => import("./pages/ServicesIndex"));
-const ServiceDetail = lazy(() => import("./pages/ServiceDetail"));
-const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
-const PortfolioDetail = lazy(() => import("./pages/PortfolioDetail"));
-const PMS = lazy(() => import("./pages/PMS"));
-const About = lazy(() => import("./pages/About"));
-const Contact = lazy(() => import("./pages/Contact"));
-const Quote = lazy(() => import("./pages/Quote"));
-const ProjectCalculator = lazy(() => import("./pages/ProjectCalculator"));
-const Initiative = lazy(() => import("./pages/Initiative"));
-const ExportData = lazy(() => import("./pages/ExportData"));
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const TermsPage = lazy(() => import("./pages/TermsPage"));
-const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
-const AdminLogin = lazy(() => import("./pages/AdminLogin"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const PublicOffer = lazy(() => import("./pages/PublicOffer"));
-const Blog = lazy(() => import("./pages/Blog"));
-const BlogArticle = lazy(() => import("./pages/Blog").then((module) => ({ default: module.BlogArticle })));
-const Jobs = lazy(() => import("./pages/Jobs"));
-const JobDetail = lazy(() => import("./pages/Jobs").then((module) => ({ default: module.JobDetail })));
-const Courses = lazy(() => import("./pages/Courses"));
-const CourseDetail = lazy(() => import("./pages/Courses").then((module) => ({ default: module.CourseDetail })));
-const CourseCheckout = lazy(() => import("./pages/CourseCheckout"));
-const InstructorDashboard = lazy(() => import("./pages/InstructorDashboard"));
-const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
-const DynamicPage = lazy(() => import("./pages/DynamicPage"));
-const LearningAuth = lazy(() => import("./pages/Learning").then((module) => ({ default: module.LearningAuth })));
-const LearningGuard = lazy(() => import("./pages/Learning").then((module) => ({ default: module.LearningGuard })));
-const LearningErrorBoundary = lazy(() => import("./pages/Learning").then((module) => ({ default: module.LearningErrorBoundary })));
-const LessonPlayer = lazy(() => import("./pages/Learning").then((module) => ({ default: module.LessonPlayer })));
-const AiChat = lazy(() => import("./pages/AiChat"));
+const Home = lazyWithRetry(() => import("./pages/Home"));
+const ServicesIndex = lazyWithRetry(() => import("./pages/ServicesIndex"));
+const ServiceDetail = lazyWithRetry(() => import("./pages/ServiceDetail"));
+const PortfolioPage = lazyWithRetry(() => import("./pages/PortfolioPage"));
+const PortfolioDetail = lazyWithRetry(() => import("./pages/PortfolioDetail"));
+const PMS = lazyWithRetry(() => import("./pages/PMS"));
+const About = lazyWithRetry(() => import("./pages/About"));
+const Contact = lazyWithRetry(() => import("./pages/Contact"));
+const Quote = lazyWithRetry(() => import("./pages/Quote"));
+const ProjectCalculator = lazyWithRetry(() => import("./pages/ProjectCalculator"));
+const Initiative = lazyWithRetry(() => import("./pages/Initiative"));
+const ExportData = lazyWithRetry(() => import("./pages/ExportData"));
+const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
+const TermsPage = lazyWithRetry(() => import("./pages/TermsPage"));
+const AdminDashboard = lazyWithRetry(() => import("./pages/AdminDashboard"));
+const AdminLogin = lazyWithRetry(() => import("./pages/AdminLogin"));
+const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const PublicOffer = lazyWithRetry(() => import("./pages/PublicOffer"));
+const Blog = lazyWithRetry(() => import("./pages/Blog"));
+const BlogArticle = lazyWithRetry(() => import("./pages/Blog").then((module) => ({ default: module.BlogArticle })));
+const Jobs = lazyWithRetry(() => import("./pages/Jobs"));
+const JobDetail = lazyWithRetry(() => import("./pages/Jobs").then((module) => ({ default: module.JobDetail })));
+const Courses = lazyWithRetry(() => import("./pages/Courses"));
+const CourseDetail = lazyWithRetry(() => import("./pages/Courses").then((module) => ({ default: module.CourseDetail })));
+const CourseCheckout = lazyWithRetry(() => import("./pages/CourseCheckout"));
+const InstructorDashboard = lazyWithRetry(() => import("./pages/InstructorDashboard"));
+const StudentDashboard = lazyWithRetry(() => import("./pages/StudentDashboard"));
+const DynamicPage = lazyWithRetry(() => import("./pages/DynamicPage"));
+const LearningAuth = lazyWithRetry(() => import("./pages/Learning").then((module) => ({ default: module.LearningAuth })));
+const LearningGuard = lazyWithRetry(() => import("./pages/Learning").then((module) => ({ default: module.LearningGuard })));
+const LearningErrorBoundary = lazyWithRetry(() => import("./pages/Learning").then((module) => ({ default: module.LearningErrorBoundary })));
+const LessonPlayer = lazyWithRetry(() => import("./pages/Learning").then((module) => ({ default: module.LessonPlayer })));
+const AiChat = lazyWithRetry(() => import("./pages/AiChat"));
+const QueryOutlet = lazyWithRetry(() => import("./components/QueryOutlet"));
 
 function RouteLoader({ dark = false }: { dark?: boolean }) {
   const { lang } = useLanguage();
@@ -87,57 +89,69 @@ function AwexenAdminRoute() {
   const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
-    if (!supabase) {
-      setCheckingSession(false);
-      return;
-    }
-
     let active = true;
-    const checkSession = async (session: Parameters<typeof loadDashboardAccess>[0] | null) => {
+    let subscription: { unsubscribe: () => void } | null = null;
+
+    const start = async () => {
+      // لوحة التحكم مسار نادر؛ بنحمّل السوبابيز وقت الحاجة بدل تحميل الصفحة الأولى.
+      const [{ supabase }, { loadDashboardAccess }] = await Promise.all([
+        import("./lib/supabase"),
+        import("./lib/roleRouting"),
+      ]);
       if (!active) return;
-      setHasSession(Boolean(session));
-      setSessionUserId(session?.user.id ?? "");
-      setSessionEmail(session?.user.email ?? "");
-      // بنمسح الخطأ بس. access والـ hasSession existing لازم يفضلوا
-      // زي ما هما أثناء إعادة التحقق، عشان ما يظهرش شاشة الخطأ
-      // ولا الـ login في نص ثانية على كل حدث auth.
-      setAccessError(false);
-      if (!session) {
-        lockAdminSession();
-        setAdminUnlocked(false);
+      if (!supabase) {
         setCheckingSession(false);
         return;
       }
-      try {
-        const nextAccess = await loadDashboardAccess(session);
-        if (active) {
-          setAccess(nextAccess);
-          setAdminUnlocked(
-            nextAccess.role === "admin" && isAdminSessionUnlocked(session.user.id),
-          );
+
+      const checkSession = async (session: Session | null) => {
+        if (!active) return;
+        setHasSession(Boolean(session));
+        setSessionUserId(session?.user.id ?? "");
+        setSessionEmail(session?.user.email ?? "");
+        // بنمسح الخطأ بس. access والـ hasSession existing لازم يفضلوا
+        // زي ما هما أثناء إعادة التحقق، عشان ما يظهرش شاشة الخطأ
+        // ولا الـ login في نص ثانية على كل حدث auth.
+        setAccessError(false);
+        if (!session) {
+          lockAdminSession();
+          setAdminUnlocked(false);
+          setCheckingSession(false);
+          return;
         }
-      } catch {
-        if (active) setAccessError(true);
-      } finally {
-        if (active) setCheckingSession(false);
-      }
+        try {
+          const nextAccess = await loadDashboardAccess(session);
+          if (active) {
+            setAccess(nextAccess);
+            setAdminUnlocked(
+              nextAccess.role === "admin" && isAdminSessionUnlocked(session.user.id),
+            );
+          }
+        } catch {
+          if (active) setAccessError(true);
+        } finally {
+          if (active) setCheckingSession(false);
+        }
+      };
+
+      void supabase.auth.getSession().then(({ data }) => checkSession(data.session));
+      subscription = supabase.auth.onAuthStateChange((_event, session) => {
+        // مهم: ما نعملش setCheckingSession(true) هنا.
+        // أي حدث auth (حتى INITIAL_SESSION أو TOKEN_REFRESHED) كان بيفكّ
+        // AdminDashboard بالكامل ويرجّع الشاشة البيضاء، وده بيمسح كل
+        // useState جواه — فـ"تعديل" كان بيفتح ويقفل في نفس اللحظة.
+        // بعد أول تحقق بنحدّث في الخلفية من غير إعادة رسم للشاشة البيضاء.
+        window.setTimeout(() => void checkSession(session), 0);
+      }).data.subscription;
     };
 
-    void supabase.auth.getSession().then(({ data }) => checkSession(data.session));
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      // مهم: ما نعملش setCheckingSession(true) هنا.
-      // أي حدث auth (حتى INITIAL_SESSION أو TOKEN_REFRESHED) كان بيفكّ
-      // AdminDashboard بالكامل ويرجّع الشاشة البيضاء، وده بيمسح كل
-      // useState جواه — فـ"تعديل" كان بيفتح ويقفل في نفس اللحظة.
-      // بعد أول تحقق بنحدّث في الخلفية من غير إعادة رسم للشاشة البيضاء.
-      window.setTimeout(() => void checkSession(session), 0);
+    void start().catch(() => {
+      if (active) setCheckingSession(false);
     });
 
     return () => {
       active = false;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, []);
 
@@ -290,29 +304,31 @@ function AppShell() {
             <Route path="/jobs/:slug" element={<JobDetail />} />
             <Route path="/courses" element={<Courses />} />
             <Route path="/courses/:slug" element={<CourseDetail />} />
-            <Route path="/login" element={<LearningAuth />} />
-            <Route path="/learn/login" element={<LegacyLoginRedirect />} />
-            <Route element={
-              <LearningErrorBoundary>
-                <LearningGuard />
-              </LearningErrorBoundary>
-            }>
-              <Route path="/checkout/:slug" element={<CourseCheckout />} />
-              <Route path="/learn" element={<DashboardThemeProvider><StudentDashboard /></DashboardThemeProvider>} />
-              <Route path="/learn/enrollments/:enrollmentId" element={<LessonPlayer />} />
-              <Route path="/learn/enrollments/:enrollmentId/lessons/:lessonId" element={<LessonPlayer />} />
-              <Route path="/instructor" element={<DashboardThemeProvider><InstructorDashboard /></DashboardThemeProvider>} />
+            <Route element={<QueryOutlet />}>
+              <Route path="/login" element={<LearningAuth />} />
+              <Route path="/learn/login" element={<LegacyLoginRedirect />} />
+              <Route element={
+                <LearningErrorBoundary>
+                  <LearningGuard />
+                </LearningErrorBoundary>
+              }>
+                <Route path="/checkout/:slug" element={<CourseCheckout />} />
+                <Route path="/learn" element={<DashboardThemeProvider><StudentDashboard /></DashboardThemeProvider>} />
+                <Route path="/learn/enrollments/:enrollmentId" element={<LessonPlayer />} />
+                <Route path="/learn/enrollments/:enrollmentId/lessons/:lessonId" element={<LessonPlayer />} />
+                <Route path="/instructor" element={<DashboardThemeProvider><InstructorDashboard /></DashboardThemeProvider>} />
+              </Route>
+              <Route path="/awexen" element={<DashboardThemeProvider><AwexenAdminRoute /></DashboardThemeProvider>} />
+              <Route path="/:offerSlug" element={isClientOfferRoute ? <PublicOffer /> : <NotFound />} />
             </Route>
             <Route path="/pages/:slug" element={<DynamicPage />} />
             <Route path="/export" element={<ExportData />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/chat" element={<AiChat />} />
             <Route path="/terms" element={<TermsPage />} />
-            <Route path="/awexen" element={<DashboardThemeProvider><AwexenAdminRoute /></DashboardThemeProvider>} />
             <Route path="/admin" element={<LegacyAdminRedirect />} />
             <Route path="/admin/*" element={<LegacyAdminRedirect />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/:offerSlug" element={isClientOfferRoute ? <PublicOffer /> : <NotFound />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>

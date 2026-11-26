@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSection } from "../context/CmsContext";
 import CmsEditable from "../admin/cms/CmsEditable";
 import { Reveal } from "./ui";
-import { supabase } from "../lib/supabase";
 
 export type TrustedLogo = {
   id: string;
@@ -12,6 +11,8 @@ export type TrustedLogo = {
 };
 
 async function fetchTrustedLogos(): Promise<TrustedLogo[]> {
+  const mod = await import("../lib/supabase").catch(() => null);
+  const supabase = mod?.supabase ?? null;
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("trusted_logos")
@@ -62,6 +63,8 @@ function LogoMarquee({ logos }: { logos: TrustedLogo[] }) {
  */
 export function TrustedLogos() {
   const [logos, setLogos] = useState<TrustedLogo[]>([]);
+  const [active, setActive] = useState(false);
+  const holderRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -75,21 +78,50 @@ export function TrustedLogos() {
     }
   }, []);
 
+  // الشعارات صور كبيرة في Supabase Storage؛ ما نطلبها ولا نفتح قناة realtime
+  // إلا عند اقتراب القسم من الشاشة حتى لا تنافس رسم الصفحة الأولى.
   useEffect(() => {
-    void load();
-    let channel: { unsubscribe?: () => void } | null = null;
-    try {
-      channel =
-        (supabase
-          ?.channel("trusted-logos-live")
-          .on("postgres_changes", { event: "*", schema: "public", table: "trusted_logos" }, () => void load())
-          .subscribe() as unknown as { unsubscribe?: () => void }) ?? null;
-    } catch {
-      channel = null;
+    const holder = holderRef.current;
+    if (!holder) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setActive(true);
+      return;
     }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        setActive(true);
+        observer.disconnect();
+      },
+      { rootMargin: "400px 0px" },
+    );
+    observer.observe(holder);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!active) return;
+    let cancelled = false;
+    let channel: { unsubscribe?: () => void } | null = null;
     const onUpdate = () => void load();
     window.addEventListener("awexen-content-updated", onUpdate);
+    void load();
+    void (async () => {
+      const mod = await import("../lib/supabase").catch(() => null);
+      const supabase = mod?.supabase ?? null;
+      if (cancelled || !supabase) return;
+      try {
+        channel =
+          (supabase
+            .channel("trusted-logos-live")
+            .on("postgres_changes", { event: "*", schema: "public", table: "trusted_logos" }, () => void load())
+            .subscribe() as unknown as { unsubscribe?: () => void }) ?? null;
+      } catch {
+        channel = null;
+      }
+    })();
     return () => {
+      cancelled = true;
       window.removeEventListener("awexen-content-updated", onUpdate);
       try {
         channel?.unsubscribe?.();
@@ -97,13 +129,14 @@ export function TrustedLogos() {
         /* ignore */
       }
     };
-  }, [load]);
-
-  if (logos.length === 0) return null;
+  }, [active, load]);
 
   return (
-    <div className="mt-6">
-      <LogoMarquee logos={logos} />
+    <div
+      ref={holderRef}
+      className={active ? "mt-6 min-h-[88px] sm:min-h-[120px]" : "mt-6"}
+    >
+      {logos.length > 0 && <LogoMarquee logos={logos} />}
     </div>
   );
 }

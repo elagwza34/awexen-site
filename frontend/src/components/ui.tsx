@@ -102,18 +102,21 @@ export function Reveal({
   delay = 0,
   dir,
   className,
+  instant = false,
 }: {
   children: ReactNode;
   delay?: number;
   dir?: "up" | "left" | "right" | "scale";
   className?: string;
+  /** محتوى فوق الطية يرسم فورًا (مهم لـ LCP) بدون انتظار حركة الظهور */
+  instant?: boolean;
 }) {
   const { ref, inView } = useInView<HTMLDivElement>(0.08);
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
   }, []);
-  const visible = mounted ? inView : true;
+  const visible = instant || (mounted ? inView : true);
   return (
     <div
       ref={ref}
@@ -379,6 +382,7 @@ export function AnchorLink({
 }
 
 export function Logo({ dark = false }: { dark?: boolean }) {
+  const variant = dark ? "awexen-light" : "awexen-dark";
   return (
     <Link
       to="/"
@@ -386,14 +390,13 @@ export function Logo({ dark = false }: { dark?: boolean }) {
       aria-label="awexen — الصفحة الرئيسية"
     >
       <img
-        src={
-          dark
-            ? "/images/awexen%20(1).png"
-            : "/images/awexen%20(2).png"
-        }
+        src={`/images/${variant}.webp`}
+        srcSet={`/images/${variant}-sm.webp 260w, /images/${variant}.webp 520w`}
+        sizes="(min-width: 640px) 185px, 165px"
         alt="Awexen — Build, Innovate, Grow"
-        width="1240"
-        height="322"
+        width="520"
+        height="135"
+        decoding="async"
         className="h-10 w-auto max-w-[165px] object-contain transition-transform duration-300 group-hover:scale-[1.03] sm:h-11 sm:max-w-[185px]"
       />
     </Link>

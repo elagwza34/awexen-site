@@ -14,6 +14,7 @@ import PageHero from "../components/PageHero";
 import { Reveal } from "../components/ui";
 import { useContent } from "../context/ContentContext";
 import { localContent } from "../lib/api";
+import { services } from "../data/services";
 import { hasValidSupabaseConfig, supabasePublishableKey, supabaseUrl } from "../lib/supabase";
 import { cn } from "../utils/cn";
 
@@ -60,7 +61,7 @@ export default function ExportData() {
 
   const payload = {
     settings: localContent.settings,
-    services: localContent.services,
+    services,
     projects: localContent.projects,
     plans: localContent.plans,
     testimonials: localContent.testimonials,

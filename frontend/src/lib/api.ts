@@ -1,4 +1,4 @@
-import { services as localServices, type Service } from "../data/services";
+import { serviceSummaries, type ServiceSummary } from "../data/serviceSummaries";
 import {
   brands as localBrands,
   plans as localPlans,
@@ -37,7 +37,7 @@ export type Stat = (typeof localStats)[number];
 export type Settings = typeof localSiteInfo & { whatsapp?: string };
 
 export type Content = {
-  services: Service[];
+  services: ServiceSummary[];
   projects: Project[];
   plans: Plan[];
   testimonials: Testimonial[];
@@ -50,7 +50,7 @@ export type Content = {
 // resources and site settings are loaded directly from Supabase by their
 // dedicated data modules; there is no remote Django fallback anymore.
 export const localContent: Content = {
-  services: localServices,
+  services: serviceSummaries,
   projects: localProjects as Project[],
   plans: localPlans,
   testimonials: localTestimonials,

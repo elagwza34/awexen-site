@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import type { Session } from "@supabase/supabase-js";
 import { ArrowLeft, ChevronDown, Languages, LayoutDashboard, LogIn, Menu, X } from "lucide-react";
 import { useContent } from "../context/ContentContext";
 import { useLanguage } from "../context/LanguageContext";
-import { loadDashboardAccess } from "../lib/roleRouting";
-import { supabase } from "../lib/supabase";
 import { Icon, Logo } from "./ui";
 import { cn } from "../utils/cn";
 import CmsEditable from "../admin/cms/CmsEditable";
@@ -91,27 +90,52 @@ export default function Navbar() {
   }, [pathname]);
 
   useEffect(() => {
-    if (!supabase) return;
     let active = true;
-    const syncSession = async (session: Parameters<typeof loadDashboardAccess>[0] | null) => {
-      if (!session) {
-        if (active) setDashboardPath(null);
-        return;
-      }
-      try {
-        const access = await loadDashboardAccess(session);
-        if (active) setDashboardPath(access.path);
-      } catch {
-        if (active) setDashboardPath(null);
-      }
+    let cancelled = false;
+    let subscription: { unsubscribe: () => void } | null = null;
+
+    const start = async () => {
+      // فحص الجلسة مش ضروري لرسم الصفحة؛ بنأجّله للوقت الفاضي
+      // عشان Supabase ما ينافسش الخطوط والمحتوى على شبكة الموبايل.
+      await new Promise<void>((resolve) => {
+        if (typeof window.requestIdleCallback === "function") {
+          window.requestIdleCallback(() => resolve(), { timeout: 2500 });
+        } else {
+          window.setTimeout(resolve, 1200);
+        }
+      });
+      if (cancelled) return;
+      const [{ supabase }, { loadDashboardAccess }] = await Promise.all([
+        import("../lib/supabase"),
+        import("../lib/roleRouting"),
+      ]);
+      if (cancelled || !supabase) return;
+
+      const syncSession = async (session: Session | null) => {
+        if (!session) {
+          if (active) setDashboardPath(null);
+          return;
+        }
+        try {
+          const access = await loadDashboardAccess(session);
+          if (active) setDashboardPath(access.path);
+        } catch {
+          if (active) setDashboardPath(null);
+        }
+      };
+      void supabase.auth.getSession().then(({ data }) => syncSession(data.session));
+      subscription = supabase.auth.onAuthStateChange((_event, session) => {
+        window.setTimeout(() => void syncSession(session), 0);
+      }).data.subscription;
     };
-    void supabase.auth.getSession().then(({ data }) => syncSession(data.session));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      window.setTimeout(() => void syncSession(session), 0);
+
+    void start().catch(() => {
+      if (active) setDashboardPath(null);
     });
     return () => {
+      cancelled = true;
       active = false;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, []);
 

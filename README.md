@@ -35,6 +35,20 @@ npm.cmd run dev
 
 لا تضع `service_role` أو كلمة مرور قاعدة البيانات في أي متغير يبدأ بـ`VITE_`.
 
+## المتصفحات المدعومة
+
+واجهة الموقع تستخدم Tailwind v4 فيخرج CSS فيه `oklch` و`color-mix()` و`:has()`، وهي غير مدعومة في الإصدارات القديمة. الحد الأدنى المدعوم:
+
+| المتصفح | أقل إصدار |
+| --- | --- |
+| Safari / iOS Safari | 16.4 |
+| Chrome | 111 |
+| Edge | 111 |
+| Firefox | 128 |
+| Android WebView | Chrome 111 أو أحدث |
+
+المتصفحات الأقدم من ذلك تعرض شاشة إرشادية بسيطة (بدون React) تطلب التحديث، ولو تعذّر تحميل التطبيق تظهر شاشة استرداد فيها زر إعادة محاولة وزر مسح الكاش بدل شاشة بيضاء. التحقق الآلي يتم بـ Playwright على Chromium وFirefox وWebKit.
+
 ## النشر على awexen.com
 
 اتبع [دليل Supabase وHostinger](docs/deployment-supabase-hostinger.md). لا تحتاج إلى `api.awexen.com`، ولا إلى Render أو VPS؛ الواجهة تستدعي تلقائيًا:

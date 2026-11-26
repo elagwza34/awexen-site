@@ -8,8 +8,6 @@ import {
 } from "react";
 import { localContent, type Content } from "../lib/api";
 import { readStoredSettings, writeStoredSettings } from "../lib/admin";
-import type { Service } from "../data/services";
-import { supabase } from "../lib/supabase";
 
 type ContentState = Content & {
   /** مصدر البيانات الحالي */
@@ -38,92 +36,115 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     settings: { ...localContent.settings, ...readStoredSettings() },
   });
   const [source, setSource] = useState<"supabase" | "local">("local");
-  const [loading, setLoading] = useState(Boolean(supabase));
+  const [loading, setLoading] = useState(true);
   const [error] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    const syncContent = () => {
+    const syncContent = async () => {
       const nextSettings = { ...localContent.settings, ...readStoredSettings() };
       setData((prev) => ({ ...prev, settings: nextSettings }));
 
-      if (supabase) {
-        setLoading(true);
-        void supabase
-          .from("site_settings")
-          .select("name,brand_ar,tagline,description,address,email,phones,hours,whatsapp")
-          .eq("id", 1)
-          .maybeSingle()
-          .then(({ data: remote }) => {
-            if (!remote) return;
-            setSource("supabase");
-            setData((prev) => ({
-              ...prev,
-              settings: {
-                ...prev.settings,
-                name: remote.name,
-                brandAr: remote.brand_ar,
-                tagline: remote.tagline,
-                description: remote.description,
-                address: remote.address,
-                email: remote.email,
-                phones: remote.phones,
-                hours: remote.hours,
-                whatsapp: remote.whatsapp || undefined,
-              },
-            }));
-          });
-
-        void (async () => {
-          try {
-            const { data: remoteProjects, error: projectsError } = await supabase
-              .from("portfolio_projects")
-              .select("*")
-              .eq("status", "published")
-              .order("sort_order", { ascending: true });
-            if (projectsError || !remoteProjects) return;
-            setSource("supabase");
-            setData((prev) => ({
-              ...prev,
-              projects: remoteProjects.map((project) => ({
-                id: String(project.id),
-                slug: String(project.slug),
-                title: String(project.title_ar ?? ""),
-                titleEn: String(project.title_en ?? ""),
-                desc: String(project.description_ar ?? ""),
-                descEn: String(project.description_en ?? ""),
-                tag: String(project.category_ar ?? ""),
-                tagEn: String(project.category_en ?? ""),
-                image: String(project.image_url ?? ""),
-                site: String(project.project_url ?? ""),
-                accent: String(project.accent ?? "from-orange-500/80 to-amber-600/80"),
-                client: String(project.client_name_ar ?? ""),
-                clientEn: String(project.client_name_en ?? ""),
-                technologies: String(project.technologies ?? ""),
-                completedAt: String(project.completed_at ?? ""),
-                challenge: String(project.challenge_ar ?? ""),
-                challengeEn: String(project.challenge_en ?? ""),
-                solution: String(project.solution_ar ?? ""),
-                solutionEn: String(project.solution_en ?? ""),
-                results: String(project.results_ar ?? ""),
-                resultsEn: String(project.results_en ?? ""),
-              })),
-            }));
-          } finally {
-            setLoading(false);
-          }
-        })();
-      } else {
+      // Supabase بيتحمّل هنا فقط (مش في أول تحميل للصفحة) لتقليل وزن البداية.
+      const mod = await import("../lib/supabase").catch(() => null);
+      const supabase = mod?.supabase ?? null;
+      if (!supabase) {
         setLoading(false);
+        return;
       }
+
+      setLoading(true);
+      void supabase
+        .from("site_settings")
+        .select("name,brand_ar,tagline,description,address,email,phones,hours,whatsapp")
+        .eq("id", 1)
+        .maybeSingle()
+        .then(({ data: remote }) => {
+          if (!remote) return;
+          setSource("supabase");
+          setData((prev) => ({
+            ...prev,
+            settings: {
+              ...prev.settings,
+              name: remote.name,
+              brandAr: remote.brand_ar,
+              tagline: remote.tagline,
+              description: remote.description,
+              address: remote.address,
+              email: remote.email,
+              phones: remote.phones,
+              hours: remote.hours,
+              whatsapp: remote.whatsapp || undefined,
+            },
+          }));
+        })
+        .then(undefined, () => {});
+
+      void (async () => {
+        try {
+          const { data: remoteProjects, error: projectsError } = await supabase
+            .from("portfolio_projects")
+            .select("*")
+            .eq("status", "published")
+            .order("sort_order", { ascending: true });
+          if (projectsError || !remoteProjects) return;
+          setSource("supabase");
+          setData((prev) => ({
+            ...prev,
+            projects: remoteProjects.map((project) => ({
+              id: String(project.id),
+              slug: String(project.slug),
+              title: String(project.title_ar ?? ""),
+              titleEn: String(project.title_en ?? ""),
+              desc: String(project.description_ar ?? ""),
+              descEn: String(project.description_en ?? ""),
+              tag: String(project.category_ar ?? ""),
+              tagEn: String(project.category_en ?? ""),
+              image: String(project.image_url ?? ""),
+              site: String(project.project_url ?? ""),
+              accent: String(project.accent ?? "from-orange-500/80 to-amber-600/80"),
+              client: String(project.client_name_ar ?? ""),
+              clientEn: String(project.client_name_en ?? ""),
+              technologies: String(project.technologies ?? ""),
+              completedAt: String(project.completed_at ?? ""),
+              challenge: String(project.challenge_ar ?? ""),
+              challengeEn: String(project.challenge_en ?? ""),
+              solution: String(project.solution_ar ?? ""),
+              solutionEn: String(project.solution_en ?? ""),
+              results: String(project.results_ar ?? ""),
+              resultsEn: String(project.results_en ?? ""),
+            })),
+          }));
+        } catch {
+          /* لو الشبكة وقعت، المحتوى المحلي بيفضل ظاهر. */
+        } finally {
+          setLoading(false);
+        }
+      })();
     };
 
-    syncContent();
-    window.addEventListener("awexen-settings-updated", syncContent);
-    window.addEventListener("awexen-content-updated", syncContent);
+    // أول تحميل: نؤجل مزامنة قاعدة البيانات لما بعد أول رسم للصفحة
+    // (المحتوى المحلي ظاهر بالفعل) حتى لا تنافس طلبات Supabase رسم الصفحة
+    // وتحميل الخطوط على شبكات الموبايل البطيئة. التحديث اليدوي يتم فورًا.
+    let cancelDeferred: (() => void) | undefined;
+    if (tick === 0) {
+      if (typeof window.requestIdleCallback === "function") {
+        const idleId = window.requestIdleCallback(() => void syncContent(), { timeout: 2000 });
+        cancelDeferred = () => window.cancelIdleCallback(idleId);
+      } else {
+        const timer = window.setTimeout(() => void syncContent(), 800);
+        cancelDeferred = () => window.clearTimeout(timer);
+      }
+    } else {
+      void syncContent();
+    }
+    const onUpdate = () => void syncContent();
+    window.addEventListener("awexen-settings-updated", onUpdate);
+    window.addEventListener("awexen-content-updated", onUpdate);
     return () => {
-      window.removeEventListener("awexen-settings-updated", syncContent);
-      window.removeEventListener("awexen-content-updated", syncContent);
+      cancelDeferred?.();
+      window.removeEventListener("awexen-settings-updated", onUpdate);
+      window.removeEventListener("awexen-content-updated", onUpdate);
     };
   }, [tick]);
 
@@ -152,8 +173,3 @@ export function useContent() {
   return useContext(ContentContext);
 }
 
-/** الحصول على خدمة واحدة عبر الـ slug */
-export function useService(slug?: string): Service | undefined {
-  const { services } = useContent();
-  return services.find((s) => s.slug === slug);
-}

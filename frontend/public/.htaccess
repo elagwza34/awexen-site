@@ -32,6 +32,17 @@
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
 
+  # ملف إصدار التطبيق لازم يُقرأ طازجًا في كل مرة (يُستخدم لكشف النسخ الجديدة).
+  <Files "version.json">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </Files>
+
+  # sw.js لازم يتحدّث فورًا؛ القاعدة العامة فوق بتخلي كل .js سنة كاملة immutable،
+  # وده كان بيؤجل تحديث الـ service worker. هذه القاعدة تُلغيها لملف sw.js فقط.
+  <Files "sw.js">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </Files>
+
   # ملفات الموقع الثابتة (robots/sitemap/manifest) بتتغير نادرًا
   <FilesMatch "^(robots\.txt|sitemap\.xml|site\.webmanifest)$">
     Header set Cache-Control "public, max-age=3600"

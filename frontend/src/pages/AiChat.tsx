@@ -20,6 +20,7 @@ import {
 import { cn } from "../utils/cn";
 import { useVisualViewportPin } from "../utils/useVisualViewportPin";
 import { useContent } from "../context/ContentContext";
+import { services } from "../data/services";
 import { useLanguage, type Lang } from "../context/LanguageContext";
 
 const CHAT_TIME_FORMAT: Record<Lang, Intl.DateTimeFormat> = {
@@ -207,7 +208,7 @@ const AiThread = memo(function AiThread({ messages, typing }: { messages: ChatMe
 });
 
 export default function AiChat() {
-  const { services, projects, plans, settings } = useContent();
+  const { projects, plans, settings } = useContent();
   const { t } = useLanguage();
   const navigate = useNavigate();
 

@@ -85,10 +85,13 @@ function BrandMark({ centered = false }: { centered?: boolean }) {
     <div className={cn("flex items-center gap-3", centered ? "flex-col gap-2.5" : "flex-row")}>
       <Link to="/" aria-label="awexen — الصفحة الرئيسية" className="inline-flex">
         <img
-          src="/images/awexen%20(1).png"
+          src="/images/awexen-light.webp"
+          srcSet="/images/awexen-light-sm.webp 260w, /images/awexen-light.webp 520w"
+          sizes="(min-width: 640px) 150px, 124px"
           alt="Awexen"
-          width="1240"
-          height="322"
+          width="520"
+          height="135"
+          decoding="async"
           className={cn(
             "w-auto object-contain transition-transform duration-300 hover:scale-[1.03]",
             centered ? "h-9 max-w-[150px] sm:h-10" : "h-7 max-w-[124px]",

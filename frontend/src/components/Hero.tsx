@@ -185,7 +185,7 @@ export default function Hero() {
       <div className="container-x relative">
         {/* النص */}
         <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-          <Reveal>
+          <Reveal instant>
             <span className="inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-500/10 px-4 py-1.5 text-[13px] font-semibold text-brand-300 backdrop-blur">
               <span className="relative flex h-2 w-2">
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-400" />
@@ -194,7 +194,7 @@ export default function Hero() {
             </span>
           </Reveal>
 
-          <Reveal delay={90}>
+          <Reveal instant>
             {/* قابل للتحرير بصريًا — داخل الـCMS preview بس. العنوان الرئيسي
                 جوه العنوان، والـhighlight يفضل زي ما هو دلوقتي. */}
             <CmsEditable section="hero" element="title">
@@ -216,7 +216,7 @@ export default function Hero() {
             </CmsEditable>
           </Reveal>
 
-          <Reveal delay={170}>
+          <Reveal instant>
             <CmsEditable section="hero" element="description">
               <p className="mt-6 max-w-[620px] text-pretty text-[15px] leading-8 text-ink-300 sm:text-[17px]">
                 {cms.text("description", t("hero.desc"))}
@@ -224,7 +224,7 @@ export default function Hero() {
             </CmsEditable>
           </Reveal>
 
-          <Reveal delay={240}>
+          <Reveal instant>
             <div className="mt-9 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
               <CmsEditable section="hero" element="primaryButton">
                 <Link
@@ -252,7 +252,7 @@ export default function Hero() {
           </Reveal>
 
           {FEATURES.calculator && (
-            <Reveal delay={300}>
+            <Reveal instant>
               <Link
                 to="/project-calculator"
                 className="mt-5 inline-flex items-center gap-2 rounded-full border border-brand-500/25 bg-brand-500/10 px-5 py-2.5 text-[13.5px] font-bold text-brand-200 backdrop-blur transition-colors duration-300 hover:border-brand-400 hover:bg-brand-500/20 hover:text-white"

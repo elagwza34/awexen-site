@@ -10,8 +10,8 @@ import {
   Phone,
   Sparkles,
 } from "lucide-react";
-import { useContent } from "../context/ContentContext";
 import { useLanguage } from "../context/LanguageContext";
+import { services } from "../data/services";
 import { Icon, Reveal, SectionHeading } from "../components/ui";
 import PageHero from "../components/PageHero";
 import { WHATSAPP_PHONE, whatsappHref } from "../lib/whatsapp";
@@ -57,15 +57,11 @@ function FAQItem({ q, a, open, onClick }: { q: string; a: string; open: boolean;
 
 export default function ServiceDetail() {
   const { slug } = useParams();
-  const { services, loading } = useContent();
   const service = services.find((s) => s.slug === slug);
   const [openFaq, setOpenFaq] = useState(0);
   const { lang } = useLanguage();
 
-  if (!service) {
-    if (loading) return <div className="min-h-[60vh]" />;
-    return <Navigate to="/services" replace />;
-  }
+  if (!service) return <Navigate to="/services" replace />;
 
   const related = services.filter((s) => s.slug !== service.slug).slice(0, 3);
   const inquiryMessage =

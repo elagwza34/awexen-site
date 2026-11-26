@@ -6,6 +6,8 @@ interface ImportMetaEnv {
   /** دعم مؤقت لمشروعات Supabase التي ما زالت تستخدم anon key القديم. */
   readonly VITE_SUPABASE_ANON_KEY?: string;
   readonly VITE_LMS_EDGE_URL?: string;
+  /** عنوان اختياري لاستقبال تشخيصات الأخطاء (بدون بيانات شخصية). */
+  readonly VITE_ERROR_REPORT_URL?: string;
 }
 
 interface ImportMeta {

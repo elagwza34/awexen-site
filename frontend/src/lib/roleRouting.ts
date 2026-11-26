@@ -1,5 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
-import { loadCurrentLmsUser, type CurrentLmsUser } from "./lms";
+import type { CurrentLmsUser } from "./lms";
 
 export const ADMIN_APP_ROLES = ["owner", "admin", "editor", "hr", "support"] as const;
 
@@ -52,6 +52,8 @@ export function resolveDashboardAccess(
 
 export async function loadDashboardAccess(session: Session): Promise<DashboardAccess> {
   try {
+    // الـ LMS والسوبابيز بيتحمّلوا عند الحاجة فقط عشان ما يدخلوش في تحميل الصفحة الأولى.
+    const { loadCurrentLmsUser } = await import("./lms");
     return resolveDashboardAccess(session, await loadCurrentLmsUser());
   } catch (error) {
     // CMS admins can still reach the admin panel if the LMS function is

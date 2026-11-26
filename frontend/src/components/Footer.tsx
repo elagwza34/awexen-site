@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Check, Clock, Loader2, Mail, MapPin, Phone, Send } from "lucide-react";
 import { useContent } from "../context/ContentContext";
 import { useLanguage } from "../context/LanguageContext";
-import { supabase } from "../lib/supabase";
 import { Logo } from "./ui";
 import { useSection } from "../context/CmsContext";
 import CmsEditable from "../admin/cms/CmsEditable";
@@ -96,6 +95,8 @@ export default function Footer() {
     event.preventDefault();
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || submitting) return;
+
+    const { supabase } = await import("../lib/supabase").catch(() => ({ supabase: null }));
 
     if (!supabase) {
       setSubscriptionError("تعذر الاتصال بقاعدة البيانات حاليًا. حاول مرة أخرى لاحقًا.");

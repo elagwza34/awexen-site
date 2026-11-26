@@ -1,11 +1,35 @@
-/* Service worker لإشعارات الدعم على الموبايل (Web Push). */
+/* Service worker لإشعارات الدعم على الموبايل (Web Push).
+   نسخة v2: ينظّف أي كاش قديم عند التنشيط حتى لا تبقى ملفات بناء قديمة.
+   لا يعترض طلبات الشبكة (لا fetch handler) لضمان وصول أحدث HTML دائمًا. */
+
+const SW_VERSION = "awexen-sw-v2";
+const CACHE_PREFIX = "awexen-";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      // لا يوجد كاش تستخدمه نسخة v2، فأي كاش قديم من نسخ سابقة يُحذف بالكامل.
+      try {
+        const names = await caches.keys();
+        await Promise.all(
+          names
+            .filter((name) => name.startsWith(CACHE_PREFIX) || name === SW_VERSION)
+            .map((name) => caches.delete(name)),
+        );
+      } catch {
+        // المتصفح قد يمنع الكاش؛ نكمل التنشيط على أي حال.
+      }
+      await self.clients.claim();
+    })(),
+  );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("push", (event) => {

@@ -34,7 +34,7 @@ export default function OfferDocument({ offer, translation, printable = false }:
       )}
       <article className="offer-paper">
         <header className="offer-cover">
-          <img className="offer-logo" src="/images/awexen%20(1).png" alt="AWEXEN" width="1240" height="322" />
+          <img className="offer-logo" src="/images/awexen-light.webp" alt="AWEXEN" width="520" height="135" />
           <p className="offer-kicker">{arabic ? "العرض الفني والمالي" : "Technical & commercial proposal"}</p>
           <h1>{latinDigits(content.title)}</h1>
           <p className="offer-client"><bdi>{latinDigits(offer.client_name)}</bdi></p>

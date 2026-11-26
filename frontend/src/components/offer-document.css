@@ -55,7 +55,7 @@
   .offer-paper { border: 0; box-shadow: none; max-width: none; }
   .offer-cover { background: white; color: #202328; }
   .offer-document .offer-paper .offer-cover h1 { color: #202328; }
-  .offer-logo { content: url("/images/awexen%20(2).png"); }
+  .offer-logo { content: url("/images/awexen-dark.webp"); }
   .offer-kicker { color: #9b420b; }
   .offer-section h2 { break-after: avoid; }
   .offer-table { overflow: visible; }

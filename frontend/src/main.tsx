@@ -1,29 +1,29 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./index.css";
 import App from "./App";
 import { AppErrorBoundary } from "./components/ui";
 import { setupAnalytics } from "./lib/analytics";
+import { startAppUpdateWatcher, setupStaleAssetRecovery } from "./lib/appUpdate";
+import { isBrowserSupported } from "./lib/compat";
+import { recordDiagnostic, setupMonitoring } from "./lib/telemetry";
 
 setupAnalytics();
+setupMonitoring();
+setupStaleAssetRecovery();
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+const rootElement = document.getElementById("root")!;
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <AppErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+if (!isBrowserSupported()) {
+  // شاشة التوافق مرسومة من السكربت المضمّن في index.html؛ ما نركّبش React فوقها.
+  recordDiagnostic("compatibility", "browser lacks required CSS features");
+} else {
+  createRoot(rootElement).render(
+    <StrictMode>
+      <AppErrorBoundary>
         <App />
-      </QueryClientProvider>
-    </AppErrorBoundary>
-  </StrictMode>
-);
+      </AppErrorBoundary>
+    </StrictMode>
+  );
+  startAppUpdateWatcher();
+}

@@ -7,8 +7,7 @@ import {
   type ReactNode,
 }
  from "react";
-import { supabase } from "../lib/supabase";
-import { loadPageSections, type CmsSectionRow } from "../lib/cms";
+import type { CmsSectionRow } from "../lib/cms";
 import { useLanguage } from "./LanguageContext";
 import {
   readButtons,
@@ -101,13 +100,14 @@ export function CmsSectionsProvider({
   const [draft, setDraft] = useState<Record<string, CmsContent> | null>(null);
 
   useEffect(() => {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
     let active = true;
     const load = async () => {
       try {
+        const [{ supabase }, { loadPageSections }] = await Promise.all([
+          import("../lib/supabase"),
+          import("../lib/cms"),
+        ]);
+        if (!active || !supabase) return;
         const rows: CmsSectionRow[] = await loadPageSections(pageSlug);
         if (!active) return;
         const map: Record<string, CmsContent> = {};
