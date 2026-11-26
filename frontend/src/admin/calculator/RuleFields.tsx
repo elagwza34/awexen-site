@@ -3,9 +3,9 @@ import { Checkbox, EditList, fieldGrid, NumberField, SelectField, TextField } fr
 import { billing, choiceKinds, pricingMethods, quantityKinds } from "./model";
 
 const operators: ReadonlyArray<readonly [Operator, string]> = [
-  ["eq", "Equals"], ["ne", "Does not equal"], ["contains", "Contains"], ["notContains", "Does not contain"],
-  ["gt", "Greater than"], ["gte", "At least"], ["lt", "Less than"], ["lte", "At most"],
-  ["selected", "Options selected"], ["notSelected", "Option not selected"], ["empty", "Is empty"], ["notEmpty", "Is answered"],
+  ["eq", "يساوي"], ["ne", "لا يساوي"], ["contains", "يحتوي"], ["notContains", "لا يحتوي"],
+  ["gt", "أكبر من"], ["gte", "على الأقل"], ["lt", "أقل من"], ["lte", "على الأكثر"],
+  ["selected", "خيارات محددة"], ["notSelected", "خيار غير محدد"], ["empty", "فارغ"], ["notEmpty", "تمت الإجابة"],
 ];
 
 type ConditionMode = "" | "one" | "and" | "or";
@@ -19,23 +19,23 @@ export function ConditionFields({ value, onChange, questions, depth = 0 }: {
   const create = (): Condition => ({ questionId: questions[0]?.id ?? "", operator: "notEmpty" });
   const children = value && "and" in value ? value.and : value && "or" in value ? value.or : [];
   return <div className="grid gap-2 border border-white/10 p-2">
-    <SelectField<ConditionMode> label="Match conditions" value={mode}
-      options={depth < 4 ? [["one", "One condition"], ["and", "All conditions"], ["or", "Any condition"]] : [["one", "One condition"]]}
-      empty="Always"
+    <SelectField<ConditionMode> label="مطابقة الشروط" value={mode}
+      options={depth < 4 ? [["one", "شرط واحد"], ["and", "كل الشروط"], ["or", "أي شرط"]] : [["one", "شرط واحد"]]}
+      empty="دائمًا"
       onChange={(next) => onChange(next === "and" ? { and: children.length ? children : [leaf ?? create()] } : next === "or" ? { or: children.length ? children : [leaf ?? create()] } : next === "one" ? leaf ?? create() : undefined)} />
     {leaf && <div className={fieldGrid}>
-      <SelectField label="Question" value={leaf.questionId} empty="Select question" options={questions.map((question) => [question.id, question.title.en || question.id] as const)}
+      <SelectField label="السؤال" value={leaf.questionId} empty="اختر سؤالًا" options={questions.map((question) => [question.id, question.title.ar || question.title.en || question.id] as const)}
         onChange={(questionId) => onChange({ questionId, operator: "notEmpty" })} />
-      <SelectField label="Operator" value={leaf.operator} options={operators} onChange={(operator) => onChange({ ...leaf, operator, value: undefined })} />
+      <SelectField label="المعامل" value={leaf.operator} options={operators} onChange={(operator) => onChange({ ...leaf, operator, value: undefined })} />
       {!["empty", "notEmpty"].includes(leaf.operator) && (reference?.kind === "boolean"
-        ? <SelectField<"true" | "false" | ""> label="Answer" value={typeof leaf.value === "boolean" ? leaf.value ? "true" : "false" : ""} options={[["true", "Yes"], ["false", "No"]]} empty="Select answer" onChange={(answer) => onChange({ ...leaf, value: answer ? answer === "true" : undefined })} />
+        ? <SelectField<"true" | "false" | ""> label="الإجابة" value={typeof leaf.value === "boolean" ? leaf.value ? "true" : "false" : ""} options={[["true", "نعم"], ["false", "لا"]]} empty="اختر إجابة" onChange={(answer) => onChange({ ...leaf, value: answer ? answer === "true" : undefined })} />
         : reference && choiceKinds.includes(reference.kind)
-          ? <SelectField label="Option" value={typeof leaf.value === "string" ? leaf.value : undefined} empty="Select option" options={(reference.options ?? []).map((option) => [option.id, option.title.en || option.id] as const)} onChange={(next) => onChange({ ...leaf, value: next || undefined })} />
+          ? <SelectField label="الخيار" value={typeof leaf.value === "string" ? leaf.value : undefined} empty="اختر خيارًا" options={(reference.options ?? []).map((option) => [option.id, option.title.ar || option.title.en || option.id] as const)} onChange={(next) => onChange({ ...leaf, value: next || undefined })} />
           : reference && quantityKinds.includes(reference.kind)
-            ? <NumberField label="Quantity" value={typeof leaf.value === "number" ? leaf.value : undefined} onChange={(next) => onChange({ ...leaf, value: next })} />
-            : <TextField label="Answer" value={typeof leaf.value === "string" ? leaf.value : undefined} onChange={(next) => onChange({ ...leaf, value: next })} />)}
+            ? <NumberField label="الكمية" value={typeof leaf.value === "number" ? leaf.value : undefined} onChange={(next) => onChange({ ...leaf, value: next })} />
+            : <TextField label="الإجابة" value={typeof leaf.value === "string" ? leaf.value : undefined} onChange={(next) => onChange({ ...leaf, value: next })} />)}
     </div>}
-    {(mode === "and" || mode === "or") && <EditList title="Conditions" items={children} create={create} label={(condition) => "questionId" in condition ? questions.find((question) => question.id === condition.questionId)?.title.en || "Condition" : "Condition group"}
+    {(mode === "and" || mode === "or") && <EditList title="الشروط" items={children} create={create} label={(condition) => "questionId" in condition ? questions.find((question) => question.id === condition.questionId)?.title.ar || questions.find((question) => question.id === condition.questionId)?.title.en || "شرط" : "مجموعة شروط"}
       onChange={(items) => onChange(mode === "and" ? { and: items } : { or: items })}
       render={(condition, update) => <ConditionFields depth={depth + 1} value={condition} onChange={(next) => next && update(next)} questions={questions} />} />}
   </div>;
@@ -49,30 +49,30 @@ export function PricingFields({ value, onChange, allowNone = false }: {
   }
   const method = value?.method;
   return <div className="grid gap-2">
-    {allowNone && <Checkbox label="Configure direct pricing" value={Boolean(value)} onChange={(enabled) => onChange(enabled ? { method: "unconfigured", billing: "oneTime" } : undefined)} />}
+    {allowNone && <Checkbox label="إعداد تسعير مباشر" value={Boolean(value)} onChange={(enabled) => onChange(enabled ? { method: "unconfigured", billing: "oneTime" } : undefined)} />}
     {(value || !allowNone) && <div className={fieldGrid}>
-      <SelectField label="Pricing method" value={method ?? "unconfigured"} options={pricingMethods} onChange={(next) => onChange({
+      <SelectField label="طريقة التسعير" value={method ?? "unconfigured"} options={pricingMethods} onChange={(next) => onChange({
         method: next, billing: value?.billing ?? "oneTime", chargeKey: value?.chargeKey,
         ...(next === "tiered" || next === "volume" ? { tiers: [] } : {}),
       })} />
-      <SelectField label="Billing frequency" value={value?.billing ?? "oneTime"} options={billing} onChange={(next) => set({ billing: next })} />
-      {(method === "fixed" || method === "minimum" || method === "maximum") && <NumberField label="Amount (minor units)" value={value?.amount} onChange={(amount) => set({ amount })} />}
-      {(method === "perUnit" || method === "includedQuantity") && <NumberField label="Unit price (minor units)" value={value?.unitPrice} onChange={(unitPrice) => set({ unitPrice })} />}
-      {method === "includedQuantity" && <NumberField label="Included units" value={value?.includedQuantity} onChange={(includedQuantity) => set({ includedQuantity })} />}
+      <SelectField label="دورة الفوترة" value={value?.billing ?? "oneTime"} options={billing} onChange={(next) => set({ billing: next })} />
+      {(method === "fixed" || method === "minimum" || method === "maximum") && <NumberField label="المبلغ (بالوحدات الصغرى)" value={value?.amount} onChange={(amount) => set({ amount })} />}
+      {(method === "perUnit" || method === "includedQuantity") && <NumberField label="سعر الوحدة (بالوحدات الصغرى)" value={value?.unitPrice} onChange={(unitPrice) => set({ unitPrice })} />}
+      {method === "includedQuantity" && <NumberField label="الوحدات المشمولة" value={value?.includedQuantity} onChange={(includedQuantity) => set({ includedQuantity })} />}
       {(method === "percentage" || method === "multiplier") && <>
-        <NumberField label="Rate (basis points, 10,000 = 100%)" value={value?.rateBps} onChange={(rateBps) => set({ rateBps })} />
-        <SelectField label="Subtotal to use" value={value?.subtotal} options={billing} empty="Select subtotal" onChange={(subtotal) => set({ subtotal })} />
+        <NumberField label="النسبة (نقاط أساس، 10,000 = 100%)" value={value?.rateBps} onChange={(rateBps) => set({ rateBps })} />
+        <SelectField label="المجموع الفرعي المستخدم" value={value?.subtotal} options={billing} empty="اختر مجموعًا فرعيًا" onChange={(subtotal) => set({ subtotal })} />
       </>}
-      {method === "maximum" && <TextField label="Target charge key" value={value?.target} onChange={(target) => set({ target: target || undefined })} />}
-      {value && <TextField label="Deduplication charge key" value={value.chargeKey} onChange={(chargeKey) => set({ chargeKey: chargeKey || undefined })} />}
-      {value && <NumberField label="Charge cap (minor units)" value={value.maxCharge} onChange={(maxCharge) => set({ maxCharge })} />}
+      {method === "maximum" && <TextField label="مفتاح القيمة المستهدفة" value={value?.target} onChange={(target) => set({ target: target || undefined })} />}
+      {value && <TextField label="مفتاح منع التكرار" value={value.chargeKey} onChange={(chargeKey) => set({ chargeKey: chargeKey || undefined })} />}
+      {value && <NumberField label="حد أقصى للقيمة (بالوحدات الصغرى)" value={value.maxCharge} onChange={(maxCharge) => set({ maxCharge })} />}
     </div>}
-    {(method === "tiered" || method === "volume") && <EditList<NonNullable<Pricing["tiers"]>[number]> title="Quantity tiers" items={value?.tiers ?? []} create={() => ({ min: 1, unitPrice: -1 })}
-      label={(tier) => `${tier.min}–${tier.max ?? "unlimited"}`} onChange={(tiers) => set({ tiers })}
+    {(method === "tiered" || method === "volume") && <EditList<NonNullable<Pricing["tiers"]>[number]> title="شرائح الكمية" items={value?.tiers ?? []} create={() => ({ min: 1, unitPrice: -1 })}
+      label={(tier) => `${tier.min}–${tier.max ?? "غير محدود"}`} onChange={(tiers) => set({ tiers })}
       render={(tier, update) => <div className={fieldGrid}>
-        <NumberField label="From quantity" value={tier.min} onChange={(min) => update({ ...tier, min: min ?? 0 })} />
-        <NumberField label="Through quantity" value={tier.max} onChange={(max) => update({ ...tier, max })} />
-        <NumberField label="Unit price (minor units)" value={tier.unitPrice >= 0 ? tier.unitPrice : undefined} onChange={(unitPrice) => update({ ...tier, unitPrice: unitPrice ?? -1 })} />
+        <NumberField label="من كمية" value={tier.min} onChange={(min) => update({ ...tier, min: min ?? 0 })} />
+        <NumberField label="حتى كمية" value={tier.max} onChange={(max) => update({ ...tier, max })} />
+        <NumberField label="سعر الوحدة (بالوحدات الصغرى)" value={tier.unitPrice >= 0 ? tier.unitPrice : undefined} onChange={(unitPrice) => update({ ...tier, unitPrice: unitPrice ?? -1 })} />
       </div>} />}
   </div>;
 }

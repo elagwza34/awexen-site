@@ -23,13 +23,24 @@ type Metrics = {
 };
 
 const statuses = [
-  ["new", "New"], ["contacted", "Contacted"], ["qualified", "Qualified"],
-  ["proposal_sent", "Proposal sent"], ["negotiation", "Negotiation"], ["accepted", "Accepted"],
-  ["rejected", "Rejected"], ["closed", "Closed"],
+  ["new", "جديد"], ["contacted", "تم التواصل"], ["qualified", "مؤهل"],
+  ["proposal_sent", "تم إرسال العرض"], ["negotiation", "تفاوض"], ["accepted", "مقبول"],
+  ["rejected", "مرفوض"], ["closed", "مغلق"],
 ] as const;
+
+const leadStatusLabels: Record<string, string> = Object.fromEntries(statuses);
+const billingLabels: Record<string, string> = { oneTime: "لمرة واحدة", monthly: "شهري", annual: "سنوي" };
+const statusLabels: Record<string, string> = { priced: "مسعّر", free: "مجاني", included: "مشمول", manual: "يتطلب عرضًا يدويًا", unconfigured: "غير مُعد" };
+const actionLabels: Record<string, string> = { save: "حفظ", publish: "نشر", restore: "استعادة", lead_status: "تحديث حالة طلب" };
+const detailLabels: Record<string, string> = { name: "الاسم", company: "الشركة", phone: "الهاتف", whatsapp: "واتساب", email: "البريد", requirements: "المتطلبات" };
+const eventLabels: Record<string, string> = { started: "بدء الاستخدام", completed: "إكمال الحاسبة", quotation_requested: "طلب عرض سعر", lead_submitted: "إرسال بيانات العميل" };
 
 function pretty(value: string) {
   return value.replace(/[_-]/g, " ").replace(/^./, (first) => first.toUpperCase());
+}
+
+function label(map: Record<string, string>, value: string) {
+  return map[value] ?? pretty(value);
 }
 
 function time(timestamp: string) {
@@ -71,7 +82,7 @@ export function CalculatorRecords({ view }: { view: RecordView }) {
       await calculatorAdminRequest("admin-lead-status", { id: lead.id, status });
       setRecords((previous) => previous && { ...previous, leads: previous.leads.map((item) => item.id === lead.id ? { ...item, status } : item) });
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Lead status could not be saved.");
+      setError(failure instanceof Error ? failure.message : "تعذر حفظ حالة الطلب.");
     } finally {
       setSaving(null);
     }
@@ -79,50 +90,50 @@ export function CalculatorRecords({ view }: { view: RecordView }) {
 
   return <div className="grid gap-3">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <h3 className="font-bold">{view === "audit" ? "Audit log" : view === "leads" ? "Customer leads" : pretty(view)}</h3>
-      <button type="button" className="admin-button-secondary" onClick={() => { setError(""); setRefresh((count) => count + 1); }}>Refresh records</button>
+      <h3 className="font-bold">{view === "audit" ? "سجل التغييرات" : view === "leads" ? "طلبات العملاء" : view === "quotations" ? "عروض أسعار الحاسبة" : "تحليلات الحاسبة"}</h3>
+      <button type="button" className="admin-button-secondary" onClick={() => { setError(""); setRefresh((count) => count + 1); }}>تحديث السجلات</button>
     </div>
     {error && <p role="alert" className="text-red-300">{error}</p>}
-    {!error && (view === "analytics" ? !metrics : !records) && <p role="status">Loading records…</p>}
+    {!error && (view === "analytics" ? !metrics : !records) && <p role="status">جارٍ تحميل السجلات…</p>}
     {view === "analytics" && metrics && <Analytics metrics={metrics} />}
     {view === "quotations" && records && <>
-      {!records.quotations.length && <p>No calculator quotations.</p>}
+      {!records.quotations.length && <p>لا توجد عروض أسعار من الحاسبة.</p>}
       {records.quotations.map((quote) => <details className="border border-white/10 p-3" key={quote.reference}>
-        <summary className="cursor-pointer">{quote.reference} · {quote.snapshot.project.title.en} · {time(quote.created_at)}</summary>
+        <summary className="cursor-pointer">{quote.reference} · {quote.snapshot.project.title.ar || quote.snapshot.project.title.en} · {time(quote.created_at)}</summary>
         <div className="mt-3 grid gap-2">
-          <p>Valid until {time(quote.valid_until)} · Configuration {quote.snapshot.versionId}</p>
+          <p>صالح حتى {time(quote.valid_until)} · الإعداد <span dir="ltr">{quote.snapshot.versionId}</span></p>
           <QuoteSummary snapshot={quote.snapshot} />
         </div>
       </details>)}
     </>}
     {view === "leads" && records && <>
-      <Link className="underline" to="?section=quotes">Open the quotation inbox for customer follow-up</Link>
-      {!records.leads.length && <p>No calculator leads.</p>}
+      <Link className="underline" to="?section=quotes">فتح صندوق عروض الأسعار لمتابعة العميل</Link>
+      {!records.leads.length && <p>لا توجد طلبات عملاء من الحاسبة.</p>}
       {records.leads.map((lead) => {
         const reference = lead.quotation?.reference;
         return <article className="grid gap-2 border border-white/10 p-3" key={lead.id}>
-        <p className="font-semibold">{time(lead.created_at)}{lead.quote_request_id && ` · Inbox request ${lead.quote_request_id}`}
+        <p className="font-semibold">{time(lead.created_at)}{lead.quote_request_id && ` · طلب وارد ${lead.quote_request_id}`}
           {reference && ` · ${reference}`}</p>
-        <dl className="grid gap-1">{Object.entries(lead.details).filter(([, value]) => typeof value === "string" && value).map(([key, value]) => <div key={key}><dt className="inline font-medium">{pretty(key)} </dt><dd className="inline break-words">{String(value)}</dd></div>)}</dl>
+        <dl className="grid gap-1">{Object.entries(lead.details).filter(([, value]) => typeof value === "string" && value).map(([key, value]) => <div key={key}><dt className="inline font-medium">{label(detailLabels, key)} </dt><dd className="inline break-words">{String(value)}</dd></div>)}</dl>
         <fieldset disabled={saving !== null} className="max-w-xs">
-          <SelectField label="Lead status" options={statuses} value={lead.status} onChange={(value) => void changeStatus(lead, value)} />
+          <SelectField label="حالة الطلب" options={statuses} value={lead.status} onChange={(value) => void changeStatus(lead, value)} />
         </fieldset>
       </article>;
       })}
     </>}
     {view === "audit" && records && <ul className="grid gap-2">
-      {!records.audit.length && <li>No calculator audit entries.</li>}
+      {!records.audit.length && <li>لا توجد مدخلات في سجل التغييرات.</li>}
       {records.audit.map((entry) => <li className="border border-white/10 p-3" key={entry.id}>
-        <p className="font-semibold">{pretty(entry.action)} · {time(entry.created_at)}</p>
-        <p className="break-all text-sm">Actor {entry.actor_id}{entry.version_id && ` · Version ${entry.version_id}`}{entry.revision && ` · Revision ${entry.revision}`}</p>
+        <p className="font-semibold">{label(actionLabels, entry.action)} · {time(entry.created_at)}</p>
+        <p className="break-all text-sm">المنفّذ <span dir="ltr">{entry.actor_id}</span>{entry.version_id && <> · الإصدار <span dir="ltr">{entry.version_id}</span></>}{entry.revision && <> · المراجعة <span dir="ltr">{entry.revision}</span></>}</p>
       </li>)}
     </ul>}
     {view !== "analytics" && records && (offset > 0 || records.more[view]) &&
-      <nav aria-label="Calculator record pages" className="flex flex-wrap gap-2">
+      <nav aria-label="صفحات سجلات الحاسبة" className="flex flex-wrap gap-2">
         <button type="button" className="admin-button-secondary" disabled={offset === 0 || saving !== null}
-          onClick={() => changePage(offset - 100)}>Previous</button>
+          onClick={() => changePage(offset - 100)}>السابق</button>
         <button type="button" className="admin-button-secondary" disabled={!records.more[view] || saving !== null}
-          onClick={() => changePage(offset + 100)}>Next</button>
+          onClick={() => changePage(offset + 100)}>التالي</button>
       </nav>}
   </div>;
 }
@@ -134,17 +145,17 @@ function Analytics({ metrics }: { metrics: Metrics }) {
   const trackedRequests = metrics.events.quotation_requested ?? 0;
   const percentage = (numerator: number, denominator: number) => denominator > 0 ? `${(numerator / denominator * 100).toFixed(1)}%` : "—";
   return <>
-    <p className="text-sm">Last 30 days. Session metrics cover visitors who opted into optional analytics.</p>
+    <p className="text-sm">آخر 30 يومًا. مقاييس الجلسات تغطي الزوار الذين وافقوا على التحليلات الاختيارية.</p>
     <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {Object.entries({ "Calculator starts": starts, "Completion rate": percentage(completions, starts), "Quotation requests": requests, "Tracked lead conversion rate": percentage(trackedRequests, completions) }).map(([label, value]) =>
-        <div key={label} className="border border-white/10 p-3"><dt>{label}</dt><dd className="text-xl font-bold">{value}</dd></div>)}
+      {Object.entries({ "بدايات استخدام الحاسبة": starts, "معدل الإكمال": percentage(completions, starts), "طلبات عروض الأسعار": requests, "معدل تحويل الطلبات المتتبعة": percentage(trackedRequests, completions) }).map(([heading, value]) =>
+        <div key={heading} className="border border-white/10 p-3"><dt>{heading}</dt><dd className="text-xl font-bold">{value}</dd></div>)}
     </dl>
-    {([["Events", metrics.events], ["Popular project types", metrics.projects], ["Section completions", metrics.sections], ["Average estimated project value", metrics.estimateAverages], ["Lead statuses", metrics.leads]] as const).map(([label, entries]) => <div key={label} className="border border-white/10 p-3">
-      <h4 className="mb-2 font-bold">{label}</h4>
-      <dl className="grid gap-1">{Object.entries(entries ?? {}).map(([key, value]) => <div className="flex justify-between gap-2" key={key}><dt>{pretty(key)}</dt><dd>{value.toLocaleString()}</dd></div>)}</dl>
+    {([["الأحداث", metrics.events], ["أنواع المشاريع الأكثر استخدامًا", metrics.projects], ["إكمال المراحل", metrics.sections], ["متوسط قيمة المشروع التقديرية", metrics.estimateAverages], ["حالات الطلبات", metrics.leads]] as const).map(([heading, entries]) => <div key={heading} className="border border-white/10 p-3">
+      <h4 className="mb-2 font-bold">{heading}</h4>
+      <dl className="grid gap-1">{Object.entries(entries ?? {}).map(([key, value]) => <div className="flex justify-between gap-2" key={key}><dt>{heading === "الأحداث" ? label(eventLabels, key) : heading === "حالات الطلبات" ? label(leadStatusLabels, key) : pretty(key)}</dt><dd>{value.toLocaleString()}</dd></div>)}</dl>
     </div>)}
     {metrics.sectionDropoff && Object.keys(metrics.sectionDropoff).length > 0 && <div className="border border-white/10 p-3">
-      <h4 className="mb-2 font-bold">Drop-off by section</h4>
+      <h4 className="mb-2 font-bold">التسرب حسب المرحلة</h4>
       <dl className="grid gap-1">{Object.entries(metrics.sectionDropoff).map(([section, rate]) => <div className="flex justify-between gap-2" key={section}><dt>{pretty(section)}</dt><dd>{rate.toLocaleString()}%</dd></div>)}</dl>
     </div>}
   </>;
@@ -152,22 +163,22 @@ function Analytics({ metrics }: { metrics: Metrics }) {
 
 function QuoteSummary({ snapshot }: { snapshot: Quotation }) {
   const { estimate } = snapshot;
-  const money = (amount: number) => new Intl.NumberFormat("en", { style: "currency", currency: estimate.currency }).format(amount / 10 ** estimate.minorUnits);
+  const money = (amount: number) => new Intl.NumberFormat("ar-EG", { style: "currency", currency: estimate.currency }).format(amount / 10 ** estimate.minorUnits);
   return <>
     <dl className="grid grid-cols-2 gap-2 md:grid-cols-4">
-      {Object.entries({ "One-time": estimate.oneTime, "Monthly": estimate.monthly, "Annual": estimate.annual, "First year": estimate.firstYear, "Discount": estimate.discount, "Tax": estimate.tax }).map(([label, value]) =>
-        <div key={label}><dt className="text-sm">{label}</dt><dd className="font-semibold">{money(value)}</dd></div>)}
+      {Object.entries({ "لمرة واحدة": estimate.oneTime, "شهري": estimate.monthly, "سنوي": estimate.annual, "السنة الأولى": estimate.firstYear, "الخصم": estimate.discount, "الضريبة": estimate.tax }).map(([heading, value]) =>
+        <div key={heading}><dt className="text-sm">{heading}</dt><dd className="font-semibold">{money(value)}</dd></div>)}
     </dl>
     {!!estimate.items.length && <ul className="grid gap-1">
       {estimate.items.map((item) => <li className="border-t border-white/10 pt-1 text-sm" key={item.id}>
-        {item.title.en} · {item.quantity} · {pretty(item.billing)} · {item.status === "priced" ? money(item.amount) : pretty(item.status)}
+        {item.title.ar || item.title.en} · {item.quantity} · {label(billingLabels, item.billing)} · {item.status === "priced" ? money(item.amount) : label(statusLabels, item.status)}
       </li>)}
     </ul>}
-    {!!snapshot.requirements.length && <details><summary className="cursor-pointer">Selected requirements</summary>
+    {!!snapshot.requirements.length && <details><summary className="cursor-pointer">المتطلبات المحددة</summary>
       <dl className="grid gap-1">{snapshot.requirements.map((entry) => {
-        const format = (value: string | number | boolean) => typeof value === "string" ? entry.options?.find((option) => option.id === value)?.title.en ?? value : typeof value === "boolean" ? value ? "Yes" : "No" : String(value);
+        const format = (value: string | number | boolean) => typeof value === "string" ? (entry.options?.find((option) => option.id === value)?.title.ar || entry.options?.find((option) => option.id === value)?.title.en) ?? value : typeof value === "boolean" ? value ? "نعم" : "لا" : String(value);
         const answer = Array.isArray(entry.answer) ? entry.answer.map((item) => typeof item === "object" ? JSON.stringify(item) : format(item)).join(", ") : format(entry.answer);
-        return <div className="text-sm" key={entry.questionId}><dt className="inline font-medium">{entry.title.en} </dt><dd className="inline break-words">{answer}</dd></div>;
+        return <div className="text-sm" key={entry.questionId}><dt className="inline font-medium">{entry.title.ar || entry.title.en} </dt><dd className="inline break-words">{answer}</dd></div>;
       })}</dl>
     </details>}
   </>;

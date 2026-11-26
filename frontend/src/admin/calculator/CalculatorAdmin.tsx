@@ -4,15 +4,16 @@ import { useConfirmDialog } from "../../components/ConfirmDialog";
 import { calculatorAdminRequest } from "./api";
 import { CalculatorEditors, editorViews, type EditorView } from "./CalculatorEditors";
 import { CalculatorRecords, type RecordView } from "./CalculatorRecords";
+import { translateIssue } from "./issues";
 import { validateDraft, type Config } from "./model";
 
 type Version = { id: string; status: "published" | "archived"; created_at: string; published_at?: string | null };
 type State = { draft: { config: Config; revision: string }; versions: Version[] };
 
 const views = [
-  ["overview", "Overview"], ...editorViews,
-  ["quotations", "Quotations"], ["leads", "Customer leads"], ["analytics", "Analytics"],
-  ["versions", "Configuration versions"], ["audit", "Audit log"],
+  ["overview", "نظرة عامة"], ...editorViews,
+  ["quotations", "عروض الأسعار"], ["leads", "طلبات العملاء"], ["analytics", "التحليلات"],
+  ["versions", "إصدارات الإعدادات"], ["audit", "سجل التغييرات"],
 ] as const;
 type View = typeof views[number][0];
 
@@ -46,7 +47,7 @@ export default function CalculatorAdmin() {
       await load();
       setMessage(success);
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Calculator request failed.");
+      setError(failure instanceof Error ? failure.message : "تعذر إكمال طلب الحاسبة.");
     } finally {
       setBusy(false);
     }
@@ -54,56 +55,56 @@ export default function CalculatorAdmin() {
 
   async function publish() {
     if (!server || issues.length || dirty) return;
-    if (!await confirm({ title: "Publish this configuration?", description: "Confirm the calculator prices and make this saved version available to site visitors.", confirmLabel: "Approve and publish", cancelLabel: "Cancel" })) return;
-    await run(() => calculatorAdminRequest("admin-publish", { revision: server.draft.revision }), "Configuration published.");
+    if (!await confirm({ title: "نشر هذا الإعداد؟", description: "راجع أسعار الحاسبة واجعل هذا الإصدار المحفوظ متاحًا لزوار الموقع.", confirmLabel: "اعتماد ونشر", cancelLabel: "إلغاء" })) return;
+    await run(() => calculatorAdminRequest("admin-publish", { revision: server.draft.revision }), "تم نشر الإعداد.");
   }
 
   async function restore(version: Version) {
     if (!server) return;
-    if (!await confirm({ title: "Restore this version to draft?", description: "This replaces the current draft. Review and publish the restored version to make it live.", confirmLabel: "Restore to draft", cancelLabel: "Cancel" })) return;
-    await run(() => calculatorAdminRequest("admin-restore", { versionId: version.id, revision: server.draft.revision }), "Version restored to draft.");
+    if (!await confirm({ title: "استعادة هذا الإصدار إلى المسودة؟", description: "سيستبدل هذا المسودة الحالية. راجع الإصدار المستعاد وانشره ليصبح مباشرًا.", confirmLabel: "استعادة إلى المسودة", cancelLabel: "إلغاء" })) return;
+    await run(() => calculatorAdminRequest("admin-restore", { versionId: version.id, revision: server.draft.revision }), "تمت استعادة الإصدار إلى المسودة.");
   }
 
   async function refresh() {
-    if (dirty && !await confirm({ title: "Discard unsaved edits?", description: "Refreshing loads the latest saved draft and discards edits in this tab.", confirmLabel: "Discard and refresh", cancelLabel: "Keep editing" })) return;
-    await run(async () => {}, "Configuration refreshed.");
+    if (dirty && !await confirm({ title: "تجاهل التعديلات غير المحفوظة؟", description: "سيتم تحميل أحدث مسودة محفوظة وتجاهل التعديلات في هذه الصفحة.", confirmLabel: "تجاهل وتحديث", cancelLabel: "متابعة التحرير" })) return;
+    await run(async () => {}, "تم تحديث الإعدادات.");
   }
 
   const isRecordView = view === "quotations" || view === "leads" || view === "analytics" || view === "audit";
   const published = server?.versions.find((version) => version.status === "published");
 
-  return <section dir="ltr" aria-busy={busy} className="grid min-w-0 gap-4">
+  return <section aria-busy={busy} className="grid min-w-0 gap-4">
     <header className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-4">
-      <div><h2 className="text-xl font-bold">Cost calculator</h2><p className="text-sm">{dirty ? "Unsaved changes" : server ? `Draft revision ${server.draft.revision}` : "Loading configuration…"}</p></div>
+      <div><h2 className="text-xl font-bold">حاسبة التكلفة</h2><p className="text-sm">{dirty ? "تغييرات غير محفوظة" : server ? <>مراجعة المسودة <span dir="ltr">{server.draft.revision}</span></> : "جارٍ تحميل الإعدادات…"}</p></div>
       <div className="flex flex-wrap gap-2">
-        <button type="button" className="admin-button-secondary" disabled={busy} onClick={() => void refresh()}>Refresh</button>
-        <button type="button" className="admin-button-secondary" disabled={!dirty || busy} onClick={() => server && void run(() => calculatorAdminRequest("admin-save", { revision: server.draft.revision, config }), "Draft saved.")}>Save draft</button>
-        <button type="button" className="admin-button-primary" disabled={!server || dirty || busy || issues.length > 0} onClick={() => void publish()}>Publish saved draft</button>
+        <button type="button" className="admin-button-secondary" disabled={busy} onClick={() => void refresh()}>تحديث</button>
+        <button type="button" className="admin-button-secondary" disabled={!dirty || busy} onClick={() => server && void run(() => calculatorAdminRequest("admin-save", { revision: server.draft.revision, config }), "تم حفظ المسودة.")}>حفظ المسودة</button>
+        <button type="button" className="admin-button-primary" disabled={!server || dirty || busy || issues.length > 0} onClick={() => void publish()}>نشر المسودة المحفوظة</button>
       </div>
     </header>
     {error && <p role="alert" className="whitespace-pre-line border border-red-500/40 p-3 text-red-300">{error}</p>}
     {message && <p role="status" className="text-emerald-400">{message}</p>}
-    {server && <nav aria-label="Calculator management" className="flex flex-wrap gap-2">
+    {server && <nav aria-label="إدارة الحاسبة" className="flex flex-wrap gap-2">
       {views.map(([key, label]) => <button type="button" aria-current={key === view ? "page" : undefined} key={key} className={key === view ? "admin-button-primary" : "admin-button-secondary"} onClick={() => setView(key)}>{label}</button>)}
     </nav>}
     {config && server && <fieldset disabled={busy} className="grid min-w-0 gap-4 border-0 p-0">
       {view === "overview" && <>
         <div className="grid gap-2 border border-white/10 p-4">
-          <h3 className="font-semibold">Publication status</h3>
-          <p>{published ? `Live version ${published.id}` : "The calculator has no published configuration."}</p>
-          {published && <Link className="underline" to="/project-calculator">Open public calculator</Link>}
+          <h3 className="font-semibold">حالة النشر</h3>
+          <p>{published ? <>الإصدار المباشر <span dir="ltr">{published.id}</span></> : "لا يوجد إعداد منشور للحاسبة."}</p>
+          {published && <Link className="underline" to="/project-calculator">فتح الحاسبة العامة</Link>}
         </div>
         <div className="grid gap-2 border border-white/10 p-4">
-          <h3 className="font-semibold">Publish validation</h3>
-          {issues.length ? <ul className="list-disc space-y-1 ps-5">{issues.map((issue, index) => <li key={index}>{issue}</li>)}</ul> : <p>The draft passed local validation.</p>}
+          <h3 className="font-semibold">فحص ما قبل النشر</h3>
+          {issues.length ? <ul className="list-disc space-y-1 ps-5">{issues.map((issue, index) => <li key={index}>{translateIssue(issue)}</li>)}</ul> : <p>نجحت المسودة في الفحص المحلي.</p>}
         </div>
       </>}
       {view === "versions" && <div className="grid gap-2">
-        <h3 className="font-bold">Version history</h3>
-        {!server.versions.length && <p>No versions have been published.</p>}
+        <h3 className="font-bold">سجل الإصدارات</h3>
+        {!server.versions.length && <p>لم يتم نشر أي إصدار بعد.</p>}
         {server.versions.map((version) => <div key={version.id} className="flex flex-wrap items-center justify-between gap-3 border border-white/10 p-3">
-          <div><p className="font-semibold capitalize">{version.status}</p><p className="break-all text-sm">{version.id} · {new Date(version.published_at ?? version.created_at).toLocaleString()}</p></div>
-          <button type="button" className="admin-button-secondary" onClick={() => void restore(version)}>Copy to draft</button>
+          <div><p className="font-semibold">{version.status === "published" ? "منشور" : "مؤرشف"}</p><p className="break-all text-sm"><span dir="ltr">{version.id}</span> · {new Date(version.published_at ?? version.created_at).toLocaleString()}</p></div>
+          <button type="button" className="admin-button-secondary" onClick={() => void restore(version)}>نسخ إلى المسودة</button>
         </div>)}
       </div>}
       {isRecordView && <CalculatorRecords key={view} view={view as RecordView} />}

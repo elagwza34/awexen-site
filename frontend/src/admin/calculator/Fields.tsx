@@ -8,11 +8,11 @@ export function Field({ label, children }: { label: string; children: ReactNode 
 }
 
 export function TextField({ label, value, onChange, dir }: { label: string; value?: string; onChange: (value: string) => void; dir?: string }) {
-  return <Field label={label}><input className={inputClass} dir={dir} value={value ?? ""} onChange={(event) => onChange(event.target.value)} /></Field>;
+  return <Field label={label}><input className={inputClass} dir={dir ?? "auto"} value={value ?? ""} onChange={(event) => onChange(event.target.value)} /></Field>;
 }
 
 export function NumberField({ label, value, onChange }: { label: string; value?: number; onChange: (value: number | undefined) => void }) {
-  return <Field label={label}><input className={inputClass} type="number" step="any" value={value ?? ""} onChange={(event) => onChange(Number.isFinite(event.target.valueAsNumber) ? event.target.valueAsNumber : undefined)} /></Field>;
+  return <Field label={label}><input className={inputClass} dir="ltr" type="number" step="any" value={value ?? ""} onChange={(event) => onChange(Number.isFinite(event.target.valueAsNumber) ? event.target.valueAsNumber : undefined)} /></Field>;
 }
 
 export function Checkbox({ label, value, onChange }: { label: string; value?: boolean; onChange: (value: boolean) => void }) {
@@ -28,8 +28,8 @@ export function SelectField<T extends string>({ label, value, options, onChange,
 
 export function LocalizedField({ label, value, onChange }: { label: string; value?: { en: string; ar: string }; onChange: (value: { en: string; ar: string }) => void }) {
   return <>
-    <TextField label={`${label} (English)`} dir="ltr" value={value?.en} onChange={(en) => onChange({ en, ar: value?.ar ?? "" })} />
-    <TextField label={`${label} (العربية)`} dir="rtl" value={value?.ar} onChange={(ar) => onChange({ en: value?.en ?? "", ar })} />
+    <TextField label={`${label} (إنجليزي)`} dir="ltr" value={value?.en} onChange={(en) => onChange({ en, ar: value?.ar ?? "" })} />
+    <TextField label={`${label} (عربي)`} dir="rtl" value={value?.ar} onChange={(ar) => onChange({ en: value?.en ?? "", ar })} />
   </>;
 }
 
@@ -53,24 +53,24 @@ export function EditList<T>({ title, items, onChange, create, render, label, dup
     onChange(reordered);
   }
   return <div className="grid gap-2">
-    <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-bold">{title}</h3><button className="admin-button-secondary" type="button" onClick={() => onChange([...items, create()])}>Add</button></div>
+    <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-bold">{title}</h3><button className="admin-button-secondary" type="button" onClick={() => onChange([...items, create()])}>إضافة</button></div>
     {items.map((item, index) => <details key={keyFor?.(item, index) ?? index}
       onDragOver={(event) => { if (draggedIndex !== null) event.preventDefault(); }}
       onDrop={(event) => { event.preventDefault(); if (draggedIndex !== null) move(draggedIndex, index); setDraggedIndex(null); }}
       className="border border-white/10 p-3">
-      <summary className="cursor-pointer font-medium"><span draggable title="Drag to reorder"
+      <summary className="cursor-pointer font-medium"><span draggable title="اسحب لإعادة الترتيب"
         onDragStart={(event) => { event.stopPropagation(); event.dataTransfer.setData("text/plain", String(index)); setDraggedIndex(index); }}
-        onDragEnd={() => setDraggedIndex(null)}>{label(item) || "Untitled"}</span></summary>
+        onDragEnd={() => setDraggedIndex(null)}>{label(item) || "بدون عنوان"}</span></summary>
       <div className="mt-3 grid gap-3">
         {render(item, (updated) => onChange(items.map((current, itemIndex) => itemIndex === index ? updated : current)))}
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="admin-button-secondary" disabled={index === 0} onClick={() => move(index, index - 1)}>Move up</button>
-          <button type="button" className="admin-button-secondary" disabled={index === items.length - 1} onClick={() => move(index, index + 1)}>Move down</button>
+          <button type="button" className="admin-button-secondary" disabled={index === 0} onClick={() => move(index, index - 1)}>لأعلى</button>
+          <button type="button" className="admin-button-secondary" disabled={index === items.length - 1} onClick={() => move(index, index + 1)}>لأسفل</button>
           {(onDuplicate || duplicate) && <button type="button" className="admin-button-secondary" onClick={() => {
             if (onDuplicate) onDuplicate(item);
             else if (duplicate) onChange([...items, duplicate(item)]);
-          }}>Duplicate</button>}
-          <button type="button" className="admin-button-secondary" onClick={() => onChange(items.filter((_, itemIndex) => index !== itemIndex))}>Remove</button>
+          }}>تكرار</button>}
+          <button type="button" className="admin-button-secondary" onClick={() => onChange(items.filter((_, itemIndex) => index !== itemIndex))}>حذف</button>
         </div>
       </div>
     </details>)}

@@ -7,16 +7,16 @@ export const newNamed = () => ({ id: newId(), title: { ...blank }, active: true 
 export const choiceKinds = ["single", "multiple", "dropdown"];
 export const quantityKinds = ["number", "stepper", "slider", "repeatable"];
 export const questionKinds = [
-  ["single", "Single selection"], ["multiple", "Multiple selection"], ["boolean", "Yes / No"],
-  ["number", "Number"], ["stepper", "Quantity stepper"], ["slider", "Range slider"], ["dropdown", "Dropdown"],
-  ["text", "Text"], ["textarea", "Long text"], ["info", "Information"], ["repeatable", "Repeatable items"],
+  ["single", "اختيار واحد"], ["multiple", "اختيار متعدد"], ["boolean", "نعم / لا"],
+  ["number", "رقم"], ["stepper", "عدّاد كمية"], ["slider", "شريط نطاق"], ["dropdown", "قائمة منسدلة"],
+  ["text", "نص"], ["textarea", "نص طويل"], ["info", "معلومات"], ["repeatable", "عناصر متكررة"],
 ] as const;
-export const billing = [["oneTime", "One-time"], ["monthly", "Monthly"], ["annual", "Annual"]] as const;
+export const billing = [["oneTime", "لمرة واحدة"], ["monthly", "شهري"], ["annual", "سنوي"]] as const;
 export const pricingMethods = [
-  ["unconfigured", "Unconfigured"], ["fixed", "Fixed price"], ["perUnit", "Per unit"],
-  ["tiered", "Tiered pricing"], ["volume", "Volume pricing"], ["includedQuantity", "Included quantity"],
-  ["percentage", "Percentage"], ["multiplier", "Multiplier"], ["minimum", "Minimum"],
-  ["maximum", "Maximum"], ["free", "Free"], ["included", "Included"], ["manual", "Manual quotation"],
+  ["unconfigured", "غير مُعد"], ["fixed", "سعر ثابت"], ["perUnit", "لكل وحدة"],
+  ["tiered", "تسعير بالشرائح"], ["volume", "تسعير بالحجم"], ["includedQuantity", "كمية مشمولة"],
+  ["percentage", "نسبة مئوية"], ["multiplier", "مضاعف"], ["minimum", "حد أدنى"],
+  ["maximum", "حد أقصى"], ["free", "مجاني"], ["included", "مشمول"], ["manual", "عرض سعر يدوي"],
 ] as const;
 
 export function reorder<T extends { order?: number }>(items: T[]) {
