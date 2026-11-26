@@ -64,6 +64,10 @@ jobs:
 
       - name: Upload dist to public_html over SFTP
         uses: appleboy/scp-action@v0.1.7
+        # الأكشن بيرفع الملفات بنجاح لكنه بيرجع exit code غير صفري بعد الرفع
+        # (سلوك معروف على استضافات مشتركة). الحكم النهائي هو خطوة التحقق
+        # اللي بعدين: لو الرفع فشل فعلًا هتفشل بسبب عدم تطابق الإصدار.
+        continue-on-error: true
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           port: ${{ secrets.HOSTINGER_SSH_PORT }}
@@ -72,38 +76,59 @@ jobs:
           source: frontend/dist/*
           target: public_html
           strip_components: 1
-          overwrite: true
           # بدون rm:true — كان بيحاول يمسح public_html كله قبل الرفع ويفشل
           # على ملفات مش مملوكة للمستخدم، وكان بيوقّع الموقع مؤقتًا.
           # الأصول القديمة لها أسماء hash مميزة فبقاؤها غير ضار وبيفيد التبويبات المفتوحة.
 
-      - name: Verify the deployed version matches this build
+      - name: Verify the deployed version and its assets match this build
         run: |
           EXPECTED=$(node -p "require('./dist/version.json').version")
           ACTUAL=""
-          for i in $(seq 1 12); do
+          for i in $(seq 1 18); do
             ACTUAL=$(curl -fsS "https://awexen.com/version.json?cb=$(date +%s)" \
               | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.parse(s).version||'')}catch{console.log('')}})")
             echo "attempt $i: deployed=$ACTUAL expected=$EXPECTED"
             if [ "$ACTUAL" = "$EXPECTED" ]; then
-              exit 0
+              break
             fi
             sleep 10
           done
-          echo "::error::Production version.json ($ACTUAL) does not match the built commit ($EXPECTED)"
-          exit 1
-
-      - name: Verify the site responds
-        run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://awexen.com/?cb=$(date +%s)" || true)
-          echo "awexen.com HTTP $STATUS"
-          if [ "$STATUS" != "200" ]; then
-            echo "::error::Site is not responding after deploy (HTTP $STATUS)"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Production version.json ($ACTUAL) does not match the built commit ($EXPECTED)"
             exit 1
           fi
 
+          # نتحقق من كل أصل في HTML الحي: لو الرفع كان جزئيًا هيظهر ملف ناقص
+          # أو رجوع صفحة الـfallback بدل JS/CSS.
+          HTML=$(curl -fsS "https://awexen.com/?cb=$(date +%s)")
+          ASSETS=$(echo "$HTML" | grep -oE '(src|href)="/[^"]+"' | sed 's/.*="//;s/"$//' | sort -u \
+            | grep -E '^/(assets|fonts|images)/' || true)
+          MISSING=0
+          for asset in $ASSETS; do
+            HEADERS=$(curl -fsS -o /dev/null -D - "https://awexen.com$asset" || true)
+            STATUS=$(echo "$HEADERS" | grep -E '^HTTP/' | tail -1 | grep -oE '[0-9]{3}' | head -1)
+            TYPE=$(echo "$HEADERS" | grep -i '^content-type:' | head -1)
+            echo "$STATUS $asset ($TYPE)"
+            if [ "$STATUS" != "200" ]; then
+              MISSING=$((MISSING + 1))
+            fi
+            case "$asset" in
+              *.js) echo "$TYPE" | grep -qi 'javascript' || MISSING=$((MISSING + 1)) ;;
+              *.css) echo "$TYPE" | grep -qi 'text/css' || MISSING=$((MISSING + 1)) ;;
+              *.woff2) echo "$TYPE" | grep -qi 'font' || MISSING=$((MISSING + 1)) ;;
+            esac
+          done
+          if [ "$MISSING" -ne 0 ]; then
+            echo "::error::$MISSING asset(s) referenced by the live HTML are missing or served with the wrong type"
+            exit 1
+          fi
+          echo "All live assets match the new build."
+
   database:
     name: Apply pending migrations
+    # الترحيلات بتتطبّق يدويًا من مالك المشروع على Supabase؛ الـjob بتاع
+    # النشر ما لازمش يعدّل قاعدة البيانات تلقائيًا مع كل push.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment: production
     steps:
