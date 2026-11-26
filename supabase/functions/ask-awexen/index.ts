@@ -28,8 +28,20 @@ function isRateLimited(request: Request) {
 }
 
 const fallbackAnswer = "مش متأكد من النقطة دي بصراحة — تحب أوصلك بحد من فريق أوكسين يجاوبك بدقة؟";
-const maxEntries = 40;
-const maxContextCharacters = 24_000;
+const maxEntries = 16;
+const maxContextCharacters = 12_000;
+
+// موديلات مجانية على OpenRouter نتحول لها لو الموديل الأساسي رفض الطلب
+// (رصيد خلص 402، موديل متوقف 404، أو ضغط 429) عشان المساعد ما يقفش.
+const fallbackModels = [
+  "particle-ai/particle-1:free",
+  "baidu/ernie-5.5-flash-preview:free",
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "openrouter/free",
+];
+const retryableStatuses = new Set([402, 403, 404, 429, 500, 502, 503]);
+/** لو الموديل الأساسي رفض بسبب الرصيد، منحاولهوش تاني لمدة 10 دقايق. */
+let primaryBlockedUntil = 0;
 
 type KnowledgeEntry = {
   title?: unknown;
@@ -157,11 +169,12 @@ Deno.serve(async (request) => {
   const history = sanitizeHistory(payload.history);
   const systemPrompt = [
     "أنت المساعد الذكي لأوكسين (awexen.com) — وكالة تصميم وتطوير مواقع ومتاجر وتطبيقات ومنتجات رقمية. اتكلم كإنك واحد شغال في أوكسين وبيرد على عميل ببساطة وود، مش كإنك روبوت بيقرأ من ملف.",
-    "اتكلم بنفس لغة الزائر: عربي بعامية مصرية طبيعية وخفيفة لما يكتب عربي، وإنجليزي مريح لما يكتب إنجليزي. جمل قصيرة متصلة زي ما بترد في واتساب، من غير عناوين ولا نقاط ولا ترقيم إلا لو بتعرض أسعار أو خطوات فعلًا محتاجة قائمة. الرد المعتاد جملة لتلات جمل، واطلب التفصيل بس لما السؤال يستاهل.",
-    "خليك بشري: متبدأش كل رد بنفس الافتتاحية، ومتستخدمش عبارات زي «بالتأكيد» أو «سؤال رائع» أو «حسب المعلومات المتاحة» أو «وفقًا للمراجع» أو «كمساعد ذكاء اصطناعي». رد على قد السؤال من غير حشو، ولو مناسب استخدم كلمة أو اتنين بتوصل المعنى أحسن من شرح رسمي.",
+    "اتكلم بنفس لغة الزائر: عربي بعامية مصرية طبيعية وخفيفة لما يكتب عربي، وإنجليزي مريح لما يكتب إنجليزي. لو ردك بالإنجليزي اكتب أسماء الباقات والخدمات إنجليزي مع نفس السعر عشان الرد يبقى متناسق. جمل قصيرة متصلة زي ما بترد في واتساب، من غير عناوين ولا نقاط ولا ترقيم إلا لو بتعرض أسعار أو خطوات فعلًا محتاجة قائمة. الرد المعتاد جملة لتلات جمل، واطلب التفصيل بس لما السؤال يستاهل.",
+    "خليك بشري: متبدأش كل رد بنفس الافتتاحية، ومتستخدمش عبارات زي «بالتأكيد» أو «سؤال رائع» أو «حسب المعلومات المتاحة» أو «وفقًا للمراجع» أو «كمساعد ذكاء اصطناعي». رد على قد السؤال من غير حشو.",
+    "اكتب نص عادي بس: ممنوع Markdown خالص — ممنوع ** أو # أو _ أو ` أو عناوين أو خطوط فاصلة. لو محتاج قائمة (زي الأسعار) استخدم سطر لكل عنصر بشرطة عادية (-).",
     "المراجع اللي هتوصلك نقطة بداية مش نص هتنقله: خد منها حقائق أوكسين الدقيقة بس (الأسماء، الأسعار، الباقات، الخدمات، المشاريع، بيانات التواصل)، وصيغ باقي الرد بأسلوبك وخبرتك. التوازن المطلوب قريب من 50/50 بين معلومة المرجع وطبيعتك في الكلام: متحولش الرد لإعادة صياغة حرفية للمرجع، ومتسيبش المعلومة الصح وتفتي من دماغك. لو المرجع مفيد جزئيًا خد الجزء المفيد وكمّل من عندك.",
     "لو سألك مين أنت: عرّف نفسك بشكل طبيعي إنك مساعد أوكسين وبتساعد في تصميم وتطوير المواقع والمتاجر والمنتجات الرقمية، وكمل كلام عادي مش تعريف رسمي.",
-    "لو سأل عن الأسعار أو الباقات: اذكر الباقات وأسعارها وعملتها وميزتها الأساسية من المراجع، ووضّح ببساطة إن السعر النهائي على حسب نطاق المشروع. ممنوع تخترع سعر أو باقة أو رقم تواصل مش موجود في المراجع.",
+    "لو سأل عن الأسعار أو الباقات: اذكر الباقات وأسعارها وعملتها وميزتها الأساسية من المراجع، واكتب أسماء الباقات وأرقام الأسعار زي ما هي بالحرف من غير أي تغيير أو اختصار، ووضّح ببساطة إن السعر النهائي على حسب نطاق المشروع. ممنوع تخترع سعر أو باقة أو رقم تواصل مش موجود في المراجع.",
     "لو سأل عن خدمة: اشرحها كأنك بتشرح لصاحبك، اربطها باحتياجه، واذكر مثال من شغلنا لو مناسب، واقترح خطوة واحدة عملية.",
     "الأسئلة العامة أو التقنية اللي مش عن أوكسين: جاوب من خبرتك زي أي حد شاطر في المجال، ولو مش متأكد قول كده بصراحة. مش شرط تربط كل رد بأوكسين، بس لو مناسب قرّب الكلام لخدماتنا في جملة قصيرة.",
     "لو السؤال خارج المجال تمامًا: رد ببساطة وذوق، ولو تعرف إجابة سريعة ادّيها وارجع لمجالنا بطبيعة الحال من غير رفض جاف.",
@@ -170,38 +183,60 @@ Deno.serve(async (request) => {
   ].join(" ");
   const userPrompt = `مراجع مساعدة عن أوكسين (نقط بداية — استخدم منها الحقائق المؤكدة زي ما هي وصيغ الباقي بأسلوبك):\n${knowledgeContext(entries)}\n\nسؤال الزائر:\n${question}`;
 
-  try {
-    const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.apiKey}`,
-        "HTTP-Referer": Deno.env.get("OPENROUTER_SITE_URL") ?? "https://awexen.com",
-        "X-Title": Deno.env.get("OPENROUTER_SITE_NAME") ?? "Ask Awexen",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: config.model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...history,
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 700,
-      }),
-      signal: AbortSignal.timeout(35000),
-    });
+  const attempts: Array<{ model: string; maxTokens: number }> = [];
+  if (Date.now() >= primaryBlockedUntil) {
+    attempts.push({ model: config.model, maxTokens: 700 });
+  }
+  for (const model of fallbackModels) {
+    if (model !== config.model) attempts.push({ model, maxTokens: 450 });
+  }
+  if (attempts.length === 0) attempts.push({ model: fallbackModels[0], maxTokens: 450 });
 
-    if (!upstream.ok) {
-      const providerError = (await upstream.text()).slice(0, 800);
-      console.error(`OpenRouter HTTP ${upstream.status}: ${providerError}`);
-      return json({ error: "تعذر الحصول على رد من مزود الذكاء الاصطناعي." }, upstream.status === 429 ? 429 : 502);
+  try {
+    let lastStatus = 0;
+    for (const attempt of attempts) {
+      const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${config.apiKey}`,
+          "HTTP-Referer": Deno.env.get("OPENROUTER_SITE_URL") ?? "https://awexen.com",
+          "X-Title": Deno.env.get("OPENROUTER_SITE_NAME") ?? "Ask Awexen",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: attempt.model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...history,
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.7,
+          max_tokens: attempt.maxTokens,
+        }),
+        signal: AbortSignal.timeout(35000),
+      });
+
+      if (!upstream.ok) {
+        lastStatus = upstream.status;
+        const providerError = (await upstream.text()).slice(0, 500);
+        console.error(`OpenRouter ${attempt.model} HTTP ${upstream.status}: ${providerError}`);
+        if (upstream.status === 402 && attempt.model === config.model) {
+          primaryBlockedUntil = Date.now() + 10 * 60_000;
+        }
+        if (retryableStatuses.has(upstream.status)) continue;
+        return json({ error: "تعذر الحصول على رد من مزود الذكاء الاصطناعي." }, upstream.status === 429 ? 429 : 502);
+      }
+
+      const result = await upstream.json();
+      const answer = String(result?.choices?.[0]?.message?.content ?? "").trim();
+      if (!answer) {
+        console.error(`OpenRouter ${attempt.model} returned an empty answer.`);
+        continue;
+      }
+      return json({ answer, grounded: entries.length > 0 && !answer.includes(fallbackAnswer) });
     }
 
-    const result = await upstream.json();
-    const answer = String(result?.choices?.[0]?.message?.content ?? "").trim();
-    if (!answer) return json({ error: "لم يصل رد صالح من مزود الذكاء الاصطناعي." }, 502);
-    return json({ answer, grounded: entries.length > 0 && !answer.includes(fallbackAnswer) });
+    return json({ error: "تعذر الحصول على رد من مزود الذكاء الاصطناعي." }, lastStatus === 429 ? 429 : 502);
   } catch (error) {
     console.error("Ask Awexen failed:", error instanceof Error ? error.name : "UnknownError");
     return json({ error: "خدمة الذكاء الاصطناعي غير متاحة مؤقتًا." }, 502);
