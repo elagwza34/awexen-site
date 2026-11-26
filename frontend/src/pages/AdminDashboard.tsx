@@ -116,6 +116,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
   const [calculatorAccessVerified, setCalculatorAccessVerified] = useState(false);
   const [navSearch, setNavSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
 
@@ -223,15 +224,22 @@ export default function AdminDashboard({ userId }: { userId: string }) {
     }
   };
 
-  const clearCache = () => {
-    // مسح Cache Storage للمتصفح ثم إعادة تحميل الصفحة لجلب نسخة index.html الجديدة
-    // المنشورة حديثًا (رأسها no-cache, must-revalidate بعد آخر publish).
-    if (typeof window !== "undefined" && "caches" in window) {
-      void (caches as CacheStorage).keys().then((names) => {
-        for (const name of names) void (caches as CacheStorage).delete(name);
-      });
+  const clearCache = async () => {
+    if (clearingCache) return;
+    setClearingCache(true);
+    try {
+      // مسح Cache Storage والنسخة القديمة من service worker ثم إعادة التحميل
+      // بـ index.html جديد (رأسه no-cache) عشان أي نشر حديث يظهر فورًا.
+      if ("caches" in window) {
+        const names = await caches.keys();
+        await Promise.all(names.map((name) => caches.delete(name)));
+      }
+      const registration = await navigator.serviceWorker?.getRegistration?.();
+      await registration?.update?.();
+    } catch {
+      /* المسح أفضل جهد؛ إعادة التحميل بتتم على أي حال. */
     }
-    window.location.href = window.location.pathname + "?v=" + Date.now();
+    window.location.replace(`${window.location.pathname}?v=${Date.now()}`);
   };
 
   return (
@@ -248,7 +256,17 @@ export default function AdminDashboard({ userId }: { userId: string }) {
             <a href="/" target="_blank" rel="noreferrer" className="admin-button-secondary !hidden sm:!inline-flex">عرض الموقع</a>
             <span className="hidden max-w-44 truncate text-[9.5px] text-white/35 lg:block" dir="ltr">{email}</span>
             <span className="hidden rounded-full border border-brand-500/20 bg-brand-500/[0.06] px-2.5 py-1 text-[9px] font-bold text-brand-200 sm:block">{role}</span>
-            <button type="button" onClick={() => void clearCache()} className="admin-icon-button !hidden text-brand-300 hover:text-brand-200 sm:!inline-flex" aria-label="مسح الكاش وإعادة تحميل الصفحة"><RefreshCw className="h-3.5 w-3.5" /></button>
+            <button
+              type="button"
+              onClick={() => void clearCache()}
+              disabled={clearingCache}
+              className="admin-button-secondary shrink-0 disabled:opacity-60"
+              aria-label="مسح الكاش وإعادة تحميل الصفحة"
+              title="مسح الكاش وإعادة تحميل الصفحة"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${clearingCache ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">{clearingCache ? "جاري المسح…" : "مسح الكاش"}</span>
+            </button>
             <button type="button" onClick={() => void logout()} className="admin-icon-button !hidden text-red-300 sm:!inline-flex" aria-label="تسجيل الخروج"><LogOut className="h-3.5 w-3.5" /></button>
           </div>
         </div>
@@ -315,7 +333,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
           {filteredItems.length === 0 && <p className="p-4 text-sm text-white/55">لا توجد أقسام مطابقة لبحثك.</p>}
           <div className="mt-5 grid gap-2 border-t border-white/10 pt-4 lg:hidden">
             <a href="/" target="_blank" rel="noreferrer" className="admin-button-secondary">عرض الموقع</a>
-            <button type="button" onClick={clearCache} className="admin-button-secondary"><RefreshCw className="h-4 w-4" />تحديث لوحة التحكم</button>
+            <button type="button" onClick={() => void clearCache()} disabled={clearingCache} className="admin-button-secondary"><RefreshCw className={`h-4 w-4 ${clearingCache ? "animate-spin" : ""}`} />{clearingCache ? "جاري مسح الكاش…" : "مسح الكاش"}</button>
             <button type="button" onClick={() => void logout()} className="admin-button-secondary text-red-300"><LogOut className="h-4 w-4" />تسجيل الخروج</button>
           </div>
         </aside>
