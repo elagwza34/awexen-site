@@ -21,21 +21,24 @@
   padding: clamp(1.5rem, 6vw, 4rem);
 }
 
-.offer-brand { font-size: 1.5rem; font-weight: 900; letter-spacing: .09em; text-align: start; }
-.offer-brand span, .offer-kicker { color: #ff9a52; }
+.offer-logo { display: block; width: clamp(8rem, 22vw, 12rem); height: auto; }
+.offer-kicker { color: #ff9a52; }
 .offer-kicker { font-size: .9rem; font-weight: 700; margin-block-start: 2.5rem; }
-.offer-cover h1 { font-size: clamp(1.8rem, 5vw, 3.5rem); font-weight: 900; line-height: 1.2; margin-block: .55rem; }
+.offer-document .offer-paper .offer-cover h1 { color: #fff; font-size: clamp(1.8rem, 5vw, 3.5rem); font-weight: 900; line-height: 1.25; margin-block: .55rem; }
 .offer-client { font-size: 1.25rem; font-weight: 700; }
 .offer-body { line-height: 1.8; margin-block-start: .75rem; white-space: pre-wrap; }
 .offer-section { border-block-end: 1px solid #dce0e3; padding: clamp(1.5rem, 5vw, 3rem); }
 .offer-section:last-child { border-block-end: 0; }
-.offer-section h2 { border-inline-start: 4px solid #e87524; font-size: 1.35rem; font-weight: 800; padding-inline-start: .75rem; }
+.offer-document .offer-paper .offer-section h2 { border-inline-start: 4px solid #e87524; color: #202328; font-size: 1.35rem; font-weight: 800; padding-inline-start: .75rem; }
 .offer-table { margin-block-start: 1rem; overflow-x: auto; }
 .offer-table table { border-collapse: collapse; width: 100%; }
 .offer-table th, .offer-table td { border: 1px solid #dce0e3; padding: .65rem .8rem; text-align: start; }
 .offer-table th { background: #f3f4f4; }
-.offer-print { background: #202328; border-radius: .5rem; color: #fff; display: block; margin: 0 auto 1rem; padding: .6rem 1rem; }
-.offer-print:focus-visible { outline: 3px solid #bf5110; outline-offset: 3px; }
+.offer-toolbar { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: space-between; align-items: center; margin: 0 auto 1rem; max-width: 860px; }
+.offer-languages { display: inline-flex; border: 1px solid #94999e; border-radius: .5rem; background: #fff; padding: .15rem; }
+.offer-languages button, .offer-print { border-radius: .35rem; min-height: 44px; padding: .5rem .85rem; font-weight: 700; }
+.offer-languages button[aria-pressed="true"], .offer-print { background: #202328; color: #fff; }
+.offer-toolbar button:focus-visible { outline: 3px solid #bf5110; outline-offset: 3px; }
 
 .offer-calculator { background: #fff8f2; }
 .offer-calculator fieldset { margin-block: 1rem; min-width: 0; }
@@ -47,11 +50,13 @@
 .offer-calculator-total { border-block-start: 2px solid #e87524; font-size: 1.15rem; font-weight: 800; }
 
 @media print {
-  .offer-print { display: none; }
+  .offer-toolbar { display: none; }
   .offer-document { background: white; padding: 0; }
   .offer-paper { border: 0; box-shadow: none; max-width: none; }
   .offer-cover { background: white; color: #202328; }
-  .offer-brand span, .offer-kicker { color: #9b420b; }
+  .offer-document .offer-paper .offer-cover h1 { color: #202328; }
+  .offer-logo { content: url("/images/awexen%20(2).png"); }
+  .offer-kicker { color: #9b420b; }
   .offer-section h2 { break-after: avoid; }
   .offer-table { overflow: visible; }
   .offer-table tr { break-inside: avoid; }

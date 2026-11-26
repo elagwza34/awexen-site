@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { offerTotal, defaultOfferOptions, parseOfferAmount } from "../src/lib/offerPricing.ts";
-import { isOfferPath, isOfferSlug, offerPath, offerSlugFromName, offerTable } from "../src/lib/offers.ts";
+import { isOfferPath, isOfferSlug, latinDigits, offerPath, offerSlugFromName, offerTable } from "../src/lib/offers.ts";
+
+assert.equal(latinDigits("٠١٢٣٤٥٦٧٨٩ ۰۱۲۳۴۵۶۷۸۹"), "0123456789 0123456789");
 
 const pricing = {
   baseMinor: 3200000,

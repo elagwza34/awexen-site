@@ -32,6 +32,14 @@ export function isOfferPath(pathname: string) {
 
 export type OfferSection = { heading: string; body: string; table: string };
 
+export type OfferTranslation = {
+  title: string;
+  summary: string;
+  sections: OfferSection[];
+  pricingNote: string;
+  optionLabels: Record<string, string>;
+};
+
 export type OfferDraft = {
   client_name: string;
   title: string;
@@ -43,7 +51,11 @@ export type OfferDraft = {
   published: boolean;
 };
 
-export type SavedOffer = OfferDraft & { id: string; revision: string };
+export type SavedOffer = OfferDraft & { id: string; revision: string; translation?: OfferTranslation | null };
+
+export function latinDigits(value: string): string {
+  return value.replace(/[٠-٩۰-۹]/g, (digit) => String(digit.charCodeAt(0) % 16));
+}
 
 export function offerTable(text: string) {
   return text.split(/\r?\n/).filter((line) => line.trim())

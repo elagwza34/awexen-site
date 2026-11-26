@@ -2,10 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import OfferDocument from "../components/OfferDocument";
 import { useSeoOverride } from "../components/SeoManager";
-import type { OfferDraft } from "../lib/offers";
+import type { OfferDraft, OfferTranslation } from "../lib/offers";
 import { supabase } from "../lib/supabase";
 
-type PublishedOffer = Pick<OfferDraft, "title" | "client_name" | "language" | "summary" | "sections" | "pricing">;
+type PublishedOffer = Pick<OfferDraft, "title" | "client_name" | "language" | "summary" | "sections" | "pricing"> & {
+  translation?: OfferTranslation | null;
+};
 
 export default function PublicOffer() {
   const { offerSlug } = useParams();
@@ -36,5 +38,5 @@ export default function PublicOffer() {
       <Link className="mt-3 inline-block underline" to="/">Back to AWEXEN</Link>
     </div>
   );
-  return <OfferDocument key={offerSlug} offer={query.data} printable />;
+  return <OfferDocument key={offerSlug} offer={query.data} translation={query.data.translation} printable />;
 }

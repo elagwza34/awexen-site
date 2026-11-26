@@ -202,7 +202,7 @@ export default function OffersPanel() {
               <button type="button" className="admin-button-secondary" aria-pressed={preview}
                 onClick={() => setPreview(!preview)}>{preview ? "إخفاء المعاينة" : "معاينة العرض"}</button>
             </div>
-            {preview && <OfferDocument offer={form} />}
+            {preview && <OfferDocument offer={form} translation={editing?.translation} />}
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={form.published}
                 onChange={(event) => setForm({ ...form, published: event.target.checked })} />
