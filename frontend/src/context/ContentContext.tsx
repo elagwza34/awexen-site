@@ -51,7 +51,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
         setLoading(true);
         void supabase
           .from("site_settings")
-          .select("name,brand_ar,tagline,description,address,email,phones,hours")
+          .select("name,brand_ar,tagline,description,address,email,phones,hours,whatsapp")
           .eq("id", 1)
           .maybeSingle()
           .then(({ data: remote }) => {
@@ -69,6 +69,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
                 email: remote.email,
                 phones: remote.phones,
                 hours: remote.hours,
+                whatsapp: remote.whatsapp || undefined,
               },
             }));
           });

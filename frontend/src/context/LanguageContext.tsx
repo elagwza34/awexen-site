@@ -17,6 +17,7 @@ export type TranslationKey = string;
  * العربية هي اللغة الأساسية ويقع أي مفتاح ناقص على النسخة العربية.
  */
 const translations: Record<TranslationKey, { ar: string; en: string }> = {
+  "nav.projectCalculator": { ar: "حاسبة تكلفة المشروع", en: "Project cost calculator" },
   // ---------- التنقل ----------
   "nav.home": { ar: "الرئيسية", en: "Home" },
   "nav.services": { ar: "الخدمات", en: "Services" },

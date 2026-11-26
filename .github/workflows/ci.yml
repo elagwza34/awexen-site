@@ -18,6 +18,7 @@ jobs:
           supabase/functions/extract-knowledge-pdf/index.ts
           supabase/functions/lms-public/index.ts
           supabase/functions/lms-api/index.ts
+          supabase/functions/project-calculator/index.ts
       - run: >-
           deno lint
           supabase/functions/_shared/http.ts
@@ -25,6 +26,9 @@ jobs:
           supabase/functions/extract-knowledge-pdf/index.ts
           supabase/functions/lms-public/index.ts
           supabase/functions/lms-api/index.ts
+          supabase/functions/project-calculator/
+          supabase/functions/_shared/calculator/
+      - run: deno test supabase/functions/project-calculator/public-config_test.ts
 
   frontend:
     runs-on: ubuntu-latest
@@ -39,6 +43,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - run: node --experimental-strip-types scripts/test-calculator.mjs
       - run: npm audit --audit-level=high
       - run: npm run test:crm
       - run: npm exec tsc -- --noEmit

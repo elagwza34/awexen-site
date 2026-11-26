@@ -42,6 +42,10 @@ const pages: Record<string, SeoEntry> = {
     description:
       "أرسل تفاصيل مشروعك إلى فريق Awexen واحصل على تصور أولي وخطة تنفيذ وعرض سعر مناسب لتصميم موقع أو متجر أو تطبيق.",
   },
+  "/project-calculator": {
+    title: "حاسبة تكلفة المشروع | Awexen",
+    description: "حدد متطلبات مشروعك واحصل على تقدير مبدئي لتكلفة التطوير والتشغيل.",
+  },
   "/blog": {
     title: "مدونة Awexen | أدلة عملية للمواقع والنمو الرقمي",
     description:

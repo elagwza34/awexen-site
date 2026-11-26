@@ -23,6 +23,7 @@ export type SectionKey =
   | "ai"
   | "inquiries"
   | "pricing"
+  | "calculator"
   | "users"
   | "settings";
 

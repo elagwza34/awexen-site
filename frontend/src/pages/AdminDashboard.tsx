@@ -5,6 +5,7 @@ import {
   BookOpenText,
   Bot,
   BriefcaseBusiness,
+  Calculator,
   CircleDollarSign,
   GraduationCap,
   Headset,
@@ -32,6 +33,7 @@ import {
 import QuoteInbox from "../admin/QuoteInbox";
 import OffersPanel from "../admin/OffersPanel";
 import AnalyticsPanel from "../admin/AnalyticsPanel";
+import CalculatorAdmin from "../admin/calculator/CalculatorAdmin";
 import { analyticsAdminAllowed } from "../lib/trackingPolicy";
 import ResourceManager from "../admin/ResourceManager";
 import KnowledgeManager from "../admin/KnowledgeManager";
@@ -69,6 +71,7 @@ const navItems: Array<{
   { key: "messages", label: "رسائل التواصل", icon: Mail, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "support", label: "محادثات الدعم", icon: Headset, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "quotes", label: "طلبات عرض السعر", icon: FileText, roles: ["owner", "admin", "support"], group: "المبيعات" },
+  { key: "calculator", label: "حاسبة تكلفة المشاريع", icon: Calculator, roles: ["owner", "admin"], group: "المبيعات" },
   { key: "offers", label: "عروض العملاء · Offers", icon: FileCheck2, roles: ["owner", "admin"], group: "المبيعات" },
   { key: "initiative", label: "طلبات المبادرة", icon: Sparkles, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "newsletter", label: "القائمة البريدية", icon: Send, roles: ["owner", "admin", "editor", "support"], group: "المبيعات" },
@@ -110,6 +113,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
   const [email, setEmail] = useState("");
   const [sessionReady, setSessionReady] = useState(false);
   const [analyticsAccessVerified, setAnalyticsAccessVerified] = useState(false);
+  const [calculatorAccessVerified, setCalculatorAccessVerified] = useState(false);
   const [navSearch, setNavSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -150,6 +154,8 @@ export default function AdminDashboard({ userId }: { userId: string }) {
     }
     void supabase.auth.getSession().then(async ({ data }) => {
       if (data.session) {
+        const metadataRole = data.session.user.app_metadata.role;
+        setCalculatorAccessVerified(metadataRole === "owner" || metadataRole === "admin");
         const access = await loadDashboardAccess(data.session);
         if (access.adminRole) setRole(access.adminRole);
         setAnalyticsAccessVerified(access.role === "admin" && analyticsAdminAllowed(access.adminRole ?? "", true));
@@ -182,7 +188,11 @@ export default function AdminDashboard({ userId }: { userId: string }) {
     support: supportUnreadQuery.data ?? 0,
   };
 
-  const visibleItems = useMemo(() => navItems.filter((item) => item.roles.includes(role) && (item.key !== "analytics" || analyticsAccessVerified)), [role, analyticsAccessVerified]);
+  const visibleItems = useMemo(() => navItems.filter((item) =>
+    item.roles.includes(role)
+    && (item.key !== "analytics" || analyticsAccessVerified)
+    && (item.key !== "calculator" || calculatorAccessVerified)
+  ), [role, analyticsAccessVerified, calculatorAccessVerified]);
   const filteredItems = useMemo(() => {
     const query = navSearch.trim().toLocaleLowerCase("ar");
     return query ? visibleItems.filter((item) => `${item.label} ${item.group}`.toLocaleLowerCase("ar").includes(query)) : visibleItems;
@@ -333,6 +343,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
             ]} />
           )}
           {active === "quotes" && <QuoteInbox canDelete={canDeleteRecords} />}
+          {active === "calculator" && <CalculatorAdmin />}
           {active === "initiative" && (
             <InboxManager
               table="initiative_applications"

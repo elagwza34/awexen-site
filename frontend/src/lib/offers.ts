@@ -3,7 +3,7 @@ import type { OfferPricing } from "./offerPricing";
 const reservedRoots = new Set([
   "about", "admin", "assets", "awexen", "blog", "chat", "checkout", "contact",
   "courses", "export", "images", "initiative", "instructor", "jobs", "learn",
-  "login", "pages", "pms", "portfolio", "privacy", "quote", "reset-password",
+  "login", "pages", "pms", "portfolio", "privacy", "project-calculator", "quote", "reset-password",
   "services", "terms",
 ]);
 

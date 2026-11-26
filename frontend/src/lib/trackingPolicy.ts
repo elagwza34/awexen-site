@@ -6,7 +6,7 @@ export const GA4_MEASUREMENT_ID = "G-E76S8S841V";
 export function publicPage(pathname: string, search = ""): string | null {
   if (new URLSearchParams(search).has("cmsPreview")) return null;
   const path = pathname.replace(/\/+$/, "") || "/";
-  if (["/", "/services", "/portfolio", "/pms", "/about", "/contact", "/quote", "/initiative", "/blog", "/jobs", "/courses", "/privacy", "/terms"].includes(path)) return path;
+  if (["/", "/services", "/portfolio", "/pms", "/about", "/contact", "/quote", "/project-calculator", "/initiative", "/blog", "/jobs", "/courses", "/privacy", "/terms"].includes(path)) return path;
   // Collapse dynamic slugs: user-controlled path segments never leave the site.
   const match = /^\/(services|portfolio|blog|jobs|courses|pages)\/[^/]+$/.exec(path);
   return match ? `/${match[1]}/detail` : null;

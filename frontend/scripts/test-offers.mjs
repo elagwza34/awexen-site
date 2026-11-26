@@ -39,7 +39,8 @@ for (const slug of ["", "gantry/co", "gantry--co", "gantry\n", "-gantry", "admin
 }
 
 const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
-const migration = readFileSync(new URL("../../supabase/migrations/202611260002_client_offers.sql", import.meta.url), "utf8");
+const migration = ["202611260002_client_offers", "202611260005_project_calculator"]
+  .map((name) => readFileSync(new URL(`../../supabase/migrations/${name}.sql`, import.meta.url), "utf8")).join("\n");
 for (const [, root] of app.matchAll(/<Route path="\/([a-z][a-z-]*)(?=["/])/g)) {
   assert.equal(isOfferSlug(root), false, root);
   assert.ok(migration.includes(`'${root}'`), root);

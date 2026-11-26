@@ -37,6 +37,7 @@ const PMS = lazy(() => import("./pages/PMS"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Quote = lazy(() => import("./pages/Quote"));
+const ProjectCalculator = lazy(() => import("./pages/ProjectCalculator"));
 const Initiative = lazy(() => import("./pages/Initiative"));
 const ExportData = lazy(() => import("./pages/ExportData"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
@@ -246,6 +247,7 @@ function AppShell() {
   const isLoginRoute = pathname === "/login";
   const isChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
   const isClientOfferRoute = isOfferPath(pathname);
+  const isCalculatorRoute = pathname.replace(/\/$/, "") === "/project-calculator";
   const isStandaloneRoute = isAdminRoute || isLearningRoute || isInstructorRoute || isLoginRoute || isChatRoute || isClientOfferRoute || pathname === "/reset-password";
   const isLightPortal = isLearningRoute || isInstructorRoute || isClientOfferRoute;
 
@@ -280,6 +282,7 @@ function AppShell() {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/quote" element={<Quote />} />
+            <Route path="/project-calculator" element={<ProjectCalculator />} />
             <Route path="/initiative" element={<Initiative />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogArticle />} />
@@ -318,9 +321,9 @@ function AppShell() {
         {!isStandaloneRoute && (
           <>
             <Footer />
-            <FloatingActions />
-            <FloatingDock />
-            <MobileBar />
+            {!isCalculatorRoute && <FloatingActions />}
+            {!isCalculatorRoute && <FloatingDock />}
+            {!isCalculatorRoute && <MobileBar />}
           </>
         )}
       </div>

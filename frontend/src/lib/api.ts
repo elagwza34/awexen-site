@@ -34,7 +34,7 @@ export type Project = {
 export type Plan = (typeof localPlans)[number];
 export type Testimonial = (typeof localTestimonials)[number];
 export type Stat = (typeof localStats)[number];
-export type Settings = typeof localSiteInfo;
+export type Settings = typeof localSiteInfo & { whatsapp?: string };
 
 export type Content = {
   services: Service[];

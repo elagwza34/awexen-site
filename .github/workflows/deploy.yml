@@ -152,6 +152,11 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
+      - name: Deploy project-calculator
+        run: supabase functions deploy project-calculator --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --no-verify-jwt
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
       - name: Verify the public health endpoint answers
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \

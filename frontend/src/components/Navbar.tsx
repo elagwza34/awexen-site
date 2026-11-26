@@ -11,6 +11,7 @@ import CmsEditable from "../admin/cms/CmsEditable";
 import { FEATURES, visibleLinks } from "../lib/features";
 
 const mobileLinks = visibleLinks([
+  { key: "nav.projectCalculator", to: "/project-calculator" },
   { key: "nav.portfolio", to: "/portfolio" },
   { key: "nav.pms", to: "/pms" },
   { key: "nav.pricing", to: "/#pricing" },
@@ -30,6 +31,7 @@ const knowledgeLinks = visibleLinks([
 ]);
 
 const companyLinks = [
+  { key: "nav.projectCalculator", to: "/project-calculator" },
   { key: "nav.about", to: "/about" },
   { key: "nav.contact", to: "/contact" },
 ];

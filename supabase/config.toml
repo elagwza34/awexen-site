@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.form-notify]
 verify_jwt = false
+
+[functions.project-calculator]
+verify_jwt = false
