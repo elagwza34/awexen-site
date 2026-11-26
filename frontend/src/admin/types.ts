@@ -8,6 +8,7 @@ export type SectionKey =
   | "messages"
   | "support"
   | "quotes"
+  | "offers"
   | "initiative"
   | "newsletter"
   | "clients"

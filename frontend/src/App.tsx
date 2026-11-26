@@ -16,6 +16,7 @@ import MobileBar from "./components/MobileBar";
 import SeoManager from "./components/SeoManager";
 import ConsentPopup from "./components/ConsentPopup";
 import AnalyticsRouteTracker from "./components/AnalyticsRouteTracker";
+import { isOfferPath } from "./lib/offers";
 import { ContentProvider } from "./context/ContentContext";
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 import { DashboardThemeProvider } from "./context/DashboardThemeContext";
@@ -44,6 +45,7 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const PublicOffer = lazy(() => import("./pages/PublicOffer"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogArticle = lazy(() => import("./pages/Blog").then((module) => ({ default: module.BlogArticle })));
 const Jobs = lazy(() => import("./pages/Jobs"));
@@ -243,15 +245,16 @@ function AppShell() {
   const isInstructorRoute = pathname === "/instructor" || pathname.startsWith("/instructor/");
   const isLoginRoute = pathname === "/login";
   const isChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
-  const isStandaloneRoute = isAdminRoute || isLearningRoute || isInstructorRoute || isLoginRoute || isChatRoute || pathname === "/reset-password";
-  const isLightPortal = isLearningRoute || isInstructorRoute;
+  const isClientOfferRoute = isOfferPath(pathname);
+  const isStandaloneRoute = isAdminRoute || isLearningRoute || isInstructorRoute || isLoginRoute || isChatRoute || isClientOfferRoute || pathname === "/reset-password";
+  const isLightPortal = isLearningRoute || isInstructorRoute || isClientOfferRoute;
 
   return (
     <>
       <RouteEffects />
       <SeoManager />
-      <AnalyticsRouteTracker />
-      <ConsentPopup />
+      {!isClientOfferRoute && <AnalyticsRouteTracker />}
+      {!isClientOfferRoute && <ConsentPopup />}
       {!isStandaloneRoute && <ScrollProgress />}
 
       <a href="#main" className="skip-link">
@@ -306,6 +309,7 @@ function AppShell() {
             <Route path="/admin" element={<LegacyAdminRedirect />} />
             <Route path="/admin/*" element={<LegacyAdminRedirect />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/:offerSlug" element={isClientOfferRoute ? <PublicOffer /> : <NotFound />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>

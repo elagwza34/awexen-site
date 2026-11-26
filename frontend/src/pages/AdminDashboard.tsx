@@ -30,6 +30,7 @@ import {
   X,
 } from "lucide-react";
 import QuoteInbox from "../admin/QuoteInbox";
+import OffersPanel from "../admin/OffersPanel";
 import AnalyticsPanel from "../admin/AnalyticsPanel";
 import { analyticsAdminAllowed } from "../lib/trackingPolicy";
 import ResourceManager from "../admin/ResourceManager";
@@ -68,6 +69,7 @@ const navItems: Array<{
   { key: "messages", label: "رسائل التواصل", icon: Mail, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "support", label: "محادثات الدعم", icon: Headset, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "quotes", label: "طلبات عرض السعر", icon: FileText, roles: ["owner", "admin", "support"], group: "المبيعات" },
+  { key: "offers", label: "عروض العملاء · Offers", icon: FileCheck2, roles: ["owner", "admin"], group: "المبيعات" },
   { key: "initiative", label: "طلبات المبادرة", icon: Sparkles, roles: ["owner", "admin", "support"], group: "المبيعات" },
   { key: "newsletter", label: "القائمة البريدية", icon: Send, roles: ["owner", "admin", "editor", "support"], group: "المبيعات" },
   { key: "clients", label: "إدارة العملاء", icon: UsersRound, roles: ["owner", "admin", "support"], group: "المبيعات" },
@@ -318,6 +320,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
           {active === "lms" && <LmsManager role={role} />}
           {active === "approvals" && <LmsApprovals role={role} view="courses" />}
           {active === "clients" && <CrmWorkspace role={role} userId={userId} />}
+          {active === "offers" && <OffersPanel />}
           {active === "trusted_logos" && <ResourceManager definition={resources.trusted_logos} draftOwnerId={userId} />}
           {active === "knowledge" && <KnowledgeManager userId={userId} />}
           {active === "ai" && <AiChatPanel />}

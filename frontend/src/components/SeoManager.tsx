@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { isOfferPath } from "../lib/offers";
 
 const SITE_URL = "https://awexen.com";
 const DEFAULT_IMAGE = `${SITE_URL}/images/fav--icon.png`;
@@ -106,6 +107,9 @@ export function useSeoOverride(title?: string, description?: string) {
 }
 
 function routeMeta(pathname: string): SeoEntry {
+  if (isOfferPath(pathname)) {
+    return { title: "Client offer | AWEXEN", description: "AWEXEN client proposal.", noindex: true };
+  }
   if (pathname.startsWith("/services/")) {
     return {
       title: "تفاصيل خدمة رقمية | Awexen",

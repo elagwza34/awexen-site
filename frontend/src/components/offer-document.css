@@ -1,0 +1,49 @@
+.offer-document {
+  background: #eeefef;
+  color: #202328;
+  min-height: 100%;
+  padding: clamp(1rem, 4vw, 3rem);
+}
+
+.offer-paper {
+  background: #fff;
+  border: 1px solid #dce0e3;
+  box-shadow: 0 12px 36px #20232812;
+  margin: 0 auto;
+  max-width: 860px;
+  overflow-wrap: anywhere;
+}
+
+.offer-cover {
+  background: #202328;
+  border-block-end: 5px solid #e87524;
+  color: #fff;
+  padding: clamp(1.5rem, 6vw, 4rem);
+}
+
+.offer-brand { font-size: 1.5rem; font-weight: 900; letter-spacing: .09em; text-align: start; }
+.offer-brand span, .offer-kicker { color: #ff9a52; }
+.offer-kicker { font-size: .9rem; font-weight: 700; margin-block-start: 2.5rem; }
+.offer-cover h1 { font-size: clamp(1.8rem, 5vw, 3.5rem); font-weight: 900; line-height: 1.2; margin-block: .55rem; }
+.offer-client { font-size: 1.25rem; font-weight: 700; }
+.offer-body { line-height: 1.8; margin-block-start: .75rem; white-space: pre-wrap; }
+.offer-section { border-block-end: 1px solid #dce0e3; padding: clamp(1.5rem, 5vw, 3rem); }
+.offer-section:last-child { border-block-end: 0; }
+.offer-section h2 { border-inline-start: 4px solid #e87524; font-size: 1.35rem; font-weight: 800; padding-inline-start: .75rem; }
+.offer-table { margin-block-start: 1rem; overflow-x: auto; }
+.offer-table table { border-collapse: collapse; width: 100%; }
+.offer-table th, .offer-table td { border: 1px solid #dce0e3; padding: .65rem .8rem; text-align: start; }
+.offer-table th { background: #f3f4f4; }
+.offer-print { background: #202328; border-radius: .5rem; color: #fff; display: block; margin: 0 auto 1rem; padding: .6rem 1rem; }
+.offer-print:focus-visible { outline: 3px solid #bf5110; outline-offset: 3px; }
+
+@media print {
+  .offer-print { display: none; }
+  .offer-document { background: white; padding: 0; }
+  .offer-paper { border: 0; box-shadow: none; max-width: none; }
+  .offer-cover { background: white; color: #202328; }
+  .offer-brand span, .offer-kicker { color: #9b420b; }
+  .offer-section h2 { break-after: avoid; }
+  .offer-table { overflow: visible; }
+  .offer-table tr { break-inside: avoid; }
+}
