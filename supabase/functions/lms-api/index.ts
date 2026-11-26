@@ -292,13 +292,13 @@ async function createZoomMeeting(settings: Row, input: { topic: string; startsAt
   };
 }
 
-async function createGoogleMeetMeeting(settings: Row, input: { topic: string; startsAt?: string | null; endsAt?: string | null }): Promise<LiveMeeting | null> {
+function createGoogleMeetMeeting(settings: Row, _input: { topic: string; startsAt?: string | null; endsAt?: string | null }): Promise<LiveMeeting | null> {
   const credsRaw = secret("GOOGLE_MEET_CREDENTIALS") || secret("GOOGLE_SERVICE_ACCOUNT_JSON") || text(settings?.google_meet_credentials, 20000);
-  if (!credsRaw) return null;
+  if (!credsRaw) return Promise.resolve(null);
   // Placeholder: full Google Meet/Calendar creation requires service-account JWT + Calendar API event with conferenceData.
   // Kept as a safe stub until credentials/flow are finalized.
   console.warn("[lms-api] Google Meet credentials present but creation flow not finalized; skipping auto-create.");
-  return null;
+  return Promise.resolve(null);
 }
 
 async function provisionLiveMeeting(db: DatabaseClient, lesson: Row, body: Row): Promise<LiveMeeting | null> {
@@ -961,7 +961,7 @@ async function instructorList(
   query = applyOrdering(query, url).range(from, to);
   const result = await query;
   if (result.error) throw databaseError(result.error);
-  return paged(transform(result.data ?? []), result.count ?? 0, page, pageSize);
+  return paged(await transform(result.data ?? []), result.count ?? 0, page, pageSize);
 }
 
 async function adminDetail(
