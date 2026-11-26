@@ -265,7 +265,7 @@ function AppShell() {
 
       <div
         className={`flex min-h-screen w-full min-w-0 flex-col overflow-x-clip font-sans ${
-          isLightPortal ? "bg-white" : isStandaloneRoute ? "bg-ink-950" : "bg-white"
+          isLightPortal ? "bg-white" : isStandaloneRoute || isCalculatorRoute ? "bg-ink-950" : "bg-white"
         }`}
       >
         {!isStandaloneRoute && <Navbar />}

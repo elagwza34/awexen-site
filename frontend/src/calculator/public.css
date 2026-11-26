@@ -13,6 +13,9 @@
   color: rgb(255 255 255 / 0.86);
   min-height: 75vh;
   padding-block: clamp(2.5rem, 6vw, 5.5rem);
+  /* Slide the dark stage behind the transparent site header so it stays readable at the top. */
+  margin-block-start: -74px;
+  padding-block-start: calc(clamp(2.5rem, 6vw, 5.5rem) + 74px);
 }
 
 /* The site-wide heading color is tuned for light backgrounds. */
