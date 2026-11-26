@@ -8,4 +8,4 @@
 6. To revert, copy an earlier version to draft, validate it, then publish it as a new version. Incoming requests use the new version. Historical quotations retain their issued figures.
 7. Use Quotations and Leads for snapshot inspection and calculator lead stages. Customer communications and CRM conversion continue through Quote Inbox.
 
-The starter catalog has no approved prices. Set real rates, mark inclusions, or select manual review before publishing. The live page is unavailable until a version is explicitly published.
+The starter catalog ships with approximate EGP starter rates so previews and estimates work end to end; review and replace them with approved commercial rates before publishing. Any charge left unconfigured blocks publication. The live page is unavailable until a version is explicitly published.
