@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.support-push]
 verify_jwt = false
+
+[functions.form-notify]
+verify_jwt = false

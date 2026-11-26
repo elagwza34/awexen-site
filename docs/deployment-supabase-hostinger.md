@@ -33,9 +33,10 @@ npx.cmd supabase functions deploy lms-public
 npx.cmd supabase functions deploy lms-api
 npx.cmd supabase functions deploy ask-awexen
 npx.cmd supabase functions deploy extract-knowledge-pdf
+npx.cmd supabase functions deploy form-notify --no-verify-jwt
 ```
 
-`lms-public` و`ask-awexen` عامتان. `lms-api` و`extract-knowledge-pdf` تتطلبان JWT حسب `supabase/config.toml`.
+`lms-public` و`ask-awexen` و`form-notify` عامة. `lms-api` و`extract-knowledge-pdf` تتطلبان JWT حسب `supabase/config.toml`.
 
 أضف أسرار Ask Awexen فقط:
 
@@ -80,6 +81,71 @@ on conflict (key) do update set value = excluded.value, updated_at = now();
 
 الجدول مقفول بـ RLS ومفيش أي سياسة تفتحه لـ `anon` أو `authenticated`،
 فالقراءة متاحة لـ `postgres` بس.
+
+## 4.2 إشعارات الإيميل لكل بيانات العملاء
+
+الملف `supabase/migrations/202611260001_client_email_notifications.sql` بيجهز
+إشعارات إيميل لكل الفورمات: تواصل معنا، طلب عرض سعر، طلب وظيفة، طلب مبادرة،
+النشرة البريدية، حجز الكورسات من منصة التعلّم، وإثبات الدفع. كل صف جديد بيتحول
+لإيميل بيوصل على `info@awexen.com` عن طريق دالة `form-notify`.
+شات الدعم وأسئلة المساعد الذكي مش مشمولين.
+
+دالة `form-notify` بتجرب مسارين للإرسال بالترتيب:
+
+1. **SMTP** بنفس إعدادات `lms-api`: الأسرار `SMTP_HOST` و`SMTP_PORT`
+   و`SMTP_USER` و`SMTP_PASS` و`SMTP_FROM`، أو أعمدة `site_settings.smtp_*`.
+   لو الإعدادات دي متظبطة من قبل (بريد هوستنجر) مفيش أي خطوة زيادة.
+2. **Hostinger Mail API** بتوكن في Supabase Secrets باسم
+   `HOSTINGER_MAIL_TOKEN`، وبيبعت من `info@awexen.com`.
+
+الخطوات المطلوبة مرة واحدة:
+
+1. **مسار الإرسال** (اختار واحد):
+   - SMTP موجود بالفعل؟ تمام، مفيش خطوات.
+   - أو أنشئ توكن Mail API: hPanel → الإيميل → **Agentic Mail** →
+     **API access** → توكن جديد على بريد `info@awexen.com` بصلاحية إرسال
+     (بيظهر مرة واحدة بس)، وبعدها:
+
+```powershell
+npx.cmd supabase secrets set HOSTINGER_MAIL_TOKEN=التوكن_من_hPanel --project-ref rlppzlcdkwrxsuekszcm
+```
+
+2. **تطبيق الـ migration**: بيتم تلقائيًا مع النشر من GitHub Actions، أو يدويًا:
+
+```powershell
+npx.cmd supabase db push --linked
+```
+
+3. **التحويل النهائي**: hPanel → الإيميل → **Forwarders** → أنشئ تحويل
+   `info@awexen.com` → `elagwza34@gmail.com` عشان كل إشعار يوصل للجيميل.
+
+بدائل وتفاصيل:
+
+- **إضافة مستلم تاني مباشرةً** (لو التحويل اتأخر أو الإيميل راح للسبام):
+
+```sql
+update public.email_notify_config
+set recipients = array['info@awexen.com', 'elagwza34@gmail.com'], updated_at = now()
+where id = 1;
+```
+
+- **إيقاف الإشعارات مؤقتًا** من غير حذف أي trigger:
+
+```sql
+update public.email_notify_config set enabled = false, updated_at = now() where id = 1;
+```
+
+- **تغيير بريد الإرسال في Mail API**: افتراضيًا بيبعت من `info@awexen.com`؛
+  حط السر `HOSTINGER_MAIL_FROM` بقيمة البريد الجديد لو حبيت.
+
+- **التحقق**: ابعت رسالة من فورم «تواصل معنا» في الموقع؛ المفروض توصل على
+  `info@awexen.com` وخلال لحظات على الجيميل. لو مفيش إيميل، راجع في Supabase
+  → **Edge Functions → form-notify → Logs**؛ لو مفيش SMTP متظبط ولا توكن
+  Mail API، الدالة بتسجل `not-configured` وبتسيب الحفظ في الجدول شغال عادي.
+
+- **التأمين**: التوكن مايتحفظش في الكود ولا في الجداول. المستلمين والسر
+  المشترك في جدول `email_notify_config` المقفول بـ RLS، و`anon` مش قادر
+  ينادي دالة الإرسال مباشرةً.
 
 ## 5. بناء Hostinger
 
