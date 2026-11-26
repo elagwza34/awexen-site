@@ -1,26 +1,78 @@
-import { useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 const inputClass = "min-h-10 w-full border border-white/15 bg-ink-950/70 px-3 py-2 text-sm text-white focus-visible:outline focus-visible:outline-brand-500";
 export const fieldGrid = "grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3";
 
-export function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <label className="grid min-w-0 gap-1 text-sm font-medium">{label}{children}</label>;
+type Currency = { minorUnits: number; currency: string };
+const CurrencyContext = createContext<Currency>({ minorUnits: 2, currency: "EGP" });
+
+export function CalculatorCurrencyProvider({ value, children }: { value: Currency; children: ReactNode }) {
+  return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
 }
 
-export function TextField({ label, value, onChange, dir }: { label: string; value?: string; onChange: (value: string) => void; dir?: string }) {
-  return <Field label={label}><input className={inputClass} dir={dir ?? "auto"} value={value ?? ""} onChange={(event) => onChange(event.target.value)} /></Field>;
+function majorText(value: number | undefined, minorUnits: number) {
+  if (value === undefined) return "";
+  const major = value / 10 ** minorUnits;
+  return Number.isInteger(major) ? String(major) : String(Number(major.toFixed(minorUnits)));
 }
 
-export function NumberField({ label, value, onChange }: { label: string; value?: number; onChange: (value: number | undefined) => void }) {
-  return <Field label={label}><input className={inputClass} dir="ltr" type="number" step="any" value={value ?? ""} onChange={(event) => onChange(Number.isFinite(event.target.valueAsNumber) ? event.target.valueAsNumber : undefined)} /></Field>;
+function useDraft(value: number | undefined, toText: (value: number | undefined) => string) {
+  const [text, setText] = useState(() => toText(value));
+  const [focused, setFocused] = useState(false);
+  // Only re-sync from the stored value while the field is not focused, so typing decimals is preserved.
+  useEffect(() => {
+    if (!focused) setText(toText(value));
+  }, [value, focused]);
+  return { text, setText, onFocus: () => setFocused(true), onBlur: () => setFocused(false) };
+}
+
+export function Field({ label, help, children }: { label: string; help?: string; children: ReactNode }) {
+  return <label className="grid min-w-0 gap-1 text-sm font-medium">{label}{children}
+    {help && <span className="text-xs font-normal leading-5 text-white/45">{help}</span>}</label>;
+}
+
+export function TextField({ label, value, onChange, dir, help }: { label: string; value?: string; onChange: (value: string) => void; dir?: string; help?: string }) {
+  return <Field label={label} help={help}><input className={inputClass} dir={dir ?? "auto"} value={value ?? ""} onChange={(event) => onChange(event.target.value)} /></Field>;
+}
+
+export function NumberField({ label, value, onChange, help }: { label: string; value?: number; onChange: (value: number | undefined) => void; help?: string }) {
+  return <Field label={label} help={help}><input className={inputClass} dir="ltr" type="number" step="any" value={value ?? ""} onChange={(event) => onChange(Number.isFinite(event.target.valueAsNumber) ? event.target.valueAsNumber : undefined)} /></Field>;
+}
+
+export function MoneyField({ label, value, onChange, help }: { label: string; value?: number; onChange: (value: number | undefined) => void; help?: string }) {
+  const { minorUnits, currency } = useContext(CurrencyContext);
+  const factor = 10 ** minorUnits;
+  const draft = useDraft(value, (amount) => majorText(amount, minorUnits));
+  return <Field label={`${label} (${currency})`} help={help}>
+    <input className={inputClass} dir="ltr" type="number" inputMode="decimal" min={0} step={1 / factor} value={draft.text}
+      onFocus={draft.onFocus} onBlur={draft.onBlur}
+      onChange={(event) => {
+        draft.setText(event.target.value);
+        const major = event.target.valueAsNumber;
+        onChange(Number.isFinite(major) && major >= 0 ? Math.round(major * factor) : undefined);
+      }} />
+  </Field>;
+}
+
+export function PercentField({ label, value, onChange, help }: { label: string; value?: number; onChange: (value: number | undefined) => void; help?: string }) {
+  const draft = useDraft(value, (bps) => bps === undefined ? "" : String(Number((bps / 100).toFixed(2))));
+  return <Field label={label} help={help}>
+    <input className={inputClass} dir="ltr" type="number" inputMode="decimal" min={0} max={100} step={0.01} value={draft.text}
+      onFocus={draft.onFocus} onBlur={draft.onBlur}
+      onChange={(event) => {
+        draft.setText(event.target.value);
+        const percent = event.target.valueAsNumber;
+        onChange(Number.isFinite(percent) && percent >= 0 ? Math.round(percent * 100) : undefined);
+      }} />
+  </Field>;
 }
 
 export function Checkbox({ label, value, onChange }: { label: string; value?: boolean; onChange: (value: boolean) => void }) {
   return <label className="flex min-h-10 items-center gap-2 text-sm"><input className="h-4 w-4 accent-brand-500" type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} />{label}</label>;
 }
 
-export function SelectField<T extends string>({ label, value, options, onChange, empty }: { label: string; value?: T; options: ReadonlyArray<readonly [T, string]>; onChange: (value: T) => void; empty?: string }) {
-  return <Field label={label}><select className={inputClass} value={value ?? ""} onChange={(event) => onChange(event.target.value as T)}>
+export function SelectField<T extends string>({ label, value, options, onChange, empty, help }: { label: string; value?: T; options: ReadonlyArray<readonly [T, string]>; onChange: (value: T) => void; empty?: string; help?: string }) {
+  return <Field label={label} help={help}><select className={inputClass} value={value ?? ""} onChange={(event) => onChange(event.target.value as T)}>
     {empty && <option value="">{empty}</option>}
     {options.map(([key, caption]) => <option key={key} value={key}>{caption}</option>)}
   </select></Field>;
