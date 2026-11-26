@@ -260,11 +260,15 @@ export default function ProjectCalculator() {
   return (
     <div className="project-calculator" lang={lang} dir={dir}>
       <div className="calculator-layout" ref={layout}>
-        <header className="calculator-intro"><h1>{t("title")}</h1><p className="calculator-muted">{t("intro")}</p></header>
+        <header className="calculator-intro">
+          <span className="calculator-eyebrow">{t("eyebrow")}</span>
+          <h1>{t("titleLead")} <span className="text-gradient-brand">{t("titleAccent")}</span></h1>
+          <p className="calculator-muted">{t("intro")}</p>
+        </header>
         {stickyVisible && <CostSummary estimate={display} lang={lang} status={generating ? t("calculating") : previewStatus}
           breakdown={(saved?.quotation.settings.showBreakdown ?? config?.settings.showBreakdown) !== false} />}
         {stale && <p role="status" className="calculator-notice">{t("stale")}</p>}
-        {published === undefined && <p role="status">{t("loading")}</p>}
+        {published === undefined && <p role="status" className="calculator-loading">{t("loading")}</p>}
         {published !== undefined && !available && (
           <section className="calculator-panel">
             <p>{t("unavailable")}</p>

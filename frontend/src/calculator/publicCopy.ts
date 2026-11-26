@@ -2,6 +2,9 @@ import type { Lang } from "../context/LanguageContext";
 
 const copy = {
   title: ["حاسبة تكلفة المشروع", "Project cost calculator"],
+  titleLead: ["حاسبة", "Project cost"],
+  titleAccent: ["تكلفة المشروع", "calculator"],
+  eyebrow: ["تقدير فوري للتكلفة", "Instant cost estimate"],
   intro: ["حدّد متطلبات مشروعك لتحصل على تقدير لتكاليف التطوير والتشغيل.", "Select your project requirements to estimate development and recurring costs."],
   loading: ["جارٍ تحميل الحاسبة…", "Loading calculator…"],
   unavailable: ["الحاسبة غير متاحة حاليًا. يمكنك طلب عرض سعر من الفريق.", "The calculator is currently unavailable. You can request a quote from our team."],
