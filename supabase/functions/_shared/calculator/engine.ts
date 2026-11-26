@@ -45,7 +45,7 @@ export type Project = Named & {
   exclusions?: Localized[]
 }
 
-export type Section = Named & { projectIds?: string[]; description?: Localized }
+export type Section = Named & { projectIds?: string[]; description?: Localized; condition?: Condition }
 export type QuestionKind = 'single' | 'multiple' | 'boolean' | 'number' | 'stepper' | 'slider' |
   'dropdown' | 'text' | 'textarea' | 'info' | 'repeatable'
 
@@ -316,38 +316,43 @@ export function visibleQuestions(config: Config, projectId: string, input: Answe
     result.errors.answers = 'Expected an answer object'
     return result
   }
-  const sectionOrder = new Map(sorted(config.sections)
-    .filter((section) => section.active && assigned(section.projectIds, projectId))
-    .map((section, index) => [section.id, index]))
-  const questions = sorted(config.questions)
-    .filter((question) => question.active && sectionOrder.has(question.sectionId) && assigned(question.projectIds, projectId))
-    .sort((left, right) => sectionOrder.get(left.sectionId)! - sectionOrder.get(right.sectionId)!)
-  const visible = new Map<string, Question>()
-  for (const question of orderQuestions(questions)) {
-    if (!matches(question.condition, result.answers)) continue
-    const explicit = hasOwn(input, question.id)
-    const activeOptions = choiceKinds.includes(question.kind) ? sorted(question.options ?? []).filter((option) => option.active) : []
-    const proposed = explicit ? input[question.id] : question.defaultValue ?? activeOptions.filter((option) => option.default).map((option) => option.id)
-    const proposedIds = new Set(Array.isArray(proposed) ? proposed.filter((value) => typeof value === 'string') : [proposed])
-    const selected = activeOptions.filter((option) => proposedIds.has(option.id)).map((option) => option.id)
-    const options = activeOptions.filter((option) => {
-      if (question.kind !== 'multiple') return matches(option.condition, result.answers)
-      // Evaluate eligibility as if this option were selected, preserving current sibling selections.
-      const optionAnswers = { ...result.answers, [question.id]: [...new Set([...selected, option.id])] }
-      return matches(option.condition, optionAnswers)
-    })
-    const current = { ...question, ...(question.options ? { options } : {}) }
-    visible.set(question.id, current)
-    if (question.kind === 'info') continue
-    const defaults = options.filter((option) => option.default).map((option) => option.id)
-    const fallback = question.kind === 'multiple' ? defaults : defaults[0]
-    const raw = explicit ? input[question.id] : question.defaultValue ?? fallback
-    const value = empty(raw) ? undefined : normalize(current, raw)
-    if (!empty(value)) result.answers[question.id] = value!
-    else if (explicit && !empty(raw)) result.errors[question.id] = 'Invalid or unavailable answer'
-    if (question.required && empty(value)) result.missing.push(question.id)
+  const sections = sorted(config.sections).filter((section) => section.active && assigned(section.projectIds, projectId))
+  const bySection = new Map<string, Question[]>()
+  for (const question of sorted(config.questions)) {
+    if (!question.active || !assigned(question.projectIds, projectId)) continue
+    const list = bySection.get(question.sectionId) ?? []
+    list.push(question)
+    bySection.set(question.sectionId, list)
   }
-  result.questions = questions.flatMap((question) => visible.get(question.id) ?? [])
+  // Steps render in section order; a step can only depend on answers from earlier steps,
+  // so gating sections while accumulating answers stays deterministic.
+  for (const section of sections) {
+    if (!matches(section.condition, result.answers)) continue
+    for (const question of orderQuestions(bySection.get(section.id) ?? [])) {
+      if (!matches(question.condition, result.answers)) continue
+      const explicit = hasOwn(input, question.id)
+      const activeOptions = choiceKinds.includes(question.kind) ? sorted(question.options ?? []).filter((option) => option.active) : []
+      const proposed = explicit ? input[question.id] : question.defaultValue ?? activeOptions.filter((option) => option.default).map((option) => option.id)
+      const proposedIds = new Set(Array.isArray(proposed) ? proposed.filter((value) => typeof value === 'string') : [proposed])
+      const selected = activeOptions.filter((option) => proposedIds.has(option.id)).map((option) => option.id)
+      const options = activeOptions.filter((option) => {
+        if (question.kind !== 'multiple') return matches(option.condition, result.answers)
+        // Evaluate eligibility as if this option were selected, preserving current sibling selections.
+        const optionAnswers = { ...result.answers, [question.id]: [...new Set([...selected, option.id])] }
+        return matches(option.condition, optionAnswers)
+      })
+      const current = { ...question, ...(question.options ? { options } : {}) }
+      result.questions.push(current)
+      if (question.kind === 'info') continue
+      const defaults = options.filter((option) => option.default).map((option) => option.id)
+      const fallback = question.kind === 'multiple' ? defaults : defaults[0]
+      const raw = explicit ? input[question.id] : question.defaultValue ?? fallback
+      const value = empty(raw) ? undefined : normalize(current, raw)
+      if (!empty(value)) result.answers[question.id] = value!
+      else if (explicit && !empty(raw)) result.errors[question.id] = 'Invalid or unavailable answer'
+      if (question.required && empty(value)) result.missing.push(question.id)
+    }
+  }
   return result
 }
 
@@ -797,11 +802,16 @@ export function validateConfig(input: unknown): string[] {
       if (project[key] !== undefined && !integer(project[key])) errors.push(`${label}: invalid ${key}`)
     }
   }
+  const sectionConditions: { value: Condition; label: string; section: Section }[] = []
+  const conditions: { value: Condition; label: string; active: boolean }[] = []
   for (const section of config.sections) {
     translations(section, `Section ${section.id}`, ['description'])
     checkProjectIds(section.projectIds, `Section ${section.id}`)
+    if (section.condition !== undefined) {
+      sectionConditions.push({ value: section.condition, label: `Section ${section.id}`, section })
+      conditions.push({ value: section.condition, label: `Section ${section.id}`, active: section.active })
+    }
   }
-  const conditions: { value: Condition; label: string; active: boolean }[] = []
   const deferredDefaults: Question[] = []
   for (const question of config.questions) {
     const label = `Question ${question.id}`
@@ -895,6 +905,29 @@ export function validateConfig(input: unknown): string[] {
       }
     }
   }
+  const stepOrder = new Map(sorted(config.sections).map((section, index) => [section.id, index]))
+  for (const { value, label, section } of sectionConditions) {
+    for (const reference of references(value)) {
+      const owner = questions.get(reference)
+      if (owner && (stepOrder.get(owner.sectionId) ?? 0) >= (stepOrder.get(section.id) ?? 0)) {
+        errors.push(`${label}: conditions can only use answers from an earlier step`)
+      }
+    }
+  }
+  const gated = config.questions.flatMap((question) => [
+    { label: `Question ${question.id}`, sectionId: question.sectionId, condition: question.condition },
+    ...(question.options ?? []).map((option) => ({
+      label: `Question ${question.id} option ${option.id}`, sectionId: question.sectionId, condition: option.condition,
+    })),
+  ])
+  for (const { label, sectionId, condition } of gated) {
+    for (const reference of references(condition)) {
+      const owner = questions.get(reference)
+      if (owner && (stepOrder.get(owner.sectionId) ?? 0) > (stepOrder.get(sectionId) ?? 0)) {
+        errors.push(`${label}: conditions can only use answers from the same or an earlier step`)
+      }
+    }
+  }
   for (const question of deferredDefaults) {
     if (normalize({ ...question, options: question.options?.filter((option) => option.active) }, question.defaultValue) === undefined) {
       errors.push(`Question ${question.id}: invalid default answer`)
@@ -931,9 +964,13 @@ export function validateConfig(input: unknown): string[] {
       if ('or' in condition) return condition.or.some(reachable)
       return available.has(condition.questionId) || condition.operator === 'empty'
     }
+    const hiddenSections = new Set(sorted(config.sections)
+      .filter((section) => section.active && assigned(section.projectIds, project.id) &&
+        section.condition !== undefined && !reachable(section.condition))
+      .map((section) => section.id))
     for (const question of dependencyOrder) {
       const hasOptions = !choiceKinds.includes(question.kind) || question.options?.some((option) => option.active && reachable(option.condition))
-      if (!reachable(question.condition) || !hasOptions) available.delete(question.id)
+      if (!reachable(question.condition) || !hasOptions || hiddenSections.has(question.sectionId)) available.delete(question.id)
       if (question.active && question.required && Array.isArray(question.projectIds) &&
           assigned(question.projectIds, project.id) && !available.has(question.id)) {
         errors.push(`Question ${question.id}: unreachable required question for project ${project.id}`)

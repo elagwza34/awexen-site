@@ -231,3 +231,126 @@ test('rejects configuration fields that could expose metadata or create hidden c
   assert.match(errors, /only selection questions support options/i)
   assert.equal(calculate(config, 'site', { text: 'arbitrary-value' }).oneTime, 1000)
 })
+
+test('gates whole steps on answers from earlier steps', () => {
+  const config = {
+    settings: { currency: 'EGP' },
+    projects: [{ id: 'site', title, description: title, active: true, basePrice: 1000 }],
+    sections: [
+      { id: 'main', title, active: true },
+      { id: 'stores', title, active: true, condition: { questionId: 'kind', operator: 'eq', value: 'store' } },
+      { id: 'landing', title, active: true, condition: { questionId: 'kind', operator: 'eq', value: 'landing' } },
+    ],
+    questions: [
+      question('kind', { kind: 'single', sectionId: 'main', options: [
+        { id: 'store', title, active: true, pricing: { method: 'free' } },
+        { id: 'landing', title, active: true, pricing: { method: 'free' } },
+      ] }),
+      question('cart', { kind: 'boolean', sectionId: 'stores', pricing: { method: 'fixed', amount: 400 } }),
+      question('hero-cta', { kind: 'boolean', sectionId: 'landing', pricing: { method: 'fixed', amount: 150 } }),
+    ],
+    rules: [],
+  }
+  assert.deepEqual(validateConfig(config), [])
+  const store = { kind: 'store', cart: true, 'hero-cta': true }
+  assert.deepEqual(visibleQuestions(config, 'site', store).questions.map((entry) => entry.id), ['kind', 'cart'])
+  assert.deepEqual(visibleQuestions(config, 'site', store).answers, { kind: 'store', cart: true })
+  assert.equal(calculate(config, 'site', store, true).oneTime, 1400)
+  assert.equal(calculate(config, 'site', { kind: 'landing', 'hero-cta': true, cart: true }, true).oneTime, 1150)
+  assert.equal(calculate(config, 'site', {}, true).oneTime, 1000)
+})
+
+test('keeps platform steps behind a scope answer while other project types keep them', () => {
+  const config = {
+    settings: { currency: 'EGP' },
+    projects: [
+      { id: 'site', title, description: title, active: true, basePrice: 1000 },
+      { id: 'shop', title, description: title, active: true, basePrice: 1000 },
+    ],
+    sections: [
+      { id: 'main', title, active: true },
+      { id: 'store', title, active: true, projectIds: ['site', 'shop'], condition: { or: [
+        { questionId: 'scope', operator: 'selected', value: 'store' },
+        { questionId: 'scope', operator: 'empty' },
+      ] } },
+      { id: 'learning', title, active: true, projectIds: ['site'], condition: { or: [
+        { questionId: 'scope', operator: 'selected', value: 'courses' },
+        { questionId: 'scope', operator: 'empty' },
+      ] } },
+      { id: 'backend', title, active: true, condition: { or: [
+        { questionId: 'tech', operator: 'ne', value: 'wordpress' },
+        { questionId: 'tech', operator: 'empty' },
+      ] } },
+    ],
+    questions: [
+      question('scope', { kind: 'multiple', sectionId: 'main', projectIds: ['site'], required: true, options: [
+        { id: 'store', title, active: true, pricing: { method: 'free' } },
+        { id: 'courses', title, active: true, pricing: { method: 'free' } },
+        { id: 'portal', title, active: true, pricing: { method: 'free' } },
+      ] }),
+      question('tech', { kind: 'single', sectionId: 'main', projectIds: ['site', 'shop'], options: [
+        { id: 'wordpress', title, active: true, pricing: { method: 'free' } },
+        { id: 'custom', title, active: true, pricing: { method: 'free' } },
+      ] }),
+      question('cart', { kind: 'boolean', sectionId: 'store', projectIds: ['site', 'shop'] }),
+      question('lessons', { kind: 'boolean', sectionId: 'learning' }),
+      question('api', { kind: 'boolean', sectionId: 'backend', projectIds: ['site', 'shop'] }),
+    ],
+    rules: [],
+  }
+  assert.deepEqual(validateConfig(config), [])
+  const ids = (projectId, answers) => visibleQuestions(config, projectId, answers).questions.map((entry) => entry.id)
+  assert.deepEqual(ids('site', { scope: ['store'] }), ['scope', 'tech', 'cart', 'api'])
+  assert.deepEqual(ids('site', { scope: ['portal'] }), ['scope', 'tech', 'api'])
+  assert.deepEqual(ids('site', {}), ['scope', 'tech', 'cart', 'lessons', 'api'])
+  assert.deepEqual(ids('site', { tech: 'wordpress', scope: ['portal'] }), ['scope', 'tech'])
+  assert.deepEqual(ids('shop', {}), ['tech', 'cart', 'api'])
+})
+
+test('requires step conditions to reference earlier steps only', () => {
+  const config = {
+    settings: { currency: 'EGP' },
+    projects: [{ id: 'site', title, description: title, active: true }],
+    sections: [
+      { id: 'main', title, active: true },
+      { id: 'extra', title, active: true, condition: { questionId: 'late', operator: 'eq', value: true } },
+    ],
+    questions: [
+      question('early', { kind: 'boolean', sectionId: 'main' }),
+      question('late', { kind: 'boolean', sectionId: 'extra' }),
+    ],
+    rules: [],
+  }
+  assert.match(validateConfig(config).join(), /earlier step/i)
+  const forwardQuestion = {
+    ...config,
+    sections: config.sections.map((section) => ({ id: section.id, title, active: true })),
+    questions: [
+      question('early', { kind: 'boolean', sectionId: 'main', condition: { questionId: 'late', operator: 'eq', value: true } }),
+      config.questions[1],
+    ],
+  }
+  assert.match(validateConfig(forwardQuestion).join(), /same or an earlier step/i)
+})
+
+test('flags required questions in steps that can never appear for a project', () => {
+  const config = {
+    settings: { currency: 'EGP' },
+    projects: [
+      { id: 'site', title, description: title, active: true },
+      { id: 'shop', title, description: title, active: true },
+    ],
+    sections: [
+      { id: 'main', title, active: true },
+      { id: 'extra', title, active: true, condition: { questionId: 'kind', operator: 'eq', value: 'store' } },
+    ],
+    questions: [
+      question('kind', { kind: 'single', sectionId: 'main', projectIds: ['shop'], options: [{ id: 'store', title, active: true, pricing: { method: 'free' } }] }),
+      question('needed', { kind: 'boolean', sectionId: 'extra', projectIds: ['site', 'shop'], required: true }),
+    ],
+    rules: [],
+  }
+  const errors = validateConfig(config).join()
+  assert.match(errors, /unreachable required question for project site/)
+  assert.doesNotMatch(errors, /unreachable required question for project shop/)
+})

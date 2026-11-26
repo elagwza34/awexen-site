@@ -129,6 +129,7 @@ export function CalculatorEditors({ config, onChange, view }: { config: Config; 
   const [questionFilter, setQuestionFilter] = useState("");
   const [templateFilter, setTemplateFilter] = useState("");
   const sectionOptions = config.sections.map((section) => [section.id, listLabel(section)] as const);
+  const orderedSections = ordered(config.sections);
   const questions = ordered(config.questions).filter((question) => !sectionFilter || question.sectionId === sectionFilter);
   const createQuestion = (): Question => ({ ...newNamed(), sectionId: sectionFilter || config.sections[0]?.id || "", projectIds: [], kind: "single", required: false });
   function updateQuestion(value: Question) {
@@ -166,15 +167,28 @@ export function CalculatorEditors({ config, onChange, view }: { config: Config; 
       <LocalizedList title="Included services" value={item.included ?? []} onChange={(included) => update({ ...item, included })} />
       <LocalizedList title="Exclusions" value={item.exclusions ?? []} onChange={(exclusions) => update({ ...item, exclusions })} />
     </>} />;
-  if (view === "sections") return <EditList title="Sections" items={ordered(config.sections)} label={listLabel} keyFor={(item) => item.id}
+  if (view === "sections") return <EditList title="Sections" items={orderedSections} label={listLabel} keyFor={(item) => item.id}
     onChange={(sections) => onChange({ ...config, sections: reorder(sections) })} create={newNamed}
-    render={(item, update) => <>
-      <div className={fieldGrid}>
-        <NamedFields value={item} onChange={update} />
-        <LocalizedField label="Description" value={item.description} onChange={(description) => update({ ...item, description })} />
-      </div>
-      <Assignment config={config} value={item.projectIds} onChange={(projectIds) => update({ ...item, projectIds })} />
-    </>} />;
+    render={(item, update) => {
+      const position = orderedSections.findIndex((section) => section.id === item.id);
+      const earlierSections = new Set(orderedSections.slice(0, position).map((section) => section.id));
+      const projectIds = item.projectIds ?? [];
+      const eligible = config.questions.filter((question) => question.active && earlierSections.has(question.sectionId) &&
+        (!projectIds.length || !question.projectIds?.length || question.projectIds.some((id) => projectIds.includes(id))));
+      return <>
+        <div className={fieldGrid}>
+          <NamedFields value={item} onChange={update} />
+          <LocalizedField label="Description" value={item.description} onChange={(description) => update({ ...item, description })} />
+        </div>
+        <Assignment config={config} value={item.projectIds} onChange={(projectIds) => update({ ...item, projectIds })} />
+        <div className="grid gap-2 border-t border-white/10 pt-3">
+          <p className="text-sm font-medium">Show this step only when earlier answers match. The step stays hidden until its conditions are met, and it can only depend on questions from previous steps.</p>
+          {eligible.length
+            ? <ConditionFields value={item.condition} onChange={(condition) => update({ ...item, condition })} questions={eligible} />
+            : <p className="text-xs">No active questions from earlier steps match this step's project types yet.</p>}
+        </div>
+      </>;
+    }} />;
   if (view === "questions") return <div className="grid gap-3">
     <SelectField label="Section filter" value={sectionFilter} empty="All sections" options={sectionOptions} onChange={setSectionFilter} />
     <EditList title="Questions" items={questions} label={listLabel} keyFor={(item) => item.id} create={createQuestion} duplicate={(item) => ({ ...item, id: newId() })}

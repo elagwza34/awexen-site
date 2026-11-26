@@ -86,7 +86,8 @@ export default function ProjectCalculator() {
     .filter((section) => resolved?.questions.some((question) => question.sectionId === section.id))
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const steps = [projectStep, ...sections.map((section) => section.id)];
-  const currentStep = steps.includes(step) ? step : projectStep;
+  const currentStep = steps.includes(step) ? step
+    : [...visited].reverse().find((id) => steps.includes(id)) ?? projectStep;
   const currentIndex = steps.indexOf(currentStep);
   const currentSection = sections.find((section) => section.id === currentStep);
   const last = currentIndex === steps.length - 1;

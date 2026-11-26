@@ -4,7 +4,7 @@ Development checks ran on Windows with Node, Deno, local PostgreSQL 17, PostgRES
 
 | Check | Result |
 | --- | --- |
-| `node --experimental-strip-types frontend/scripts/test-calculator.mjs` | 17 passing engine scenarios |
+| `node --experimental-strip-types frontend/scripts/test-calculator.mjs` | 21 passing engine scenarios |
 | Deno check and lint, plus `deno test supabase/functions/project-calculator/public-config_test.ts` | Type and lint checks passed. 3 endpoint-support tests passed. |
 | Calculator migrations and `supabase/tests/project_calculator.sql` | Passed on a fresh local test database using the existing quote-request table definition and an Offers fixture. |
 | `node frontend/scripts/test-calculator-api.mjs` against local Edge and PostgREST | Publication guards, four estimates, immutable snapshots, lead inbox links, restore and edit concurrency verified. The Auth user endpoint used local role fixtures. |
@@ -15,7 +15,7 @@ Development checks ran on Windows with Node, Deno, local PostgreSQL 17, PostgRES
 | Offers and CRM regression scripts | Passed. |
 | Frontend TypeScript and Vite build | Passed. |
 
-The starter catalog has 16 projects, 13 sections, and 127 questions. Validation found 141 intentionally unconfigured prices and no unrelated catalog errors. Corporate, e-commerce, custom-software, and mobile test prices lived only in local fixtures.
+The starter catalog has 16 projects, 13 sections, and 128 questions. Validation of the composed catalog (0006 plus the 0007 conditional steps) found 141 intentionally unconfigured prices and no unrelated catalog errors. The draft ships two working gates: the custom-software scope selector keeps only the platform steps the visitor picks, and a WordPress technology answer skips the custom backend step. Corporate, e-commerce, custom-software, and mobile test prices lived only in local fixtures.
 
 To repeat the API suite on a fresh local calculator installation, set `CALCULATOR_TEST_URL`, `CALCULATOR_TEST_ADMIN_TOKEN`, and `CALCULATOR_TEST_SUPPORT_TOKEN`. Use a disposable database initialized with the two calculator migrations and no published version. The test intentionally publishes development fixtures. Test a real Supabase Auth account and the existing notification deliverability in staging before an approved rollout.
 
