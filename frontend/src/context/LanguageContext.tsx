@@ -18,6 +18,10 @@ export type TranslationKey = string;
  */
 const translations: Record<TranslationKey, { ar: string; en: string }> = {
   "nav.projectCalculator": { ar: "حاسبة تكلفة المشروع", en: "Project cost calculator" },
+  "calculator.teaser.title": { ar: "احسب تكلفة مشروعك في دقيقة", en: "Estimate your project cost in a minute" },
+  "calculator.teaser.body": { ar: "جاوب على أسئلة قصيرة عن نطاق المشروع وشوف تقدير مبدئي للتكلفة قبل طلب عرض السعر الرسمي.", en: "Answer a few questions about your scope and get a preliminary cost estimate before requesting a formal quote." },
+  "calculator.teaser.action": { ar: "افتح الحاسبة", en: "Open the calculator" },
+  "calculator.float": { ar: "احسب تكلفتك", en: "Estimate cost" },
   // ---------- التنقل ----------
   "nav.home": { ar: "الرئيسية", en: "Home" },
   "nav.services": { ar: "الخدمات", en: "Services" },

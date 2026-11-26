@@ -18,12 +18,15 @@ export const FEATURES = {
   pms: false,
   /** زرار تسجيل الدخول في الهيدر والقائمة الجانبية. */
   showLoginButton: false,
+  /** حاسبة تكلفة المشروع — تظهر بعد اعتماد الأسعار ونشر أول نسخة. */
+  calculator: false,
 } as const;
 
 /** True when a route belongs to a feature that is currently hidden. */
 export function isRouteHidden(path: string): boolean {
   if (!FEATURES.courses && path.startsWith("/courses")) return true;
   if (!FEATURES.pms && path.startsWith("/pms")) return true;
+  if (!FEATURES.calculator && path.replace(/\/+$/, "") === "/project-calculator") return true;
   return false;
 }
 

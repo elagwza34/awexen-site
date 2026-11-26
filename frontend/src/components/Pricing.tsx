@@ -1,8 +1,10 @@
-import { Check, Crown, MessageCircle, ShieldCheck } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, Calculator, Check, Crown, MessageCircle, ShieldCheck } from "lucide-react";
 import { useContent } from "../context/ContentContext";
 import { Reveal, SectionHeading, Spotlight } from "./ui";
 import { cn } from "../utils/cn";
 import { useLanguage } from "../context/LanguageContext";
+import { FEATURES } from "../lib/features";
 
 const WHATSAPP_NUMBER = "201092400443";
 
@@ -26,7 +28,7 @@ const englishPlans = [
 
 export default function Pricing() {
   const { plans } = useContent();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
 
   const numericPrice = (raw: string) => {
     const n = parseFloat(raw.replace(/[^\d.]/g, ""));
@@ -197,6 +199,29 @@ export default function Pricing() {
             );
           })}
         </div>
+
+        {FEATURES.calculator && (
+          <Reveal delay={120}>
+            <Link
+              to="/project-calculator"
+              className="group mt-10 flex flex-col items-center justify-between gap-5 rounded-3xl border border-brand-500/20 bg-ink-950 p-6 text-center shadow-xl transition-colors duration-300 hover:border-brand-500/50 sm:flex-row sm:p-8 sm:text-right"
+            >
+              <div className="flex flex-col items-center gap-4 sm:flex-row">
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-500/15 text-brand-400">
+                  <Calculator className="h-6 w-6" />
+                </span>
+                <div>
+                  <p className="text-[17px] font-extrabold text-white">{t("calculator.teaser.title")}</p>
+                  <p className="mt-1 max-w-xl text-[13.5px] leading-6 text-ink-300">{t("calculator.teaser.body")}</p>
+                </div>
+              </div>
+              <span className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-[14px] font-bold text-white transition-colors duration-300 group-hover:bg-brand-400">
+                {t("calculator.teaser.action")}
+                <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-1" />
+              </span>
+            </Link>
+          </Reveal>
+        )}
 
         <Reveal delay={140}>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-[13px] text-ink-400">

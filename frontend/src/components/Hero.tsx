@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, PlayCircle, TrendingUp, Zap } from "lucide-react";
+import { ArrowLeft, Calculator, PlayCircle, TrendingUp, Zap } from "lucide-react";
 import { useSection, useSectionButtons } from "../context/CmsContext";
 import { useContent } from "../context/ContentContext";
 import { useLanguage } from "../context/LanguageContext";
 import { AnchorLink, CountUp, Reveal } from "./ui";
 import CmsEditable from "../admin/cms/CmsEditable";
+import { FEATURES } from "../lib/features";
 
 /* ---------- عنصر بصري: نافذة متصفح تعرض لوحة أداء مجردة ---------- */
 function ProductMockup() {
@@ -249,6 +250,19 @@ export default function Hero() {
               )}
             </div>
           </Reveal>
+
+          {FEATURES.calculator && (
+            <Reveal delay={300}>
+              <Link
+                to="/project-calculator"
+                className="mt-5 inline-flex items-center gap-2 rounded-full border border-brand-500/25 bg-brand-500/10 px-5 py-2.5 text-[13.5px] font-bold text-brand-200 backdrop-blur transition-colors duration-300 hover:border-brand-400 hover:bg-brand-500/20 hover:text-white"
+              >
+                <Calculator className="h-4 w-4" />
+                {t("nav.projectCalculator")}
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Reveal>
+          )}
 
         </div>
 
