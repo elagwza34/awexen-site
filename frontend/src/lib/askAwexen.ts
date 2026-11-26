@@ -30,10 +30,23 @@ export async function extractKnowledgePdf(file: File): Promise<ExtractedPdf> {
   };
 }
 
-export async function askAwexen(question: string, knowledge: KnowledgeEntry[]): Promise<AskAwexenResult | null> {
+export type AskAwexenTurn = {
+  role: "user" | "assistant";
+  text: string;
+};
+
+export async function askAwexen(
+  question: string,
+  knowledge: KnowledgeEntry[],
+  history: AskAwexenTurn[] = [],
+): Promise<AskAwexenResult | null> {
   if (supabase) {
     const { data, error } = await supabase.functions.invoke("ask-awexen", {
-      body: { question, knowledge },
+      body: {
+        question,
+        knowledge,
+        history: history.slice(-8).map((turn) => ({ role: turn.role, text: turn.text.slice(0, 800) })),
+      },
     });
     if (error) throw error;
     const payload = data as Partial<AskAwexenResult> & { error?: string };

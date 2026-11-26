@@ -431,25 +431,29 @@ export default function AiChat() {
       const matched = matchKnowledge(cleanQuestion, allKnowledge);
       const matchedId = matched?.id ?? null;
       const matchedAnswer = matched?.answer ?? null;
-      let status = matched ? "answered" : "needs_review";
       const fallback = allKnowledge.length === 0 ? t("chat.emptyKnowledge") : t("chat.noApprovedAnswer");
-      let answer: string;
+      let answer = "";
+      let status: "answered" | "needs_review" = "needs_review";
+      let answeredByAi = false;
 
-      if (matched) {
-        answer = matched.answer;
-      } else {
-        // محاولة استخدام المساعد الذكي (AI) لتقديم إجابة.
-        try {
-          const ai = await askAwexen(cleanQuestion, allKnowledge);
-          if (ai?.answer) {
-            answer = ai.answer;
-            status = "answered";
-          } else {
-            answer = fallback;
-          }
-        } catch {
-          answer = fallback;
+      // الرد بيتصاغ دائمًا بأسلوب طبيعي من المساعد، والمراجع (بما فيها الإجابة
+      // المعتمدة المطابقة) بتوصل مع الطلب كنقطة بداية — والمطابقة نفسها بتبقى
+      // احتياطي لو المساعد مش متاح.
+      try {
+        const history = messages.slice(-8).map((message) => ({ role: message.role, text: message.text }));
+        const ai = await askAwexen(cleanQuestion, allKnowledge, history);
+        if (ai?.answer) {
+          answer = ai.answer;
+          status = "answered";
+          answeredByAi = true;
         }
+      } catch {
+        /* المساعد غير متاح — هنرجع للاحتياطي تحت. */
+      }
+
+      if (!answer) {
+        answer = matchedAnswer ?? fallback;
+        status = matchedAnswer ? "answered" : "needs_review";
       }
 
       await saveAiInquiry({
@@ -463,7 +467,7 @@ export default function AiChat() {
 
       setMessages((current) => [
         ...current,
-        { id: Date.now() + 1, role: "assistant", text: answer, source: matched?.source_url },
+        { id: Date.now() + 1, role: "assistant", text: answer, source: answeredByAi ? null : matched?.source_url },
       ]);
     } catch {
       setSendError(true);
