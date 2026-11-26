@@ -1,6 +1,26 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { offerTotal, defaultOfferOptions, parseOfferAmount } from "../src/lib/offerPricing.ts";
 import { isOfferPath, isOfferSlug, offerPath, offerSlugFromName, offerTable } from "../src/lib/offers.ts";
+
+const pricing = {
+  baseMinor: 3200000,
+  note: "",
+  options: [
+    { id: "hosting", label: "Hosting", amountMinor: 600000, selected: true },
+    { id: "domain", label: "Domain", amountMinor: 100000, selected: true },
+    { id: "source", label: "Source code", amountMinor: 0, selected: true },
+  ],
+};
+assert.equal(offerTotal(pricing, defaultOfferOptions(pricing)), 3900000);
+assert.equal(offerTotal(pricing, new Set(["domain"])), 3300000);
+assert.equal(offerTotal(pricing, new Set(["source", "unknown"])), 3200000);
+assert.equal(offerTotal(pricing, new Set()), 3200000);
+assert.equal(parseOfferAmount("120.25"), 12025);
+assert.equal(parseOfferAmount("0"), 0);
+assert.equal(parseOfferAmount("-50"), null);
+assert.equal(parseOfferAmount("1.001"), null);
+assert.equal(parseOfferAmount(""), null);
 
 assert.equal(offerSlugFromName("  Gantry & Co.  "), "gantry-co");
 assert.equal(offerSlugFromName("شركة الرافعات"), "شركة-الرافعات");

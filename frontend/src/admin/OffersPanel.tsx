@@ -1,13 +1,14 @@
 import { useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import OfferDocument from "../components/OfferDocument";
+import OfferPricingFields from "./OfferPricingFields";
 import { isOfferSlug, offerPath, offerSlugFromName, offerTable, type OfferDraft, type SavedOffer } from "../lib/offers";
 import { supabase } from "../lib/supabase";
 
 const queryKey = ["admin-client-offers"];
 const blankSection = { heading: "", body: "", table: "" };
 const initialDraft = (): OfferDraft => ({
-  client_name: "", title: "", slug: "", language: "ar", summary: "", published: false,
+  client_name: "", title: "", slug: "", language: "ar", summary: "", published: false, pricing: null,
   sections: ["نطاق العمل", "مراحل التنفيذ", "التكلفة والدفعات", "التسليم والدعم"]
     .map((heading) => ({ ...blankSection, heading })),
 });
@@ -41,8 +42,8 @@ export default function OffersPanel() {
       setForm(initialDraft());
       return;
     }
-    const { client_name, title, slug, language, summary, published, sections } = offer;
-    setForm({ client_name, title, slug, language, summary, published, sections });
+    const { client_name, title, slug, language, summary, published, sections, pricing } = offer;
+    setForm({ client_name, title, slug, language, summary, published, sections, pricing: pricing ?? null });
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -53,6 +54,10 @@ export default function OffersPanel() {
     const payload = { ...form, client_name: form.client_name.trim(), title: form.title.trim() };
     if (!isOfferSlug(payload.slug) || !payload.client_name || !payload.title) {
       setError("أدخل اسم العميل وعنوان العرض ومساراً صالحاً غير محجوز.");
+      return;
+    }
+    if (payload.pricing?.options.some((option) => !option.label.trim())) {
+      setError("أدخل اسماً لكل خيار سعر.");
       return;
     }
     if (payload.sections.some((section) => {
@@ -166,6 +171,7 @@ export default function OffersPanel() {
               <textarea className="admin-input" rows={3} maxLength={4000} dir="auto" value={form.summary}
                 onChange={(event) => setForm({ ...form, summary: event.target.value })} />
             </label>
+            <OfferPricingFields pricing={form.pricing} onChange={(pricing) => setForm({ ...form, pricing })} />
             {form.sections.map((section, index) => (
               <fieldset key={index} className="min-w-0 space-y-3 rounded-xl border border-current/20 p-4">
                 <legend className="px-2 font-semibold">القسم {index + 1}</legend>

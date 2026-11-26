@@ -1,3 +1,5 @@
+import type { OfferPricing } from "./offerPricing";
+
 const reservedRoots = new Set([
   "about", "admin", "assets", "awexen", "blog", "chat", "checkout", "contact",
   "courses", "export", "images", "initiative", "instructor", "jobs", "learn",
@@ -37,6 +39,7 @@ export type OfferDraft = {
   language: "ar" | "en";
   summary: string;
   sections: OfferSection[];
+  pricing: OfferPricing | null;
   published: boolean;
 };
 

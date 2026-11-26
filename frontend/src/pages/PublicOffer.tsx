@@ -5,7 +5,7 @@ import { useSeoOverride } from "../components/SeoManager";
 import type { OfferDraft } from "../lib/offers";
 import { supabase } from "../lib/supabase";
 
-type PublishedOffer = Pick<OfferDraft, "title" | "client_name" | "language" | "summary" | "sections">;
+type PublishedOffer = Pick<OfferDraft, "title" | "client_name" | "language" | "summary" | "sections" | "pricing">;
 
 export default function PublicOffer() {
   const { offerSlug } = useParams();
@@ -36,5 +36,5 @@ export default function PublicOffer() {
       <Link className="mt-3 inline-block underline" to="/">Back to AWEXEN</Link>
     </div>
   );
-  return <OfferDocument offer={query.data} printable />;
+  return <OfferDocument key={offerSlug} offer={query.data} printable />;
 }

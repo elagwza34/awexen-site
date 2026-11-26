@@ -1,7 +1,8 @@
 import { offerTable, type OfferDraft } from "../lib/offers";
+import OfferCalculator from "./OfferCalculator";
 import "./offer-document.css";
 
-type OfferContent = Pick<OfferDraft, "title" | "client_name" | "language" | "summary" | "sections">;
+type OfferContent = Pick<OfferDraft, "title" | "client_name" | "language" | "summary" | "sections" | "pricing">;
 
 export default function OfferDocument({ offer, printable = false }: { offer: OfferContent; printable?: boolean }) {
   const arabic = offer.language === "ar";
@@ -20,6 +21,7 @@ export default function OfferDocument({ offer, printable = false }: { offer: Off
           <p className="offer-client" dir="auto">{offer.client_name}</p>
           {offer.summary && <p className="offer-body">{offer.summary}</p>}
         </header>
+        {offer.pricing && <OfferCalculator pricing={offer.pricing} arabic={arabic} />}
         {offer.sections.filter((section) => section.heading || section.body || section.table).map((section, index) => {
           const [head, ...rows] = offerTable(section.table);
           return (

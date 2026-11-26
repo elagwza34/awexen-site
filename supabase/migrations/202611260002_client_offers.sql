@@ -1,4 +1,4 @@
-create table public.client_offers (
+create table if not exists public.client_offers (
   id uuid primary key default gen_random_uuid(),
   revision uuid not null default gen_random_uuid(),
   created_at timestamptz not null default now(),
@@ -33,23 +33,30 @@ alter table public.client_offers enable row level security;
 revoke all on public.client_offers from public, anon, authenticated;
 grant select, insert, update, delete on public.client_offers to authenticated;
 
+drop policy if exists "Owners and admins manage offers" on public.client_offers;
 create policy "Owners and admins manage offers"
 on public.client_offers for all to authenticated
 using ((select public.has_awexen_role(array['owner', 'admin'])))
 with check ((select public.has_awexen_role(array['owner', 'admin'])));
 
 -- Expose one published offer by exact slug without exposing table listings or drafts.
-create function public.awexen_get_published_offer(p_slug text)
-returns table (title text, client_name text, language text, summary text, sections jsonb)
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select title, client_name, language, summary, sections
-  from public.client_offers
-  where slug = p_slug and published;
-$$;
+do $migration$
+begin
+  if to_regprocedure('public.awexen_get_published_offer(text)') is null then
+    create function public.awexen_get_published_offer(p_slug text)
+    returns table (title text, client_name text, language text, summary text, sections jsonb)
+    language sql
+    stable
+    security definer
+    set search_path = ''
+    as $$
+      select title, client_name, language, summary, sections
+      from public.client_offers
+      where slug = p_slug and published;
+    $$;
+  end if;
+end;
+$migration$;
 
 revoke all on function public.awexen_get_published_offer(text) from public, anon, authenticated;
 grant execute on function public.awexen_get_published_offer(text) to anon, authenticated;

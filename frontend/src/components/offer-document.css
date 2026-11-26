@@ -37,6 +37,15 @@
 .offer-print { background: #202328; border-radius: .5rem; color: #fff; display: block; margin: 0 auto 1rem; padding: .6rem 1rem; }
 .offer-print:focus-visible { outline: 3px solid #bf5110; outline-offset: 3px; }
 
+.offer-calculator { background: #fff8f2; }
+.offer-calculator fieldset { margin-block: 1rem; min-width: 0; }
+.offer-calculator legend { font-weight: 700; }
+.offer-calculator-row { align-items: baseline; display: flex; gap: 1rem; justify-content: space-between; padding-block: .6rem; }
+.offer-calculator-row input { accent-color: #ac4610; margin-inline-end: .6rem; }
+.offer-calculator-row input:focus-visible { outline: 2px solid #bf5110; outline-offset: 3px; }
+.offer-calculator-row strong { flex-shrink: 0; }
+.offer-calculator-total { border-block-start: 2px solid #e87524; font-size: 1.15rem; font-weight: 800; }
+
 @media print {
   .offer-print { display: none; }
   .offer-document { background: white; padding: 0; }
