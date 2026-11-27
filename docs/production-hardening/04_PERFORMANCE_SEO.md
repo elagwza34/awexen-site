@@ -72,7 +72,7 @@ fresh production build:
 - `/awexen` (admin) is `noindex, nofollow` and is disallowed in `robots.txt`.
 - `/project-calculator` and `/pms` are indexable and present in the sitemap.
 - `robots.txt` points at `https://awexen.com/sitemap.xml`.
-- Sitemap now contains 23 public URLs (was 20).
+- Sitemap now contains 24 public URLs (was 20).
 - One HTML document serves every route; per-route titles/canonical are applied
   client-side. Social crawlers that do not execute JS see the home metadata —
   accepted limitation of the current static model, and the reason prerendering

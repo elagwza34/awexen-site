@@ -36,6 +36,11 @@ applied.
 3. **Sitemap omitted two public pages** (`frontend/public/sitemap.xml`).
    `/pms` and `/project-calculator` were indexable but unlisted; `/quote` and
    `/initiative` were added alongside them since all four are public routes.
+4. **Structured data kept Arabic values after switching to English**
+   (`frontend/src/components/SeoManager.tsx`).
+   The JSON-LD graph hardcoded `inLanguage: "ar"` and the Arabic page name, so
+   an English page still told crawlers it was Arabic. The graph now uses the
+   active language and title; `tests/e2e/seo-language.spec.ts` asserts it.
 
 No defect was found in the audited pricing, RBAC, RLS, idempotency, or
 notification paths. This is a result of review, not proof of absence: database

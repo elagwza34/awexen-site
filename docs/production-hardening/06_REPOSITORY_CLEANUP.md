@@ -34,8 +34,9 @@ it later is a one-command, fully recoverable change.
 
 - Deployment: `.github/workflows/deploy.yml` only; host credentials live in the
   `production` environment, never in the repo.
-- Runtime configuration: `VITE_*` variables at build time; no committed `.env`.
-  `.env.example` documents names only.
+- Runtime configuration: Hostinger's build reads the tracked
+  `frontend/.env.production` (public project URL and publishable key only); local
+  secrets stay in an ignored `frontend/.env`. `.env.example` documents names.
 - Database: `supabase/migrations/` only. `backend/sql/` remains review-only and
   is labelled as such in `docs/data-dictionary.md`.
 
