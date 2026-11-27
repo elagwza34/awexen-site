@@ -10,7 +10,7 @@ Live site: https://awexen.com (`version.json` reported `b4e2782`)
 | Layer | Implementation | Notes |
 | --- | --- | --- |
 | Front end | React 19.2, TypeScript 5.9, Vite 7.3, Tailwind v4, React Router 7.18, TanStack Query 5 | Static SPA. All routes are served from `index.html` by the host rewrite in `frontend/public/.htaccess`. |
-| Hosting | Hostinger shared hosting + HCDN | `public_html` receives `dist/` over SCP from GitHub Actions. Hashed assets are never deleted, so open tabs keep working across releases. |
+| Hosting | Hostinger shared hosting + HCDN | Hostinger's Git integration rebuilds `frontend/` and publishes `dist/` on every push, switching releases atomically; at baseline the workflow also uploaded the same build over SCP (removed in this work, see `01_DEPLOYMENT.md`). Hashed assets are additive, so open tabs keep working across releases. |
 | Backend | Supabase Edge Functions (Deno) + PostgreSQL | `lms-public`, `lms-api`, `ask-awexen`, `extract-knowledge-pdf`, `form-notify`, `project-calculator`. Business writes go through RPCs (`lms_edge_*`, `calculator_store_quote`, `calculator_store_lead`). RLS is enabled on customer tables. |
 | Database changes | `supabase/migrations/*.sql` | Applied manually by the owner; the deploy workflow reports changed migrations but never applies them. |
 | CI/CD | GitHub Actions | `.github/workflows/ci.yml` (push/PR) and `deploy.yml` (push to `main`). |
