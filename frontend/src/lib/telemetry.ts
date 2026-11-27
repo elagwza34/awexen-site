@@ -1,10 +1,11 @@
 import { APP_BUILD_ID } from "./buildInfo";
+import { diagnosticsEndpoint, sendDiagnostic, setupVitalsMonitoring } from "./telemetryTransport";
+import { telemetryRoute } from "../../../supabase/functions/_shared/telemetry-contract";
 
 /**
  * تشخيصات خفيفة للأعطال في المتصفح.
- * - لا تُرسل أي بيانات شخصية: الرسالة فقط + المسار + نوع الخطأ.
- * - تُحفظ آخر 25 رسالة في sessionStorage للفحص اليدوي،
- *   وتُرسل إلى VITE_ERROR_REPORT_URL فقط لو تم ضبطه (غير مضبوط حاليًا).
+ * Do not store error text, request URLs, or user data in browser diagnostics.
+ * The optional transport uses the same closed event categories.
  */
 export type DiagnosticKind =
   | "runtime"
@@ -13,6 +14,7 @@ export type DiagnosticKind =
   | "chunk"
   | "init"
   | "api"
+  | "edge"
   | "service-worker"
   | "update"
   | "compatibility";
@@ -25,31 +27,24 @@ export type Diagnostic = {
   build: string;
 };
 
-const STORAGE_KEY = "awexen:diagnostics";
+const STORAGE_KEY = "awexen:diagnostics:v2";
 const MAX_ENTRIES = 25;
 const recent = new Map<string, number>();
 let installed = false;
 
-function sanitize(value: unknown): string {
-  let text = "";
-  if (typeof value === "string") text = value;
-  else if (value instanceof Error) text = value.message;
-  else if (value && typeof value === "object" && "message" in value) {
-    text = String((value as { message?: unknown }).message ?? "");
-  } else if (value != null) text = String(value);
-  text = text.replace(/https?:\/\/[^\s"'<>]+/g, (url) => {
-    try {
-      return new URL(url).pathname;
-    } catch {
-      return "[url]";
-    }
-  });
-  return text.slice(0, 240);
+function diagnosticCode(kind: DiagnosticKind, value: unknown): string {
+  if ((kind === "api" || kind === "edge") && typeof value === "string") {
+    return value.match(/^HTTP [45]\d{2}(?=\s|$)/)?.[0] ?? "network failure";
+  }
+  if (value instanceof Error && ["TypeError", "ReferenceError", "SyntaxError", "RangeError", "AbortError"].includes(value.name)) {
+    return value.name;
+  }
+  return kind;
 }
 
 function currentPath(): string {
   try {
-    return window.location.pathname.slice(0, 160);
+    return telemetryRoute(window.location.pathname);
   } catch {
     return "";
   }
@@ -79,7 +74,7 @@ export function recordDiagnostic(
   options?: { dedupeKey?: string; throttleMs?: number },
 ) {
   if (typeof window === "undefined") return;
-  const text = sanitize(message);
+  const text = diagnosticCode(kind, message);
   const key = options?.dedupeKey ?? `${kind}|${text}`;
   const now = Date.now();
   const last = recent.get(key) ?? 0;
@@ -98,15 +93,8 @@ export function recordDiagnostic(
   } catch {
     /* ignore */
   }
-  const endpoint = import.meta.env.VITE_ERROR_REPORT_URL;
-  if (!endpoint) return;
   try {
-    const body = JSON.stringify(entry);
-    if (typeof navigator.sendBeacon === "function") {
-      navigator.sendBeacon(endpoint, new Blob([body], { type: "application/json" }));
-    } else {
-      void fetch(endpoint, { method: "POST", body, keepalive: true, headers: { "content-type": "application/json" } }).catch(() => {});
-    }
+    sendDiagnostic(kind);
   } catch {
     /* الفشل في الإبلاغ لا يجب أن يعطّل الموقع. */
   }
@@ -118,12 +106,16 @@ export function getDiagnostics(): Diagnostic[] {
 }
 
 function isApiRequest(url: string): boolean {
-  return /\/(?:rest|auth|functions)\/v1\//.test(url) || url.includes(".supabase.co/");
+  const report = diagnosticsEndpoint();
+  return (!report || !url.startsWith(report.href)) &&
+    (/\/(?:rest|auth|functions)\/v1\//.test(url) || url.includes(".supabase.co/"));
 }
 
 export function setupMonitoring() {
   if (installed || typeof window === "undefined") return;
   installed = true;
+  setupVitalsMonitoring();
+  if (Math.random() < 0.1) sendDiagnostic("init");
 
   window.addEventListener("error", (event) => {
     const target = event.target as HTMLElement | null;
@@ -158,7 +150,7 @@ export function setupMonitoring() {
       try {
         const response = await originalFetch.call(window, input, init);
         if (response.status >= 500 && isApiRequest(url)) {
-          recordDiagnostic("api", `HTTP ${response.status} ${url}`, { throttleMs: 60_000 });
+          recordDiagnostic(url.includes("/functions/v1/") ? "edge" : "api", `HTTP ${response.status} ${url}`, { throttleMs: 60_000 });
         }
         return response;
       } catch (error) {

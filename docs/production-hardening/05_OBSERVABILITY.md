@@ -55,3 +55,13 @@ remains the reference until a sink is approved.
   notifications without any paid service.
 - The release gate already fails a deploy whose live version or health does not
   match, so a bad release cannot be reported as successful.
+
+## 6. Phase 12 implementation prepared locally
+
+The browser debug buffer now stores fixed error codes and coarse route classes. The opt-in transport accepts only event kind, route class, Git build, browser family, OS family, and vital rating. Raw errors, request bodies, URLs, user-agent strings, user IDs and credentials are excluded. LCP, INP and CLS use the open-source web-vitals implementation, sampled on 10% of visits and sent only with optional analytics consent. Startup attempts are sampled at 10%. Diagnostics are deduplicated and capped at 25 submissions per tab.
+
+The new `client-events` function validates the exact event shape, limits request bytes, and hashes the network bucket using a separate secret. PostgreSQL rate-limits to 20 events per minute per bucket, aggregates identical dimensions hourly, and schedules retention of 30 days for aggregates and one day for buckets. The browser only categorizes Edge failures it observes. Background Edge-only failures still require the Supabase logs or additional instrumentation. Failures before the application JavaScript initializes still use the local boot recovery screen.
+
+The dashboard's **Production monitoring** section lists recent aggregates with severity, counts, first/last seen, versions, and platform classes. The backend rereads the authenticated user's role and limits the list to owners and admins. The SQL fixture verifies service-only access, rate limiting, aggregation, and rejection of raw routes. It uses a scheduler stub and does not prove cron execution.
+
+Activation requires explicit approval for migration `202611270002_telemetry_hourly_aggregates.sql`. Production read-only inspection found `pg_cron` absent. Enable Supabase Cron as part of the approved database change, set a random 32-character-or-longer `TELEMETRY_RATE_KEY` through Supabase Edge secrets, and deploy `client-events` before enabling `VITE_ERROR_REPORT_URL=https://rlppzlcdkwrxsuekszcm.supabase.co/functions/v1/client-events` in the Hostinger build. Verify authorized and denied dashboard reads and the retention job in staging. This continuation has not enabled the production sink.

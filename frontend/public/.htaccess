@@ -3,6 +3,7 @@
   RewriteBase /
 
   RewriteRule ^index\.html$ - [L]
+  RewriteRule ^(privacy|terms)/?$ $1/index.html [L]
 
   # security.txt: نتعامل مع .well-known كمجلد حقيقي قبل قاعدة SPA
   # عشان ما يتحوّلش لصفحة React 404

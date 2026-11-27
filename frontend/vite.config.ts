@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
+import { prerenderLegalDocuments } from "./static-prerender";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,6 +41,11 @@ function versionFile(version: string): Plugin {
         (item) => item.type === "chunk" && /(^|\/)Home-[^/]+\.js$/.test(item.fileName),
       );
       const html = bundle["index.html"];
+      if (html?.type === "asset") {
+        for (const document of prerenderLegalDocuments(String(html.source))) {
+          this.emitFile({ type: "asset", fileName: document.fileName, source: document.html });
+        }
+      }
       if (homeChunk && html && html.type === "asset") {
         html.source = String(html.source).replace(
           "</head>",

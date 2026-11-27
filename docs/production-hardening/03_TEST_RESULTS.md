@@ -73,3 +73,13 @@ CI so a stale local build cannot mask a failure.
 - Payment provider and email delivery: no sandbox credentials in the repo.
 - Visual regression snapshots: would add a maintenance-heavy baseline without a
   stated requirement.
+
+## 6. Phase 10 continuation and coverage limits
+
+The 33 unit tests exercise calculator logic, CMS helpers, offer helpers and analytics policy. The original 75 browser cases are 25 scenarios across three engines. They disable Supabase and cover public routes, language/metadata and startup recovery. They do not run real sign-in, RLS, cross-role access, payment approval, enrollment validity, progress/certificate eligibility, CRM writes or CMS publishing.
+
+The continuation added six browser executions for static legal HTML and the React handoff (two routes on three engines), three backend-contract tests with mock HTTP responses, and two privacy-contract tests. The browser suite initially timed out waiting for its local build/preview server. Running with two browser workers and webserver logging completed with 81 passes.
+
+Two transactional SQL fixtures passed on real local PostgreSQL 17. The instructor test uses stand-ins for the legacy organization and catalog routines and verifies privileges, upsert identity and rollback. The telemetry test uses a cron stub and verifies real table constraints, grants, rate limiting and aggregation. CI now runs both against an isolated PostgreSQL service. Neither fixture proves production role mappings or actual scheduler operation.
+
+The production smoke used direct read-only readiness and public configuration checks and an anonymous rejection. Real Auth role isolation, concurrent approval of payment proofs, progress and certificate eligibility, CRM lifecycle, and CMS draft/publish behavior still need an isolated full Supabase stack and synthetic accounts. The production site was not used to run those write tests.

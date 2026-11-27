@@ -780,44 +780,19 @@ async function courseInstructors(db: DatabaseClient, course: Row): Promise<Row[]
   });
 }
 
-async function setCourseInstructor(
+async function writeCourseInstructor(
   db: DatabaseClient,
   context: LmsContext,
   course: Row,
   userId: string,
-  isLead: boolean,
+  isLead: boolean | null,
 ): Promise<Row[]> {
-  const versionId = await instructorVersionId(db, course);
-  if (!versionId) throw new HttpError(400, "انشر إصدارًا للكورس أولًا قبل تعيين المحاضر.");
-  const existing = unwrap(await db.from("courses_courseinstructor").select("*")
-    .eq("course_version_id", versionId)
-    .eq("instructor_id", userId)
-    .maybeSingle()) as Row | null;
-  if (existing) {
-    unwrap(await db.from("courses_courseinstructor")
-      .update({ is_lead: isLead, updated_at: new Date().toISOString() })
-      .eq("id", existing.id));
-  } else {
-    unwrap(await db.from("courses_courseinstructor").insert({
-      id: crypto.randomUUID(),
-      course_version_id: versionId,
-      instructor_id: userId,
-      is_lead: isLead,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }));
-  }
-  await rpc(db, "lms_edge_sync_course_catalog", { p_auth_user_id: context.auth_user_id, p_course_id: course.id }).catch(() => undefined);
-  return await courseInstructors(db, course);
-}
-
-async function removeCourseInstructor(db: DatabaseClient, context: LmsContext, course: Row, userId: string): Promise<Row[]> {
-  const versionId = await instructorVersionId(db, course);
-  if (!versionId) return [];
-  unwrap(await db.from("courses_courseinstructor").delete()
-    .eq("course_version_id", versionId)
-    .eq("instructor_id", userId));
-  await rpc(db, "lms_edge_sync_course_catalog", { p_auth_user_id: context.auth_user_id, p_course_id: course.id }).catch(() => undefined);
+  await rpc(db, "lms_edge_write_course_instructor", {
+    p_auth_user_id: context.auth_user_id,
+    p_course_id: course.id,
+    p_instructor_id: userId,
+    p_is_lead: isLead,
+  });
   return await courseInstructors(db, course);
 }
 
@@ -1532,13 +1507,13 @@ async function routeRequest(
       if (method === "POST") {
         const body = await readJson(request);
         const userId = uuid(body.user_id ?? body.instructor_id, "المحاضر");
-        const rows = await setCourseInstructor(db, context, course, userId, body.is_lead !== false);
+        const rows = await writeCourseInstructor(db, context, course, userId, body.is_lead !== false);
         await audit(db, context, requestIdValue, "course.instructor_assigned", "course", String(course.id), String(course.organization_id));
         return jsonResponse(request, rows, 201);
       }
       if (method === "DELETE") {
         const userId = uuid(parts[4] ?? "", "المحاضر");
-        const rows = await removeCourseInstructor(db, context, course, userId);
+        const rows = await writeCourseInstructor(db, context, course, userId, null);
         await audit(db, context, requestIdValue, "course.instructor_removed", "course", String(course.id), String(course.organization_id));
         return jsonResponse(request, rows);
       }

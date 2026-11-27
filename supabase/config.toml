@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.project-calculator]
 verify_jwt = false
+
+[functions.client-events]
+verify_jwt = false

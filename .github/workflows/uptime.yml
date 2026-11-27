@@ -26,6 +26,11 @@ jobs:
     name: Verify live site, backend, and metadata
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify production backend contracts
+        run: node frontend/scripts/check-production-backend.mjs
+
       - name: Check the live site
         env:
           SITE: https://awexen.com
@@ -40,16 +45,6 @@ jobs:
           echo "version.json: $VERSION"
           echo "$VERSION" | grep -Eq '"version":"[0-9a-f]{7,40}"' \
             || fail "version.json is missing a build id"
-
-          HEALTH=""
-          for attempt in 1 2 3 4 5; do
-            HEALTH=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
-              "$SITE/functions/v1/lms-public?path=health" || true)
-            echo "health attempt $attempt: HTTP ${HEALTH:-000}"
-            if [ "$HEALTH" = "200" ]; then break; fi
-            if [ "$attempt" -lt 5 ]; then sleep 15; fi
-          done
-          [ "$HEALTH" = "200" ] || fail "lms-public health answered HTTP ${HEALTH:-000} after retries"
 
           SITEMAP=$(curl -fsS "$SITE/sitemap.xml" || true)
           for path in "$SITE/pms" "$SITE/project-calculator"; do
@@ -75,6 +70,6 @@ jobs:
             echo ""
             echo "- home: $HOME_STATUS"
             echo "- version: $VERSION"
-            echo "- backend health: $HEALTH"
+            echo "- backend: database readiness, protected access, and calculator contract verified"
             echo "- sitemap routes and assets verified"
           } >> "$GITHUB_STEP_SUMMARY"

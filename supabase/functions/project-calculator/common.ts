@@ -44,8 +44,7 @@ export function readText(value: unknown, max: number) {
   return value.trim();
 }
 
-export async function readBody(request: Request): Promise<JsonObject> {
-  const maxBytes = 1_100_000;
+export async function readBody(request: Request, maxBytes = 1_100_000): Promise<JsonObject> {
   if (!request.body || Number(request.headers.get("content-length")) > maxBytes) {
     throw new ApiError(413, "request_size", "Request is missing or exceeds the permitted size.");
   }

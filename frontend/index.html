@@ -143,15 +143,19 @@
           return;
         }
 
+        function ready() {
+          return root && root.childNodes.length > 0 && !document.getElementById("awexen-static-document");
+        }
+
         var watch = setInterval(function () {
-          if (root && root.childNodes.length > 0) {
+          if (ready()) {
             clearInterval(watch);
             dismiss();
           }
         }, 250);
 
         setTimeout(function () {
-          if (root && root.childNodes.length > 0) return;
+          if (ready()) return;
           showError("تعذر تحميل الموقع.", "قد يكون هناك ملف قديم في الكاش أو انقطاع في الشبكة.");
         }, 15000);
 
@@ -162,7 +166,7 @@
           var url = target.src || target.href || "";
           if (url.indexOf("/assets/") === -1) return;
           setTimeout(function () {
-            if (root && root.childNodes.length > 0) return;
+            if (ready()) return;
             showError("تعذر تحميل ملفات الموقع.", "جرّب إعادة المحاولة، أو امسح الكاش ثم أعد التحميل.");
           }, 1200);
         }, true);

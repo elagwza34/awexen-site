@@ -109,3 +109,15 @@ Not verified, therefore not claimed: the version of the deployed Edge Functions,
 the performance targets in item 2, live error/RUM telemetry, and database-level
 test coverage. Readiness is **not** 100% until items 1–3 are closed or
 explicitly accepted.
+
+## 9. Phase 8–13 continuation from 6b36d0f
+
+Production still reported `6b36d0f` during the continuation. Seven live route and metadata requests returned 200, and all six assets referenced by the live home page passed the content-type check. The direct backend readiness, anonymous rejection and calculator contracts passed. The candidate was kept local.
+
+- **Backend** — Eight production functions inventoried with source comparisons. Seven matched the baseline. `lms-api` version 9 has drift. Two missing deploy inventory entries and the false-positive Hostinger HTML health endpoint were corrected in the local workflow. See `08_BACKEND_DEPLOYMENT.md`.
+- **Workflow integrity** — An instructor assignment race and non-atomic catalog update were remediated locally. See `09_WORKFLOW_INTEGRITY.md`.
+- **Tests** — 33 unit and 81 hermetic browser executions passed. Backend contracts, telemetry contracts and two PostgreSQL fixtures passed. Hosted role and write workflows remain pending. See `03_TEST_RESULTS.md`.
+- **Performance** — Two static legal routes were prepared and browser-verified. Repeatable mobile profiling still misses homepage FCP and LCP targets. See `04_PERFORMANCE_SEO.md`.
+- **Monitoring** — Privacy-safe collection, retention SQL and an owner/admin dashboard were prepared. No production telemetry is active. See `05_OBSERVABILITY.md`.
+
+**Release blocked.** The GitHub production environment needs the Supabase deploy token and project reference. Reconcile the recorded migration history with the live schema before approving SQL. Migration approval is required for the LMS RPC and telemetry storage, including enabling the currently absent Supabase Cron extension. The approved migration and secrets setup must precede any dependent Edge deployment. Verify authenticated LMS workflows, telemetry access and retention in staging, and close the homepage performance gates before a final production readiness claim.

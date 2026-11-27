@@ -5,6 +5,33 @@ on:
   pull_request:
 
 jobs:
+  database:
+    name: PostgreSQL transaction regression
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: fixture-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify LMS instructor write and synchronization atomicity
+        env:
+          PGHOST: 127.0.0.1
+          PGUSER: postgres
+          PGPASSWORD: fixture-only
+        run: |
+          psql -v ON_ERROR_STOP=1 -c 'create role anon; create role authenticated; create role service_role;'
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/lms_instructor_atomicity.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/tests/telemetry_aggregates.sql
+
   edge-functions:
     runs-on: ubuntu-latest
     steps:
@@ -19,6 +46,7 @@ jobs:
           supabase/functions/lms-public/index.ts
           supabase/functions/lms-api/index.ts
           supabase/functions/project-calculator/index.ts
+          supabase/functions/client-events/index.ts
       - run: >-
           deno lint
           supabase/functions/_shared/http.ts
@@ -44,6 +72,8 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: node --experimental-strip-types scripts/test-calculator.mjs
+      - run: node --test scripts/test-production-backend.mjs
+      - run: node --experimental-strip-types --test scripts/test-telemetry-contract.mjs
       - run: npm audit --audit-level=high
       - run: npm run test:crm
       - run: npm exec tsc -- --noEmit

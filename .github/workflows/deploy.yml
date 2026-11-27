@@ -19,9 +19,8 @@
 # (مفتاح publishable فقط، لا service role). والبناء على Hostinger بيقرأ
 # frontend/.env.production المتتبَّع في الريبو.
 #
-# ترتيب النشر مقصود: الدوال (backend) الأول، وبعدها الواجهة (frontend).
-# كذا ماينفعش واجهة جديدة تعتمد على دالة جديدة قبل ما الدالة تكون منشورة.
-# والترحيلات (database) بتتطبّق يدويًا من owner المشروع على Supabase.
+# Hostinger publishes independently. Use backward-compatible backend releases
+# before pushing frontend callers. Migrations require an explicit manual input.
 
 name: Deploy
 
@@ -29,9 +28,23 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      backend_ref:
+        description: Prior main commit SHA for backend-only rollback
+        type: string
+        required: false
+      apply_migrations:
+        description: Apply reviewed production database migrations
+        type: boolean
+        default: false
+      reviewed_migrations:
+        description: Exact reviewed SQL filenames, comma separated
+        type: string
+        required: false
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: deploy-production
@@ -42,21 +55,49 @@ jobs:
   # Backend: Edge Functions
   # ---------------------------------------------------------------------------
   backend:
+    if: github.ref == 'refs/heads/main' && !inputs.apply_migrations
     name: Backend (Edge Functions)
     runs-on: ubuntu-latest
     environment: production
     outputs:
       functions_changed: ${{ steps.scope.outputs.functions }}
-      deployed: ${{ steps.credentials.outputs.ok }}
+      deployed: ${{ steps.deploy.outputs.complete }}
     steps:
       # fetch-depth: 0 عشان نقدر نقارن مع الكوميت السابق بدقة.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Require passing CI for this release commit
+        if: inputs.backend_ref == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module - <<'NODE'
+          const url = new URL(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs`);
+          url.searchParams.set("head_sha", process.env.GITHUB_SHA);
+          url.searchParams.set("event", "push");
+          for (let attempt = 1; attempt <= 40; attempt++) {
+            const response = await fetch(url, {
+              headers: { authorization: `Bearer ${process.env.GH_TOKEN}`, accept: "application/vnd.github+json" },
+              signal: AbortSignal.timeout(15_000),
+            });
+            if (!response.ok) throw new Error(`CI lookup failed with HTTP ${response.status}.`);
+            const { workflow_runs: runs } = await response.json();
+            const run = runs[0];
+            if (run?.status === "completed") {
+              if (run.conclusion !== "success") throw new Error(`CI run ${run.id} ended with ${run.conclusion}.`);
+              console.log(`CI run ${run.id} passed for this commit.`);
+              process.exit(0);
+            }
+            if (attempt < 40) await new Promise((resolve) => setTimeout(resolve, 15_000));
+          }
+          throw new Error("No passing push-triggered CI run was found for this commit.");
+          NODE
+
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.119.0
 
       # بنحدد هل الدوال اتغيّرت في الـpush ده. لو اتغيّرت والاعتمادات
       # ناقصة، النشر بيفشل صراحةً بدل ما الكود الجديد يفضل محلي.
@@ -79,7 +120,7 @@ jobs:
           else
             CHANGED=$(git show --name-only --pretty=format: "$SHA")
           fi
-          FUNCTIONS=$(printf '%s\n' "$CHANGED" | grep -E '^supabase/functions/' || true)
+          FUNCTIONS=$(printf '%s\n' "$CHANGED" | grep -E '^supabase/(functions/|config\.toml$)' || true)
           MIGRATIONS=$(printf '%s\n' "$CHANGED" | grep -E '^supabase/migrations/' || true)
           if [ -n "$FUNCTIONS" ]; then
             echo "functions=true" >> "$GITHUB_OUTPUT"
@@ -100,13 +141,14 @@ jobs:
           TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
           FUNCTIONS_CHANGED: ${{ steps.scope.outputs.functions }}
+          EVENT: ${{ github.event_name }}
         run: |
           MISSING=""
           if [ -z "$TOKEN" ]; then MISSING="SUPABASE_ACCESS_TOKEN (secret)"; fi
           if [ -z "$PROJECT_REF" ]; then MISSING="$MISSING SUPABASE_PROJECT_REF (variable)"; fi
           if [ -n "$MISSING" ]; then
-            if [ "$FUNCTIONS_CHANGED" = "true" ]; then
-              echo "::error::supabase/functions changed in this commit, but $MISSING is missing from the production environment. Refusing to leave the new backend code undeployed. Add it in Settings > Environments > production, then re-run this workflow. The frontend job is blocked on purpose so production cannot run old functions with new callers."
+            if [ "$FUNCTIONS_CHANGED" = "true" ] || [ "$EVENT" = "workflow_dispatch" ]; then
+              echo "::error::supabase/functions changed in this commit, but $MISSING is missing from the production environment. Refusing to leave the new backend code undeployed. Add it in Settings > Environments > production, then re-run this workflow. Release verification will fail. Hostinger publishes independently of this workflow."
               exit 1
             fi
             echo "::warning::Edge functions were NOT deployed. Missing: $MISSING. Add them in Settings > Environments > production to enable backend deploys."
@@ -115,82 +157,42 @@ jobs:
               echo ""
               echo "Missing: $MISSING"
               echo ""
-              echo "No function files changed in this release, so production is consistent."
+              echo "No function files changed in this push. This run does not attest the deployed function sources."
             } >> "$GITHUB_STEP_SUMMARY"
             echo "ok=false" >> "$GITHUB_OUTPUT"
           else
             echo "ok=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Deploy lms-public
-        if: steps.credentials.outputs.ok == 'true'
-        run: supabase functions deploy lms-public --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
+      - name: Deploy and attest configured functions
+        if: steps.credentials.outputs.ok == 'true' && (steps.scope.outputs.functions == 'true' || github.event_name == 'workflow_dispatch')
+        id: deploy
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Deploy lms-api
-        if: steps.credentials.outputs.ok == 'true'
-        run: supabase functions deploy lms-api --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Deploy ask-awexen
-        if: steps.credentials.outputs.ok == 'true'
-        run: supabase functions deploy ask-awexen --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Deploy extract-knowledge-pdf
-        if: steps.credentials.outputs.ok == 'true'
-        run: supabase functions deploy extract-knowledge-pdf --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Deploy form-notify
-        if: steps.credentials.outputs.ok == 'true'
-        run: supabase functions deploy form-notify --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --no-verify-jwt
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Deploy project-calculator
-        if: steps.credentials.outputs.ok == 'true'
-        run: supabase functions deploy project-calculator --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --no-verify-jwt
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      # بصحة الدالة المنشورة بنتحقق دايمًا، حتى لو النشر اتخطّى —
-      # عشان نتأكد إن الـbackend الشغّال فعليًا سليم.
-      #
-      # بنجرّب البروجيكت مباشرة (لو الـvariable متظبط) وكمان نفس المسار
-      # العام على الدومين، مع 6 محاولات لكل واحد: فشل اتصال عابر بـHCDN
-      # مايفشّلش release اترفع فعلًا.
-      - name: Verify the public backend health endpoint
-        if: always()
-        env:
-          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          BACKEND_REF: ${{ inputs.backend_ref }}
         run: |
           set -euo pipefail
-          URLS="https://awexen.com/functions/v1/lms-public?path=health"
-          if [ -n "${SUPABASE_URL:-}" ]; then
-            URLS="${SUPABASE_URL%/}/functions/v1/lms-public?path=health $URLS"
+          SOURCE="$GITHUB_WORKSPACE"
+          if [ -n "$BACKEND_REF" ]; then
+            [[ "$BACKEND_REF" =~ ^[a-f0-9]{40}$ ]] || { echo "::error::Use a full commit SHA."; exit 1; }
+            git merge-base --is-ancestor "$BACKEND_REF" HEAD || { echo "::error::Rollback target must be in main history."; exit 1; }
+            SOURCE="$RUNNER_TEMP/edge-source"
+            git worktree add --detach "$SOURCE" "$BACKEND_REF"
           fi
-          VERIFIED=""
-          for url in $URLS; do
-            for attempt in 1 2 3 4 5 6; do
-              STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "$url" || true)
-              echo "attempt $attempt: $url -> ${STATUS:-000}"
-              if [ "$STATUS" = "200" ]; then
-                VERIFIED="$url"
-                break 2
-              fi
-              if [ "$attempt" -lt 6 ]; then sleep 10; fi
-            done
-          done
-          if [ -z "$VERIFIED" ]; then
-            echo "::error::lms-public health did not answer 200 on any known endpoint after retries."
-            exit 1
-          fi
-          echo "Backend health verified at $VERIFIED"
+          node frontend/scripts/deploy-edge-release.mjs "$SOURCE" "$RUNNER_TEMP/edge-release.json"
+          echo "complete=true" >> "$GITHUB_OUTPUT"
+
+      - name: Upload function version evidence
+        if: always() && (steps.deploy.outcome == 'success' || steps.deploy.outcome == 'failure')
+        uses: actions/upload-artifact@v4
+        with:
+          name: edge-release
+          path: ${{ runner.temp }}/edge-release.json
+          if-no-files-found: ignore
+
+      - name: Verify production backend contracts
+        run: node frontend/scripts/check-production-backend.mjs
 
   # ---------------------------------------------------------------------------
   # Frontend: verify the Hostinger Git auto-deploy
@@ -204,6 +206,7 @@ jobs:
   frontend:
     name: Frontend (auto-deploy verification)
     needs: backend
+    if: inputs.backend_ref == '' && !inputs.apply_migrations
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -282,7 +285,7 @@ jobs:
   release:
     name: Release verification
     needs: [backend, frontend]
-    if: always()
+    if: always() && inputs.backend_ref == '' && !inputs.apply_migrations
     runs-on: ubuntu-latest
     steps:
       - name: Verify frontend, backend, and release consistency
@@ -300,36 +303,22 @@ jobs:
             echo "::error::Live version.json does not identify this commit."
             exit 1
           fi
-          HEALTH=""
-          for attempt in 1 2 3 4 5 6; do
-            HEALTH=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
-              "https://awexen.com/functions/v1/lms-public?path=health" || true)
-            echo "backend health attempt $attempt: HTTP ${HEALTH:-000}"
-            if [ "$HEALTH" = "200" ]; then
-              break
-            fi
-            if [ "$attempt" -lt 6 ]; then sleep 10; fi
-          done
-          if [ "$HEALTH" != "200" ]; then
-            echo "::error::Backend health endpoint is not answering 200 after retries."
-            exit 1
-          fi
           {
             echo "### Release verified"
             echo ""
             echo "- Frontend: \`$LIVE\` (assets checked against live HTML)"
-            echo "- Backend: health 200${BACKEND_NOTE}"
+            echo "- Backend: readiness, protected access, and calculator contract checked${BACKEND_NOTE}"
             echo "- Migrations: manual / approval-gated (not applied here)"
           } >> "$GITHUB_STEP_SUMMARY"
         env:
-          BACKEND_NOTE: ${{ needs.backend.outputs.deployed == 'true' && ' (functions deployed)' || ' (functions unchanged or credentials missing)' }}
+          BACKEND_NOTE: ${{ needs.backend.outputs.deployed == 'true' && ' (functions deployed)' || ' (source deployment not performed by this run)' }}
 
   # ---------------------------------------------------------------------------
-  # Database: manual, approval-gated. Never runs automatically on push.
+  # Database: explicit manual opt-in, with production environment approval.
   # ---------------------------------------------------------------------------
   database:
     name: Apply pending migrations
-    if: github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.apply_migrations && inputs.backend_ref == ''
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -337,7 +326,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.119.0
 
       - name: Link to the Supabase project
         run: supabase link --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --password "${{ secrets.SUPABASE_DB_PASSWORD }}"
@@ -346,10 +335,15 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
       - name: Push pending migrations
-        run: supabase db push --linked --include-all
+        run: |
+          set -euo pipefail
+          supabase db push --linked --include-all --dry-run 2>&1 | tee "$RUNNER_TEMP/migration-plan.txt"
+          node frontend/scripts/verify-migration-plan.mjs "$RUNNER_TEMP/migration-plan.txt"
+          supabase db push --linked --include-all
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          REVIEWED_MIGRATIONS: ${{ inputs.reviewed_migrations }}
 
       - name: Report the migration state afterwards
         run: supabase migration list --linked

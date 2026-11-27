@@ -1,3 +1,4 @@
+import { legalMetadata } from "../data/legalMetadata";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { isOfferPath } from "../lib/offers";
@@ -94,19 +95,7 @@ const pages: Record<string, SeoEntry> = {
     descriptionEn:
       "Hands-on training in web development, design, and marketing, with applied content and projects that build usable skills.",
   },
-  "/privacy": {
-    title: "سياسة الخصوصية | Awexen",
-    description: "تعرّف على كيفية جمع Awexen للبيانات واستخدامها وحمايتها عند استخدام الموقع أو إرسال النماذج.",
-    titleEn: "Privacy Policy | Awexen",
-    descriptionEn:
-      "How Awexen collects, uses, and protects data when you use the website or submit forms.",
-  },
-  "/terms": {
-    title: "الشروط والأحكام | Awexen",
-    description: "الشروط المنظمة لاستخدام موقع Awexen والتعامل مع الخدمات والعروض والمحتوى المنشور.",
-    titleEn: "Terms and Conditions | Awexen",
-    descriptionEn: "Terms governing the use of the Awexen website, services, offers, and published content.",
-  },
+  ...legalMetadata,
   "/export": {
     title: "أدوات نقل البيانات | Awexen",
     description: "أداة داخلية لمراجعة تصدير بيانات الموقع.",
@@ -184,12 +173,12 @@ export default function SeoManager() {
   const { lang } = useLanguage();
 
   useEffect(() => {
-    const meta = routeMeta(pathname);
     // اللغة المختارة لازم تفضل محترمة بعد كل تنقّل؛ قبل كده كان كل
     // تغيير مسار بيرجّع الصفحة لـlang=ar/dir=rtl ويضيّع اختيار الإنجليزية.
+    const canonicalPath = pathname === "/" ? "/" : pathname.replace(/\/$/, "");
+    const meta = routeMeta(canonicalPath);
     const title = lang === "en" ? meta.titleEn ?? meta.title : meta.title;
     const description = lang === "en" ? meta.descriptionEn ?? meta.description : meta.description;
-    const canonicalPath = pathname === "/" ? "/" : pathname.replace(/\/$/, "");
     const canonical = `${SITE_URL}${canonicalPath}`;
     const robots = meta.noindex ? "noindex, nofollow" : "index, follow, max-image-preview:large";
 

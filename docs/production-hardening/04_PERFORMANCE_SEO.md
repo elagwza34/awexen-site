@@ -77,3 +77,23 @@ fresh production build:
   client-side. Social crawlers that do not execute JS see the home metadata —
   accepted limitation of the current static model, and the reason prerendering
   is proposed above.
+
+## 6. Approved Phase 11 continuation
+
+The repeatable CDP profile script is `frontend/scripts/profile-public-route.mjs`. It uses fresh Chromium mobile contexts, 4× CPU slowdown, 150 ms latency, a 1.6 Mbps downstream limit and a fixed observation window. On the local `6b36d0f` build, three homepage samples reported FCP 3,176–3,200 ms, LCP 4,124–4,232 ms, CLS 0.023 and observed blocking time 131–166 ms. React vendor and entry script samples dominated identified JavaScript work. This measurement is not Lighthouse TBT and does not explain the full earlier 570 ms result under a different measurement.
+
+The first prerender pass emits static Arabic HTML for `/terms` and `/privacy` from the same non-CMS section content the React pages use. Existing English and Arabic runtime metadata share the build's metadata source. The application mounts separately and removes the static document when the matching route renders. The boot watchdog still handles a failed handoff. Hostinger routes those two paths to their generated index files without changing the SPA fallback or HTML revalidation. CMS pages still read live content and no homepage bundle split was added.
+
+Using the same Chromium setup against the candidate, three homepage runs reported FCP 3,192–3,256 ms, LCP 4,184–4,240 ms, CLS 0.023 and observed blocking time 143–159 ms. On prerendered `/terms/`, FCP and LCP were 3,080–3,160 ms, CLS was 0 and observed blocking time was 131–158 ms. These short profile windows overlap and are not a substitute for Lighthouse TBT.
+
+Lighthouse 13.6.0 mobile ran once on both independently built, hermetic trees with the same local static server type and Chromium executable:
+
+| Metric | Baseline `6b36d0f` | Local candidate | Target |
+| --- | ---: | ---: | ---: |
+| Performance | 38 | 39 | ≥ 90 |
+| FCP | 2.77 s | 1.51 s | ≤ 1.8 s |
+| LCP | 7.46 s | 6.74 s | ≤ 2.5 s |
+| TBT | 2.68 s | 3.78 s | ≤ 0.20 s |
+| CLS | 0.110 | 0.022 | ≤ 0.1 |
+
+The candidate Lighthouse trace attributed approximately 4.20 s to Other main-thread work, 1.50 s to style/layout, and 0.49 s to script evaluation. Its 3.78 s longest task was marked `Unattributable`, as were the baseline's 2.56 s and 1.18 s leading tasks. The pair confirms a failed score/LCP/TBT gate and a worse measured TBT on the candidate. It does not establish which change caused the difference, and the shorter CDP samples did not reproduce that difference. Keep the candidate off production and trace the long-task category in repeated isolated profiles before further homepage optimization.

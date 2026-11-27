@@ -33,6 +33,7 @@ import {
 import QuoteInbox from "../admin/QuoteInbox";
 import OffersPanel from "../admin/OffersPanel";
 import AnalyticsPanel from "../admin/AnalyticsPanel";
+import ProductionMonitoring from "../admin/ProductionMonitoring";
 import CalculatorAdmin from "../admin/calculator/CalculatorAdmin";
 import { analyticsAdminAllowed } from "../lib/trackingPolicy";
 import ResourceManager from "../admin/ResourceManager";
@@ -66,6 +67,7 @@ const navItems: Array<{
   roles: AdminRole[];
   group: "عام" | "المحتوى" | "المبيعات" | "التوظيف" | "التدريب" | "المعرفة" | "النظام";
 }> = [
+  { key: "monitoring", label: "مراقبة الإنتاج · Monitoring", icon: LayoutDashboard, roles: ["owner", "admin"], group: "النظام" },
   { key: "analytics", label: "التحليلات والتتبع · Analytics & Tracking", icon: LayoutDashboard, roles: ["owner", "admin"], group: "عام" },
   { key: "overview", label: "الرئيسية", icon: House, roles: allRoles, group: "عام" },
   { key: "messages", label: "رسائل التواصل", icon: Mail, roles: ["owner", "admin", "support"], group: "المبيعات" },
@@ -340,6 +342,7 @@ export default function AdminDashboard({ userId }: { userId: string }) {
 
         <main inert={menuOpen} className="min-w-0 rounded-xl border border-white/[0.07] bg-[#0d111b] p-4 sm:p-5">
           {active === "analytics" && analyticsAccessVerified && <AnalyticsPanel />}
+          {active === "monitoring" && <ProductionMonitoring />}
           {active === "overview" && <OverviewPanel role={role} goTo={safeGoTo} />}
           {active === "portfolio" && <ResourceManager definition={resources.portfolio} draftOwnerId={userId} />}
           {active === "blog" && <ResourceManager definition={resources.blog} draftOwnerId={userId} />}
