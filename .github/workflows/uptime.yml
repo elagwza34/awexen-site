@@ -41,9 +41,15 @@ jobs:
           echo "$VERSION" | grep -Eq '"version":"[0-9a-f]{7,40}"' \
             || fail "version.json is missing a build id"
 
-          HEALTH=$(curl -s -o /dev/null -w "%{http_code}" \
-            "$SITE/functions/v1/lms-public?path=health" || true)
-          [ "$HEALTH" = "200" ] || fail "lms-public health answered HTTP $HEALTH"
+          HEALTH=""
+          for attempt in 1 2 3 4 5; do
+            HEALTH=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
+              "$SITE/functions/v1/lms-public?path=health" || true)
+            echo "health attempt $attempt: HTTP ${HEALTH:-000}"
+            if [ "$HEALTH" = "200" ]; then break; fi
+            if [ "$attempt" -lt 5 ]; then sleep 15; fi
+          done
+          [ "$HEALTH" = "200" ] || fail "lms-public health answered HTTP ${HEALTH:-000} after retries"
 
           SITEMAP=$(curl -fsS "$SITE/sitemap.xml" || true)
           for path in "$SITE/pms" "$SITE/project-calculator"; do

@@ -1,16 +1,23 @@
-# نشر تلقائي: كل push على main يبني الواجهة ويرفعها لـ Hostinger،
-# وينشر Edge Functions إذا كانت اتغيّرت واعتمادات Supabase متاحة.
+# نشر تلقائي: كل push على main ينشر Edge Functions (لو اتغيّرت والاعتمادات
+# متاحة)، والواجهة الثابتة بينشرها تكامل Git في Hostinger
+# (repo elagwza34/awexen-site، branch main، root frontend، output dist)
+# اللي بيبني ويعمل switch ذرّي للنسخة مع كل push.
+#
+# مهم: مفيش رفع SCP للواجهة من هنا. كان في كاتبين لنفس الـ public_html
+# (التكامل + الأكشن)، والسباق بينهم هو اللي حوّل نشر ناجح لـ release أحمر.
+# دلوقتي التكامل هو الكاتب الوحيد، والأكشن بيتحقق إن النشر حصل فعلًا.
 #
 # الإعداد المطلوب مرة واحدة فقط:
 #   Repository → Settings → Environments → production
-#     Secrets:  HOSTINGER_SSH_PRIVATE_KEY, HOSTINGER_SSH_HOST,
-#               HOSTINGER_SSH_PORT, HOSTINGER_SSH_USER,
-#               SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD
+#     Secrets:  SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD,
+#               HOSTINGER_SSH_PRIVATE_KEY, HOSTINGER_SSH_HOST,
+#               HOSTINGER_SSH_PORT, HOSTINGER_SSH_USER (للـ rollback اليدوي فقط)
 #     Variables: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY,
 #               SUPABASE_PROJECT_REF
 #
-# ملاحظة: VITE_* تُقرأ كـ variables لا secrets لأنها قيم عامة
-# بتوصل للمتصفح أصلًا (مفتاح publishable فقط، لا service role).
+# ملاحظة: VITE_* تُقرأ كـ variables لأنها قيم عامة بتوصل للمتصفح أصلًا
+# (مفتاح publishable فقط، لا service role). والبناء على Hostinger بيقرأ
+# frontend/.env.production المتتبَّع في الريبو.
 #
 # ترتيب النشر مقصود: الدوال (backend) الأول، وبعدها الواجهة (frontend).
 # كذا ماينفعش واجهة جديدة تعتمد على دالة جديدة قبل ما الدالة تكون منشورة.
@@ -22,6 +29,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: deploy-production
@@ -150,129 +160,121 @@ jobs:
 
       # بصحة الدالة المنشورة بنتحقق دايمًا، حتى لو النشر اتخطّى —
       # عشان نتأكد إن الـbackend الشغّال فعليًا سليم.
+      #
+      # بنجرّب البروجيكت مباشرة (لو الـvariable متظبط) وكمان نفس المسار
+      # العام على الدومين، مع 6 محاولات لكل واحد: فشل اتصال عابر بـHCDN
+      # مايفشّلش release اترفع فعلًا.
       - name: Verify the public backend health endpoint
         if: always()
+        env:
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${{ vars.VITE_SUPABASE_URL }}/functions/v1/lms-public?path=health" || true)
-          echo "lms-public HTTP $STATUS"
-          if [ "$STATUS" != "200" ]; then
-            echo "::error::lms-public did not answer 200; backend health is not verified."
+          set -euo pipefail
+          URLS="https://awexen.com/functions/v1/lms-public?path=health"
+          if [ -n "${SUPABASE_URL:-}" ]; then
+            URLS="${SUPABASE_URL%/}/functions/v1/lms-public?path=health $URLS"
+          fi
+          VERIFIED=""
+          for url in $URLS; do
+            for attempt in 1 2 3 4 5 6; do
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "$url" || true)
+              echo "attempt $attempt: $url -> ${STATUS:-000}"
+              if [ "$STATUS" = "200" ]; then
+                VERIFIED="$url"
+                break 2
+              fi
+              if [ "$attempt" -lt 6 ]; then sleep 10; fi
+            done
+          done
+          if [ -z "$VERIFIED" ]; then
+            echo "::error::lms-public health did not answer 200 on any known endpoint after retries."
             exit 1
           fi
+          echo "Backend health verified at $VERIFIED"
 
   # ---------------------------------------------------------------------------
-  # Frontend: static build on Hostinger
+  # Frontend: verify the Hostinger Git auto-deploy
+  #
+  # Hostinger rebuilds and publishes the frontend on every push to main
+  # (root frontend, output dist) and switches releases atomically. This job
+  # is the verification half of that single-writer setup: it proves the push
+  # actually reached production, checks every asset the live HTML references,
+  # and looks for a server key in the served bundles.
   # ---------------------------------------------------------------------------
   frontend:
-    name: Frontend (static)
+    name: Frontend (auto-deploy verification)
     needs: backend
     runs-on: ubuntu-latest
-    environment: production
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          fetch-depth: 1
 
-      - run: npm ci
-
-      - name: Build with production env
-        run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
-
-      - name: Abort if a server key leaked into the browser bundle
+      - name: Wait for Hostinger to publish this commit
         run: |
-          # Match the VALUE shape, never the bare word. The bundle legitimately
-          # contains "service_role" and "sb_secret_" inside Arabic help text
-          # and inside supabase-js itself.
-          LEAK=$(grep -rhoE 'sb_secret_[A-Za-z0-9_-]{16,}|eyJ[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}' dist/assets/ | sort -u || true)
-          if [ -n "$LEAK" ]; then
-            echo "::error::A server-side key leaked into dist/. Aborting deploy."
-            echo "$LEAK" | cut -c1-12
-            exit 1
-          fi
-          echo "No secret keys in dist."
-
-      # الأكشن القديم (appleboy/scp-action) كان بيرفع الملفات بنجاح لكنه
-      # بيرجع exit code غير صفري على الاستضافة المشتركة، واللوج مش متاح
-      # لصاحب الحساب من الـAPI. استبدلناه بـ OpenSSH الأصلي: نفس البروتوكول،
-      # لكن مع exit code حقيقي ورسالة خطأ مقروءة لو الفشل حقيقي.
-      - name: Configure SSH
-        env:
-          SSH_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
-        run: |
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/hostinger_key
-          chmod 600 ~/.ssh/hostinger_key
-
-      - name: Upload dist to public_html over SCP
-        env:
-          HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
-          USER_NAME: ${{ secrets.HOSTINGER_SSH_USER }}
-        run: |
-          # بدون حذف: الأصول القديمة أسماؤها hash مميز، فبقاؤها غير ضار
-          # وبيخلي التبويبات المفتوحة شغالة أثناء الانتقال بين الإصدارات.
-          ssh -p "$PORT" -i ~/.ssh/hostinger_key \
-            -o StrictHostKeyChecking=accept-new -o BatchMode=yes \
-            "$USER_NAME@$HOST" "mkdir -p public_html"
-          scp -P "$PORT" -i ~/.ssh/hostinger_key \
-            -o StrictHostKeyChecking=accept-new -o BatchMode=yes \
-            -r dist/. "$USER_NAME@$HOST:public_html/"
-          echo "Uploaded $(find dist -type f | wc -l) files."
-
-      - name: Verify the deployed version and its assets match this build
-        run: |
-          EXPECTED=$(node -p "require('./dist/version.json').version")
+          EXPECTED=$(git rev-parse --short HEAD)
           ACTUAL=""
-          for i in $(seq 1 18); do
+          for i in $(seq 1 24); do
             ACTUAL=$(curl -fsS "https://awexen.com/version.json?cb=$(date +%s)" \
               | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.parse(s).version||'')}catch{console.log('')}})")
-            echo "attempt $i: deployed=$ACTUAL expected=$EXPECTED"
+            echo "attempt $i: live=$ACTUAL expected=$EXPECTED"
             if [ "$ACTUAL" = "$EXPECTED" ]; then
               break
             fi
-            sleep 10
+            sleep 15
           done
           if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "::error::Production version.json ($ACTUAL) does not match the built commit ($EXPECTED)"
+            echo "::error::Hostinger has not published $EXPECTED after 6 minutes (live=$ACTUAL). Check the website's Git deployment in hPanel."
             exit 1
           fi
+          echo "Hostinger published $EXPECTED."
 
-          # نتحقق من كل أصل في HTML الحي: لو الرفع كان جزئيًا هيظهر ملف ناقص
-          # أو رجوع صفحة الـfallback بدل JS/CSS.
-          HTML=$(curl -fsS "https://awexen.com/?cb=$(date +%s)")
-          ASSETS=$(echo "$HTML" | grep -oE '(src|href)="/[^"]+"' | sed 's/.*="//;s/"$//' | sort -u \
-            | grep -E '^/(assets|fonts|images)/' || true)
-          MISSING=0
-          for asset in $ASSETS; do
-            HEADERS=$(curl -fsS -o /dev/null -D - "https://awexen.com$asset" || true)
-            STATUS=$(echo "$HEADERS" | grep -E '^HTTP/' | tail -1 | grep -oE '[0-9]{3}' | head -1)
-            TYPE=$(echo "$HEADERS" | grep -i '^content-type:' | head -1)
-            echo "$STATUS $asset ($TYPE)"
-            if [ "$STATUS" != "200" ]; then
-              MISSING=$((MISSING + 1))
-            fi
-            case "$asset" in
-              *.js) echo "$TYPE" | grep -qi 'javascript' || MISSING=$((MISSING + 1)) ;;
-              *.css) echo "$TYPE" | grep -qi 'text/css' || MISSING=$((MISSING + 1)) ;;
-              *.woff2) echo "$TYPE" | grep -qi 'font' || MISSING=$((MISSING + 1)) ;;
-            esac
-          done
-          if [ "$MISSING" -ne 0 ]; then
-            echo "::error::$MISSING asset(s) referenced by the live HTML are missing or served with the wrong type"
-            exit 1
-          fi
-          echo "All live assets match the new build."
+      - name: Verify live assets and scan the bundles for leaked server keys
+        run: |
+          node --input-type=module - <<'NODE'
+          const base = "https://awexen.com";
+          const html = await (await fetch(`${base}/?cb=${Date.now()}`)).text();
+          const assets = [...new Set([...html.matchAll(/(?:src|href)="(\/[^"]+)"/g)].map((m) => m[1]))]
+            .filter((path) => /^\/(assets|fonts|images)\//.test(path));
+          let failures = 0;
+          for (const asset of assets) {
+            const script = asset.endsWith(".js");
+            const res = await fetch(base + asset);
+            const type = res.headers.get("content-type") ?? "";
+            let ok = res.status === 200;
+            if (script) ok &&= /javascript/i.test(type);
+            if (asset.endsWith(".css")) ok &&= /text\/css/i.test(type);
+            if (asset.endsWith(".woff2")) ok &&= /font/i.test(type);
+            console.log(`${res.status} ${asset} (${type || "no content-type"})`);
+            if (!ok) {
+              console.error(`::error::${asset} is missing or served with the wrong content type`);
+              failures += 1;
+              continue;
+            }
+            if (!script) continue;
+            const body = await res.text();
+            if (/sb_secret_[A-Za-z0-9_-]{16,}/.test(body)) {
+              console.error(`::error::a Supabase secret key is present in ${asset}`);
+              failures += 1;
+            }
+            for (const match of body.matchAll(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g)) {
+              try {
+                const payload = JSON.parse(Buffer.from(match[0].split(".")[1], "base64url").toString("utf8"));
+                if (payload.role === "service_role") {
+                  console.error(`::error::a service_role JWT is present in ${asset}`);
+                  failures += 1;
+                }
+              } catch {
+                // Not a decodable JWT; nothing to check.
+              }
+            }
+          }
+          if (failures > 0) {
+            console.error(`::error::${failures} live asset check(s) failed`);
+            process.exit(1);
+          }
+          console.log(`Verified ${assets.length} live assets; no server key found.`);
+          NODE
 
   # ---------------------------------------------------------------------------
   # Release gate: one place that proves what production is running
@@ -298,11 +300,18 @@ jobs:
             echo "::error::Live version.json does not identify this commit."
             exit 1
           fi
-          HEALTH=$(curl -s -o /dev/null -w "%{http_code}" \
-            "https://awexen.com/functions/v1/lms-public?path=health" || true)
-          echo "backend health: HTTP $HEALTH"
+          HEALTH=""
+          for attempt in 1 2 3 4 5 6; do
+            HEALTH=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 \
+              "https://awexen.com/functions/v1/lms-public?path=health" || true)
+            echo "backend health attempt $attempt: HTTP ${HEALTH:-000}"
+            if [ "$HEALTH" = "200" ]; then
+              break
+            fi
+            if [ "$attempt" -lt 6 ]; then sleep 10; fi
+          done
           if [ "$HEALTH" != "200" ]; then
-            echo "::error::Backend health endpoint is not answering 200."
+            echo "::error::Backend health endpoint is not answering 200 after retries."
             exit 1
           fi
           {
