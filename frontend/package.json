@@ -12,6 +12,9 @@
     "seed:lms": "node scripts/seed-lms.mjs",
     "test:upload": "node scripts/test-upload.mjs",
     "test:crm": "node --experimental-strip-types scripts/test-crm.mjs",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "test": "npm run test:unit",
     "setup:lms": "powershell -ExecutionPolicy Bypass -File scripts/setup-lms.ps1",
     "fix:checkout": "node scripts/fix-checkout.mjs"
   },
@@ -26,6 +29,7 @@
     "tailwind-merge": "3.4.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/vite": "4.1.17",
     "@types/node": "22.19.17",
     "@types/react": "19.2.7",
@@ -35,6 +39,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",
     "vite": "^7.3.8",
+    "vitest": "^5.1.2",
     "wrangler": "^4.59.1"
   }
 }

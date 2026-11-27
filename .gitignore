@@ -27,3 +27,8 @@ supabase/.temp/
 # Local run logs (never commit)
 *.log
 dev-server.log
+
+# Test artifacts
+test-results/
+playwright-report/
+coverage/
