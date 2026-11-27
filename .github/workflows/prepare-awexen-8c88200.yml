@@ -1,0 +1,40 @@
+name: Prepare AWEXEN production backend
+on:
+  push:
+    branches: [deploy-awexen-8c88200]
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 8c88200ae8681421fe504a562ef6e70f181f5fd5
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Set telemetry rate key if missing
+        run: |
+          set -euo pipefail
+          [ "$SUPABASE_PROJECT_REF" = rlppzlcdkwrxsuekszcm ]
+          exists=$(supabase secrets list --project-ref "$SUPABASE_PROJECT_REF" --output json | node -e 'const fs=require("node:fs");const rows=JSON.parse(fs.readFileSync(0,"utf8"));if(!Array.isArray(rows))process.exit(1);console.log(rows.some(row=>row.name==="TELEMETRY_RATE_KEY")?"yes":"no")')
+          if [ "$exists" = no ]; then
+            key=$(openssl rand -hex 32)
+            echo "::add-mask::$key"
+            supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" "TELEMETRY_RATE_KEY=$key"
+          fi
+      - name: Deploy and attest backend
+        run: node frontend/scripts/deploy-edge-release.mjs . "$RUNNER_TEMP/edge-release.json"
+      - name: Verify backend contracts
+        run: node frontend/scripts/check-production-backend.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: edge-release
+          path: ${{ runner.temp }}/edge-release.json
+          if-no-files-found: ignore
