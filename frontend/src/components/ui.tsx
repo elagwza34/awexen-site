@@ -1,6 +1,7 @@
 import {
   Component,
   type ReactNode,
+  type Ref,
   type ImgHTMLAttributes,
   useEffect,
   useRef,
@@ -103,6 +104,7 @@ export function Reveal({
   dir,
   className,
   instant = false,
+  as = "div",
 }: {
   children: ReactNode;
   delay?: number;
@@ -110,6 +112,8 @@ export function Reveal({
   className?: string;
   /** محتوى فوق الطية يرسم فورًا (مهم لـ LCP) بدون انتظار حركة الظهور */
   instant?: boolean;
+  /** استخدم li داخل ol/ul عشان بنية القوائم تفضل صحيحة. */
+  as?: "div" | "li";
 }) {
   const { ref, inView } = useInView<HTMLDivElement>(0.08);
   const [mounted, setMounted] = useState(false);
@@ -117,15 +121,15 @@ export function Reveal({
     setMounted(true);
   }, []);
   const visible = instant || (mounted ? inView : true);
-  return (
-    <div
-      ref={ref}
-      data-dir={dir ?? "up"}
-      className={cn("reveal", visible && "is-visible", className)}
-      style={{ transitionDelay: `${delay}ms` }}
-    >
-      {children}
-    </div>
+  const props = {
+    "data-dir": dir ?? "up",
+    className: cn("reveal", visible && "is-visible", className),
+    style: { transitionDelay: `${delay}ms` },
+  };
+  return as === "li" ? (
+    <li ref={ref as Ref<HTMLLIElement>} {...props}>{children}</li>
+  ) : (
+    <div ref={ref} {...props}>{children}</div>
   );
 }
 

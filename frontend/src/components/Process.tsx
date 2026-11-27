@@ -40,8 +40,8 @@ export default function Process() {
 
           <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {processSteps.map((s, i) => (
-              <Reveal key={s.no} delay={(i % 3) * 110}>
-                <li className="group relative h-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] p-6 backdrop-blur-sm transition-all duration-400 hover:-translate-y-2 hover:border-brand-500/50 hover:bg-white/[0.06]">
+              <Reveal key={s.no} as="li" delay={(i % 3) * 110}>
+                <div className="group relative h-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] p-6 backdrop-blur-sm transition-all duration-400 hover:-translate-y-2 hover:border-brand-500/50 hover:bg-white/[0.06]">
                   {/* شعاع ضوئي عند التحويم */}
                   <span
                     className="pointer-events-none absolute -top-px right-8 h-px w-24 bg-gradient-to-l from-transparent via-brand-400 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"
@@ -71,7 +71,7 @@ export default function Process() {
                   <p className="relative mt-4 text-[14.5px] leading-7 text-ink-300">
                     {lang === "en" ? englishSteps[i]?.desc : s.desc}
                   </p>
-                </li>
+                </div>
               </Reveal>
             ))}
           </ol>

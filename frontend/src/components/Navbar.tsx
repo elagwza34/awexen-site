@@ -311,10 +311,10 @@ export default function Navbar() {
                 type="button"
                 onClick={toggleLang}
                 className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-3 py-2.5 text-[12px] font-black text-white/75 transition hover:border-brand-400/40 hover:bg-white/5 hover:text-white"
-                aria-label={t("nav.switchLanguage")}
               >
-                <Languages className="h-4 w-4 text-brand-400" />
+                <Languages className="h-4 w-4 text-brand-400" aria-hidden="true" />
                 <span dir="ltr">{lang === "ar" ? "EN" : "AR"}</span>
+                <span className="sr-only">{t("nav.switchLanguage")}</span>
               </button>
               {FEATURES.showLoginButton && (
                 <Link
