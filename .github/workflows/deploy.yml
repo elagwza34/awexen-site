@@ -1,7 +1,7 @@
-# نشر تلقائي: كل push على main يبني الواجهة ويرفعها لـ Hostinger
-# وطبق الـ migrations المعلّقة على Supabase.
+# نشر تلقائي: كل push على main يبني الواجهة ويرفعها لـ Hostinger،
+# وينشر Edge Functions إذا كانت اتغيّرت واعتمادات Supabase متاحة.
 #
-# الإعداد مطلوب مرة واحدة فقط:
+# الإعداد المطلوب مرة واحدة فقط:
 #   Repository → Settings → Environments → production
 #     Secrets:  HOSTINGER_SSH_PRIVATE_KEY, HOSTINGER_SSH_HOST,
 #               HOSTINGER_SSH_PORT, HOSTINGER_SSH_USER,
@@ -9,8 +9,12 @@
 #     Variables: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY,
 #               SUPABASE_PROJECT_REF
 #
-# ملاحظة: VITE_* تُقرأ كـ variables لا secrets لأنهاقيم عامة
+# ملاحظة: VITE_* تُقرأ كـ variables لا secrets لأنها قيم عامة
 # بتوصل للمتصفح أصلًا (مفتاح publishable فقط، لا service role).
+#
+# ترتيب النشر مقصود: الدوال (backend) الأول، وبعدها الواجهة (frontend).
+# كذا ماينفعش واجهة جديدة تعتمد على دالة جديدة قبل ما الدالة تكون منشورة.
+# والترحيلات (database) بتتطبّق يدويًا من owner المشروع على Supabase.
 
 name: Deploy
 
@@ -24,8 +28,145 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Backend: Edge Functions
+  # ---------------------------------------------------------------------------
+  backend:
+    name: Backend (Edge Functions)
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      functions_changed: ${{ steps.scope.outputs.functions }}
+      deployed: ${{ steps.credentials.outputs.ok }}
+    steps:
+      # fetch-depth: 0 عشان نقدر نقارن مع الكوميت السابق بدقة.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # بنحدد هل الدوال اتغيّرت في الـpush ده. لو اتغيّرت والاعتمادات
+      # ناقصة، النشر بيفشل صراحةً بدل ما الكود الجديد يفضل محلي.
+      - name: Detect changed backend files
+        id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          BASE=""
+          if [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            BASE="$BEFORE"
+          elif git rev-parse HEAD^ >/dev/null 2>&1; then
+            BASE=$(git rev-parse HEAD^)
+          fi
+          if [ -n "$BASE" ]; then
+            CHANGED=$(git diff --name-only "$BASE" "$SHA")
+          else
+            CHANGED=$(git show --name-only --pretty=format: "$SHA")
+          fi
+          FUNCTIONS=$(printf '%s\n' "$CHANGED" | grep -E '^supabase/functions/' || true)
+          MIGRATIONS=$(printf '%s\n' "$CHANGED" | grep -E '^supabase/migrations/' || true)
+          if [ -n "$FUNCTIONS" ]; then
+            echo "functions=true" >> "$GITHUB_OUTPUT"
+            printf '%s\n' "$FUNCTIONS" | sed 's/^/  /'
+          else
+            echo "functions=false" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "$MIGRATIONS" ]; then
+            echo "migrations=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Migration files changed. They are NOT applied by this workflow; apply them manually with an approved Supabase session."
+          else
+            echo "migrations=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check Supabase deploy credentials
+        id: credentials
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+          FUNCTIONS_CHANGED: ${{ steps.scope.outputs.functions }}
+        run: |
+          MISSING=""
+          if [ -z "$TOKEN" ]; then MISSING="SUPABASE_ACCESS_TOKEN (secret)"; fi
+          if [ -z "$PROJECT_REF" ]; then MISSING="$MISSING SUPABASE_PROJECT_REF (variable)"; fi
+          if [ -n "$MISSING" ]; then
+            if [ "$FUNCTIONS_CHANGED" = "true" ]; then
+              echo "::error::supabase/functions changed in this commit, but $MISSING is missing from the production environment. Refusing to leave the new backend code undeployed. Add it in Settings > Environments > production, then re-run this workflow. The frontend job is blocked on purpose so production cannot run old functions with new callers."
+              exit 1
+            fi
+            echo "::warning::Edge functions were NOT deployed. Missing: $MISSING. Add them in Settings > Environments > production to enable backend deploys."
+            {
+              echo "### Backend deploy skipped"
+              echo ""
+              echo "Missing: $MISSING"
+              echo ""
+              echo "No function files changed in this release, so production is consistent."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy lms-public
+        if: steps.credentials.outputs.ok == 'true'
+        run: supabase functions deploy lms-public --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Deploy lms-api
+        if: steps.credentials.outputs.ok == 'true'
+        run: supabase functions deploy lms-api --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Deploy ask-awexen
+        if: steps.credentials.outputs.ok == 'true'
+        run: supabase functions deploy ask-awexen --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Deploy extract-knowledge-pdf
+        if: steps.credentials.outputs.ok == 'true'
+        run: supabase functions deploy extract-knowledge-pdf --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Deploy form-notify
+        if: steps.credentials.outputs.ok == 'true'
+        run: supabase functions deploy form-notify --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --no-verify-jwt
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Deploy project-calculator
+        if: steps.credentials.outputs.ok == 'true'
+        run: supabase functions deploy project-calculator --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --no-verify-jwt
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      # بصحة الدالة المنشورة بنتحقق دايمًا، حتى لو النشر اتخطّى —
+      # عشان نتأكد إن الـbackend الشغّال فعليًا سليم.
+      - name: Verify the public backend health endpoint
+        if: always()
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ vars.VITE_SUPABASE_URL }}/functions/v1/lms-public?path=health" || true)
+          echo "lms-public HTTP $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::lms-public did not answer 200; backend health is not verified."
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Frontend: static build on Hostinger
+  # ---------------------------------------------------------------------------
   frontend:
-    name: Build and upload to Hostinger
+    name: Frontend (static)
+    needs: backend
     runs-on: ubuntu-latest
     environment: production
     defaults:
@@ -52,8 +193,7 @@ jobs:
         run: |
           # Match the VALUE shape, never the bare word. The bundle legitimately
           # contains "service_role" and "sb_secret_" inside Arabic help text
-          # and inside supabase-js itself, so grepping for those words aborted
-          # every deploy without ever catching a real key.
+          # and inside supabase-js itself.
           LEAK=$(grep -rhoE 'sb_secret_[A-Za-z0-9_-]{16,}|eyJ[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}' dist/assets/ | sort -u || true)
           if [ -n "$LEAK" ]; then
             echo "::error::A server-side key leaked into dist/. Aborting deploy."
@@ -62,23 +202,33 @@ jobs:
           fi
           echo "No secret keys in dist."
 
-      - name: Upload dist to public_html over SFTP
-        uses: appleboy/scp-action@v0.1.7
-        # الأكشن بيرفع الملفات بنجاح لكنه بيرجع exit code غير صفري بعد الرفع
-        # (سلوك معروف على استضافات مشتركة). الحكم النهائي هو خطوة التحقق
-        # اللي بعدين: لو الرفع فشل فعلًا هتفشل بسبب عدم تطابق الإصدار.
-        continue-on-error: true
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT }}
-          username: ${{ secrets.HOSTINGER_SSH_USER }}
-          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
-          source: frontend/dist/*
-          target: public_html
-          strip_components: 1
-          # بدون rm:true — كان بيحاول يمسح public_html كله قبل الرفع ويفشل
-          # على ملفات مش مملوكة للمستخدم، وكان بيوقّع الموقع مؤقتًا.
-          # الأصول القديمة لها أسماء hash مميزة فبقاؤها غير ضار وبيفيد التبويبات المفتوحة.
+      # الأكشن القديم (appleboy/scp-action) كان بيرفع الملفات بنجاح لكنه
+      # بيرجع exit code غير صفري على الاستضافة المشتركة، واللوج مش متاح
+      # لصاحب الحساب من الـAPI. استبدلناه بـ OpenSSH الأصلي: نفس البروتوكول،
+      # لكن مع exit code حقيقي ورسالة خطأ مقروءة لو الفشل حقيقي.
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/hostinger_key
+          chmod 600 ~/.ssh/hostinger_key
+
+      - name: Upload dist to public_html over SCP
+        env:
+          HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          USER_NAME: ${{ secrets.HOSTINGER_SSH_USER }}
+        run: |
+          # بدون حذف: الأصول القديمة أسماؤها hash مميز، فبقاؤها غير ضار
+          # وبيخلي التبويبات المفتوحة شغالة أثناء الانتقال بين الإصدارات.
+          ssh -p "$PORT" -i ~/.ssh/hostinger_key \
+            -o StrictHostKeyChecking=accept-new -o BatchMode=yes \
+            "$USER_NAME@$HOST" "mkdir -p public_html"
+          scp -P "$PORT" -i ~/.ssh/hostinger_key \
+            -o StrictHostKeyChecking=accept-new -o BatchMode=yes \
+            -r dist/. "$USER_NAME@$HOST:public_html/"
+          echo "Uploaded $(find dist -type f | wc -l) files."
 
       - name: Verify the deployed version and its assets match this build
         run: |
@@ -124,10 +274,52 @@ jobs:
           fi
           echo "All live assets match the new build."
 
+  # ---------------------------------------------------------------------------
+  # Release gate: one place that proves what production is running
+  # ---------------------------------------------------------------------------
+  release:
+    name: Release verification
+    needs: [backend, frontend]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify frontend, backend, and release consistency
+        run: |
+          echo "backend=${{ needs.backend.result }} frontend=${{ needs.frontend.result }} functions-changed=${{ needs.backend.outputs.functions_changed }} backend-deployed=${{ needs.backend.outputs.deployed }}"
+          if [ "${{ needs.backend.result }}" != "success" ] || [ "${{ needs.frontend.result }}" != "success" ]; then
+            echo "::error::Release incomplete: a required job did not succeed."
+            exit 1
+          fi
+          EXPECTED="${GITHUB_SHA:0:7}"
+          LIVE=$(curl -fsS "https://awexen.com/version.json?cb=$(date +%s)" \
+            | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{console.log(JSON.parse(s).version||'')})")
+          echo "live version: $LIVE (expected $EXPECTED)"
+          if [ "$LIVE" != "$EXPECTED" ]; then
+            echo "::error::Live version.json does not identify this commit."
+            exit 1
+          fi
+          HEALTH=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://awexen.com/functions/v1/lms-public?path=health" || true)
+          echo "backend health: HTTP $HEALTH"
+          if [ "$HEALTH" != "200" ]; then
+            echo "::error::Backend health endpoint is not answering 200."
+            exit 1
+          fi
+          {
+            echo "### Release verified"
+            echo ""
+            echo "- Frontend: \`$LIVE\` (assets checked against live HTML)"
+            echo "- Backend: health 200${BACKEND_NOTE}"
+            echo "- Migrations: manual / approval-gated (not applied here)"
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          BACKEND_NOTE: ${{ needs.backend.outputs.deployed == 'true' && ' (functions deployed)' || ' (functions unchanged or credentials missing)' }}
+
+  # ---------------------------------------------------------------------------
+  # Database: manual, approval-gated. Never runs automatically on push.
+  # ---------------------------------------------------------------------------
   database:
     name: Apply pending migrations
-    # الترحيلات بتتطبّق يدويًا من مالك المشروع على Supabase؛ الـjob بتاع
-    # النشر ما لازمش يعدّل قاعدة البيانات تلقائيًا مع كل push.
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment: production
@@ -155,93 +347,3 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-
-  edge-functions:
-    name: Deploy Edge Functions
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      # Regression guard: this job was missing entirely, so every fix inside
-      # supabase/functions/ stayed local while the frontend shipped from CI.
-      # That is what left production running the old payment-proof path check.
-      #
-      # النشر محتاج SUPABASE_ACCESS_TOKEN وSUPABASE_PROJECT_REF. قبل كده كان
-      # أول أمر بيفشل في أقل من ثانية برسالة غامضة غير مقروءة، فالـworkflow
-      # كله يبان أحمر رغم إن الموقع اتنشر. المفتاح دلوقتي بيتفحص صراحةً:
-      # لو ناقص، بنسجّل تحذير بالمكان اللي بيتضاف فيه وبنكمل — ولو موجود
-      # وبيوصل خطأ حقيقي، الخطوات بتفشل عادي.
-      - name: Check Supabase deploy credentials
-        id: credentials
-        env:
-          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
-        run: |
-          MISSING=""
-          if [ -z "$TOKEN" ]; then MISSING="SUPABASE_ACCESS_TOKEN (secret)"; fi
-          if [ -z "$PROJECT_REF" ]; then MISSING="$MISSING SUPABASE_PROJECT_REF (variable)"; fi
-          if [ -n "$MISSING" ]; then
-            echo "::warning::Edge functions were NOT deployed. Missing: $MISSING. Add them in Settings > Environments > production, then re-run this workflow."
-            {
-              echo "### Edge functions were not deployed"
-              echo ""
-              echo "Missing: $MISSING"
-              echo ""
-              echo "Add them in Settings > Environments > production, then re-run this workflow."
-            } >> "$GITHUB_STEP_SUMMARY"
-            echo "ok=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ok=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Deploy lms-public
-        if: steps.credentials.outputs.ok == 'true'
-        run: supabase functions deploy lms-public --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Deploy lms-api
-        if: steps.credentials.outputs.ok == 'true'
-        run: supabase functions deploy lms-api --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Deploy ask-awexen
-        if: steps.credentials.outputs.ok == 'true'
-        run: supabase functions deploy ask-awexen --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Deploy extract-knowledge-pdf
-        if: steps.credentials.outputs.ok == 'true'
-        run: supabase functions deploy extract-knowledge-pdf --project-ref "${{ vars.SUPABASE_PROJECT_REF }}"
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Deploy form-notify
-        if: steps.credentials.outputs.ok == 'true'
-        run: supabase functions deploy form-notify --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --no-verify-jwt
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Deploy project-calculator
-        if: steps.credentials.outputs.ok == 'true'
-        run: supabase functions deploy project-calculator --project-ref "${{ vars.SUPABASE_PROJECT_REF }}" --no-verify-jwt
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: Verify the public health endpoint answers
-        if: steps.credentials.outputs.ok == 'true'
-        run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${{ vars.VITE_SUPABASE_URL }}/functions/v1/lms-public?path=health" || true)
-          echo "lms-public HTTP $STATUS"
-          if [ "$STATUS" != "200" ]; then
-            echo "::error::lms-public did not answer 200 after deploying the edge functions"
-            exit 1
-          fi

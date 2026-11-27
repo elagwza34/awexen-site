@@ -1,0 +1,109 @@
+# Rollback يدوي للواجهة الثابتة: يبني نسخة من كوميت/تاج سابق ويرفعها
+# إلى Hostinger بنفس بوابة التحقق، من غير أي force-push على main.
+#
+# الاستخدام:
+#   Actions → Rollback frontend → Run workflow → اكتب ref
+#   (SHA قصير/كامل أو tag، مثل b4e2782).
+#
+# ملاحظات:
+# - Edge Functions لا تُعاد بنفس الطريقة؛ ارجع لكودها بـgit revert ثم push.
+# - قاعدة البيانات لا تُلمس هنا إطلاقًا.
+# - الأصول القديمة تبقى على الاستضافة بجانب الجديدة، فالتبويبات المفتوحة
+#   ما بتتكسرش أثناء الرجوع.
+
+name: Rollback frontend
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit SHA or tag to redeploy (for example b4e2782)"
+        required: true
+        type: string
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    name: Rebuild and deploy ${{ inputs.ref }}
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: Build with production env
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Abort if a server key leaked into the browser bundle
+        run: |
+          LEAK=$(grep -rhoE 'sb_secret_[A-Za-z0-9_-]{16,}|eyJ[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}' dist/assets/ | sort -u || true)
+          if [ -n "$LEAK" ]; then
+            echo "::error::A server-side key leaked into dist/. Aborting rollback."
+            exit 1
+          fi
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/hostinger_key
+          chmod 600 ~/.ssh/hostinger_key
+
+      - name: Upload dist to public_html over SCP
+        env:
+          HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          USER_NAME: ${{ secrets.HOSTINGER_SSH_USER }}
+        run: |
+          ssh -p "$PORT" -i ~/.ssh/hostinger_key \
+            -o StrictHostKeyChecking=accept-new -o BatchMode=yes \
+            "$USER_NAME@$HOST" "mkdir -p public_html"
+          scp -P "$PORT" -i ~/.ssh/hostinger_key \
+            -o StrictHostKeyChecking=accept-new -o BatchMode=yes \
+            -r dist/. "$USER_NAME@$HOST:public_html/"
+
+      - name: Verify the rolled-back version and its assets
+        run: |
+          EXPECTED=$(node -p "require('./dist/version.json').version")
+          ACTUAL=""
+          for i in $(seq 1 18); do
+            ACTUAL=$(curl -fsS "https://awexen.com/version.json?cb=$(date +%s)" \
+              | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.parse(s).version||'')}catch{console.log('')}})")
+            echo "attempt $i: deployed=$ACTUAL expected=$EXPECTED"
+            if [ "$ACTUAL" = "$EXPECTED" ]; then break; fi
+            sleep 10
+          done
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Live version ($ACTUAL) does not match the rolled-back build ($EXPECTED)."
+            exit 1
+          fi
+          HTML=$(curl -fsS "https://awexen.com/?cb=$(date +%s)")
+          ASSETS=$(echo "$HTML" | grep -oE '(src|href)="/[^"]+"' | sed 's/.*="//;s/"$//' | sort -u \
+            | grep -E '^/(assets|fonts|images)/' || true)
+          for asset in $ASSETS; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://awexen.com$asset")
+            if [ "$STATUS" != "200" ]; then
+              echo "::error::$asset returned $STATUS after rollback."
+              exit 1
+            fi
+          done
+          echo "Rollback to $EXPECTED verified."
