@@ -28,8 +28,10 @@ export default function PublicOffer() {
   if (query.isPending) return <p className="p-8 text-center" role="status">Loading offer…</p>;
   if (query.isError) return (
     <div className="p-8 text-center">
-      <p role="alert">Unable to load this offer.</p>
+      <h1 className="text-xl font-semibold">Offer unavailable</h1>
+      <p role="alert" className="mt-2">Unable to load this offer.</p>
       <button type="button" className="mt-3 underline" onClick={() => void query.refetch()}>Try again</button>
+      <Link className="mt-3 block underline" to="/">Back to AWEXEN</Link>
     </div>
   );
   if (!query.data) return (
