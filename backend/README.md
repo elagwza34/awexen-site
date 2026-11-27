@@ -1,5 +1,12 @@
 # Awexen Django Backend
 
+> **Archived reference — do not deploy.** التنفيذ الشغّال حاليًا كله على
+> Supabase (PostgreSQL + RLS + Edge Functions) وواجهة React، ونشر الموقع
+> عبر GitHub Actions إلى Hostinger كما في `.github/workflows/deploy.yml`.
+> هذا المجلد محفوظ للمراجعة التاريخية وللمقارنة أثناء التحقق من الانتقال،
+> ولا يشغّله CI ولا النشر. أي تغيير في سلوك المنصة يتطلب تعديل Edge
+> Functions وترحيلات `supabase/migrations/`، لا هذا المجلد.
+
 Django هو الطبقة الموثوقة لمنصة التعلّم. Supabase يوفر PostgreSQL وAuth، بينما يتحكم Django في العزل والصلاحيات والنشر والتسجيل والاستحقاق والتقدم.
 
 ## التطبيقات
